@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_profiles",
+  "info": {
+    "singularName": "user-profile",
+    "pluralName": "user-profiles",
+    "displayName": "UserProfile"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "fullName": {
+      "type": "string"
+    },
+    "phoneNumber": {
+      "type": "string"
+    },
+    "avatar": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "rating": {
+      "type": "decimal"
+    },
+    "completedTripsCount": {
+      "type": "integer"
+    },
+    "ratingsCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "isVerified": {
+      "type": "boolean",
+      "default": false
+    },
+    "governmentIdVerified": {
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    "gender": {
+      "type": "enumeration",
+      "enum": [
+        "men",
+        "women"
+      ]
+    },
+    "userId": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "pushToken": {
+      "type": "string"
+    }
+  }
+}

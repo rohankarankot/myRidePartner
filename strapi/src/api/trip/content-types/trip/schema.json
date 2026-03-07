@@ -1,0 +1,82 @@
+{
+    "kind": "collectionType",
+    "collectionName": "trips",
+    "info": {
+        "singularName": "trip",
+        "pluralName": "trips",
+        "displayName": "Trip",
+        "description": "Rides published by users"
+    },
+    "options": {
+        "draftAndPublish": true
+    },
+    "pluginOptions": {},
+    "attributes": {
+        "startingPoint": {
+            "type": "string",
+            "required": true
+        },
+        "destination": {
+            "type": "string",
+            "required": true
+        },
+        "date": {
+            "type": "date",
+            "required": true
+        },
+        "time": {
+            "type": "string",
+            "required": true
+        },
+        "availableSeats": {
+            "type": "integer",
+            "required": true,
+            "min": 1,
+            "max": 10
+        },
+        "pricePerSeat": {
+            "type": "decimal"
+        },
+        "isPriceCalculated": {
+            "type": "boolean",
+            "default": false
+        },
+        "genderPreference": {
+            "type": "enumeration",
+            "enum": [
+                "men",
+                "women",
+                "both"
+            ],
+            "default": "both",
+            "required": true
+        },
+        "creator": {
+            "type": "relation",
+            "relation": "manyToOne",
+            "target": "plugin::users-permissions.user"
+        },
+        "status": {
+            "type": "enumeration",
+            "enum": [
+                "PUBLISHED",
+                "STARTED",
+                "CANCELLED",
+                "COMPLETED"
+            ],
+            "default": "PUBLISHED"
+        },
+        "joinRequests": {
+            "type": "relation",
+            "relation": "oneToMany",
+            "target": "api::join-request.join-request",
+            "mappedBy": "trip"
+        },
+        "ratings": {
+            "type": "relation",
+            "relation": "oneToMany",
+            "target": "api::rating.rating",
+            "mappedBy": "trip"
+        }
+    }
+}

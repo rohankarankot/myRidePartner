@@ -1,0 +1,47 @@
+{
+    "kind": "collectionType",
+    "collectionName": "join_requests",
+    "info": {
+        "singularName": "join-request",
+        "pluralName": "join-requests",
+        "displayName": "Join Request",
+        "description": "Requests from passengers to join a trip"
+    },
+    "options": {
+        "draftAndPublish": false
+    },
+    "pluginOptions": {},
+    "attributes": {
+        "trip": {
+            "type": "relation",
+            "relation": "manyToOne",
+            "target": "api::trip.trip",
+            "inversedBy": "joinRequests"
+        },
+        "passenger": {
+            "type": "relation",
+            "relation": "manyToOne",
+            "target": "plugin::users-permissions.user"
+        },
+        "status": {
+            "type": "enumeration",
+            "enum": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED",
+                "CANCELLED"
+            ],
+            "default": "PENDING",
+            "required": true
+        },
+        "requestedSeats": {
+            "type": "integer",
+            "default": 1,
+            "min": 1,
+            "required": true
+        },
+        "message": {
+            "type": "text"
+        }
+    }
+}

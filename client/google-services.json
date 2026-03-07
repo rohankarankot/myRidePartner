@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "557967168672",
+    "project_id": "my-ride-partner-488012",
+    "storage_bucket": "my-ride-partner-488012.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:557967168672:android:acb9f27a80ad4dab15a5c5",
+        "android_client_info": {
+          "package_name": "com.rohankarankot.myridepartner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "557967168672-022fv2m3v69ueruq5rp0857ctm1vlek9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_i4WHYiDz7pKUxDkqhFQrXk9vEp94p9o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "557967168672-022fv2m3v69ueruq5rp0857ctm1vlek9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
