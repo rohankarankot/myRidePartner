@@ -506,7 +506,14 @@ export interface ApiNotificationNotification
     read: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     type: Schema.Attribute.Enumeration<
-      ['JOIN_REQUEST', 'TRIP_UPDATE', 'SYSTEM', 'TRIP_COMPLETED']
+      [
+        'JOIN_REQUEST',
+        'TRIP_UPDATE',
+        'SYSTEM',
+        'TRIP_COMPLETED',
+        'TRIP_STARTED',
+        'TRIP_CANCELLED',
+      ]
     > &
       Schema.Attribute.DefaultTo<'SYSTEM'>;
     updatedAt: Schema.Attribute.DateTime;

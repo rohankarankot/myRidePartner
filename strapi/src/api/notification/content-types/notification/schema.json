@@ -26,7 +26,9 @@
                 "JOIN_REQUEST",
                 "TRIP_UPDATE",
                 "SYSTEM",
-                "TRIP_COMPLETED"
+                "TRIP_COMPLETED",
+                "TRIP_STARTED",
+                "TRIP_CANCELLED"
             ],
             "default": "SYSTEM"
         },

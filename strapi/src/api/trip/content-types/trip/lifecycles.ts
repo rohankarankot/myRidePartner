@@ -36,35 +36,35 @@ export default {
         const { result, params } = event;
         const { status, creator, documentId } = result;
 
-        // If trip is marked as COMPLETED, increment captain's completedTripsCount
-        // Use params.data.status to check if it WAS changed to COMPLETED in this update
+        console.log(`--- trip afterUpdate: status=${status}, documentId=${documentId} ---`);
+
+        // 1. Handle COMPLETED status specifically for stats
         if (status === 'COMPLETED' && params.data.status === 'COMPLETED') {
-            if (!creator || !creator.id) return;
-
-            const userProfiles = await strapi.documents('api::user-profile.user-profile').findMany({
-                filters: { userId: { id: creator.id } }
-            });
-
-            if (userProfiles.length > 0) {
-                const profile = userProfiles[0];
-                const currentCount = profile.completedTripsCount || 0;
-
-                await strapi.documents('api::user-profile.user-profile').update({
-                    documentId: profile.documentId,
-                    data: {
-                        completedTripsCount: currentCount + 1
-                    }
+            if (creator && creator.id) {
+                const userProfiles = await strapi.documents('api::user-profile.user-profile').findMany({
+                    filters: { userId: { id: creator.id } }
                 });
 
-                // CRITICAL for Strapi v5: Publish the document so changes are visible to clients
-                await strapi.documents('api::user-profile.user-profile').publish({
-                    documentId: profile.documentId
-                });
+                if (userProfiles.length > 0) {
+                    const profile = userProfiles[0];
+                    const currentCount = profile.completedTripsCount || 0;
 
-                console.log(`Incremented and published completedTripsCount for user ${creator.id} to ${currentCount + 1}`);
+                    await strapi.documents('api::user-profile.user-profile').update({
+                        documentId: profile.documentId,
+                        data: { completedTripsCount: currentCount + 1 }
+                    });
+
+                    await strapi.documents('api::user-profile.user-profile').publish({
+                        documentId: profile.documentId
+                    });
+                    console.log(`Incremented completedTripsCount for user ${creator.id}`);
+                }
             }
+        }
 
-            // Also, we could automatically notify passengers here
+        // 2. Comprehensive Notifications for status changes (STARTED, COMPLETED, CANCELLED)
+        const statusChanged = params.data.status !== undefined;
+        if (statusChanged) {
             const tripWithRequests = await strapi.documents('api::trip.trip').findOne({
                 documentId,
                 populate: ['joinRequests.passenger']
@@ -75,11 +75,29 @@ export default {
 
                 for (const request of approvedRequests) {
                     if (request.passenger) {
+                        let title = 'Trip Update';
+                        let message = `Your trip to ${tripWithRequests.destination} has been updated.`;
+                        let type: any = 'TRIP_UPDATE';
+
+                        if (status === 'STARTED') {
+                            title = 'Trip Started';
+                            message = `Your trip to ${tripWithRequests.destination} has started! Be ready.`;
+                            type = 'TRIP_STARTED';
+                        } else if (status === 'COMPLETED') {
+                            title = 'Trip Completed';
+                            message = `Your trip to ${tripWithRequests.destination} is completed. Please rate your captain!`;
+                            type = 'TRIP_COMPLETED';
+                        } else if (status === 'CANCELLED') {
+                            title = 'Trip Cancelled';
+                            message = `The trip to ${tripWithRequests.destination} has been cancelled by the captain.`;
+                            type = 'TRIP_CANCELLED';
+                        }
+
                         await strapi.documents('api::notification.notification').create({
                             data: {
-                                title: 'Trip Completed',
-                                message: `Your trip from ${tripWithRequests.startingPoint} to ${tripWithRequests.destination} is completed. Please rate your captain!`,
-                                type: 'TRIP_COMPLETED',
+                                title,
+                                message,
+                                type,
                                 read: false,
                                 user: request.passenger.id,
                                 data: {
@@ -92,18 +110,19 @@ export default {
                     }
                 }
             }
+        }
 
-            // Emitting real-time socket event for trip status change
+        // 3. Emit socket event for ANY update (status or details)
+        // @ts-ignore
+        if (strapi.io) {
             // @ts-ignore
-            if (strapi.io) {
-                // @ts-ignore
-                strapi.io.to(`trip_${documentId}`).emit('trip_updated', {
-                    documentId,
-                    status,
-                    creatorId: creator?.id
-                });
-                console.log(`[Socket] Emitted trip_updated to trip_${documentId}`);
-            }
+            strapi.io.to(`trip_${documentId}`).emit('trip_updated', {
+                documentId,
+                status,
+                creatorId: creator?.id,
+                detailsUpdated: !statusChanged
+            });
+            console.log(`[Socket] Emitted trip_updated to trip_${documentId} (status: ${status})`);
         }
     }
 };

@@ -10,8 +10,10 @@ class SocketService {
         }
 
         this.socket = io(CONFIG.STRAPI_URL, {
-            transports: ['websocket'],
+            transports: ['polling', 'websocket'], // Allow polling first, then upgrade
             forceNew: true,
+            reconnectionAttempts: 5,
+            timeout: 10000,
         });
 
         this.socket.on('connect', () => {
