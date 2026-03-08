@@ -1,4 +1,4 @@
-// import type { Core } from '@strapi/strapi';
+import socketService from './services/socket';
 
 export default {
   /**
@@ -17,6 +17,9 @@ export default {
    * run jobs, or perform some special logic.
    */
   async bootstrap({ strapi }: { strapi: any }) {
+    // Initialize Socket.io
+    socketService.init(strapi);
+
     try {
       // Automate permissions for JoinRequest
       const authenticatedRole = await strapi

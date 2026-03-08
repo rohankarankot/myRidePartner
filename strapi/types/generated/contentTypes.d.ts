@@ -635,7 +635,8 @@ export interface ApiUserProfileUserProfile extends Struct.CollectionTypeSchema {
   };
   attributes: {
     avatar: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
-    completedTripsCount: Schema.Attribute.Integer;
+    completedTripsCount: Schema.Attribute.Integer &
+      Schema.Attribute.DefaultTo<0>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

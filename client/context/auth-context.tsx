@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { CONFIG } from '@/constants/config';
 import { userService } from '@/services/user-service';
 import { useUserStore } from '@/store/user-store';
+import { socketService } from '@/services/socket-service';
 
 interface User {
     id: number;
@@ -46,6 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Fetch profile if we have a session
                 const userObj = JSON.parse(storedUser);
                 fetchAndStoreProfile(userObj.id);
+
+                // Initialize socket connection
+                socketService.connect(userObj.id);
             }
         } catch (e) {
             console.error('Failed to load auth data', e);
@@ -73,6 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Fetch profile immediately after sign in
         fetchAndStoreProfile(newUser.id);
+
+        // Initialize socket connection
+        socketService.connect(newUser.id);
     };
 
     const signOut = async () => {
@@ -88,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(null);
         setUser(null);
         clearStore();
+        socketService.disconnect();
         await SecureStore.deleteItemAsync('userToken');
         await SecureStore.deleteItemAsync('userData');
     };

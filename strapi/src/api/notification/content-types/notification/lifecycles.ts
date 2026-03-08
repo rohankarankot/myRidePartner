@@ -17,6 +17,19 @@ export default {
                     message,
                     { ...data, type }
                 );
+
+                // Emitting real-time socket event
+                // @ts-ignore
+                if (strapi.io) {
+                    // @ts-ignore
+                    strapi.io.to(`user_${userId}`).emit('new_notification', {
+                        title,
+                        message,
+                        type,
+                        data
+                    });
+                    console.log(`[Socket] Emitted new_notification to user_${userId}`);
+                }
             } catch (error) {
                 console.error('Failed to send push notification in lifecycle:', error);
             }

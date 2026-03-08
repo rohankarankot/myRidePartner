@@ -104,7 +104,6 @@ export default function FindRidesScreen() {
     queryKey: ['unread-notifications-count', user?.id],
     queryFn: () => notificationService.getUnreadCount(user!.id),
     enabled: !!user?.id,
-    refetchInterval: 10000, // Poll every 10 seconds while app is open
   });
 
   const {

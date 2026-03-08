@@ -25,7 +25,6 @@ export default function RequestsScreen() {
         queryKey: ['pending-approvals', user?.id],
         queryFn: () => joinRequestService.getPendingRequestsForCaptain(user!.id),
         enabled: !!user?.id,
-        refetchInterval: 10000, // Poll every 10 seconds
     });
 
     // Mark all notifications for this user as read when they enter this screen

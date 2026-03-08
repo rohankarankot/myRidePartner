@@ -17,6 +17,7 @@ const queryClient = new QueryClient();
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { PushNotificationHandler } from '@/components/push-notification-handler';
+import { SocketHandler } from '@/components/socket-handler';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -26,6 +27,7 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <PushNotificationHandler />
+          <SocketHandler />
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <BottomSheetModalProvider>
               <Stack>

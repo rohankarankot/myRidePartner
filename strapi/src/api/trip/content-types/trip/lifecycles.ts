@@ -92,6 +92,18 @@ export default {
                     }
                 }
             }
+
+            // Emitting real-time socket event for trip status change
+            // @ts-ignore
+            if (strapi.io) {
+                // @ts-ignore
+                strapi.io.to(`trip_${documentId}`).emit('trip_updated', {
+                    documentId,
+                    status,
+                    creatorId: creator?.id
+                });
+                console.log(`[Socket] Emitted trip_updated to trip_${documentId}`);
+            }
         }
     }
 };

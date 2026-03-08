@@ -75,6 +75,16 @@ export default {
                     }
                 });
                 console.log(`Created notification for user ${trip.creator.id} for new join request ${result.documentId}`);
+
+                // Emitting real-time socket event to trip creator
+                // @ts-ignore
+                if (strapi.io) {
+                    // @ts-ignore
+                    strapi.io.to(`user_${trip.creator.id}`).emit('join_request_created', {
+                        tripId: trip.documentId,
+                        requestId: result.documentId
+                    });
+                }
             } else {
                 console.warn('Trip or trip creator not found for filter:', queryFilter);
             }
@@ -110,6 +120,17 @@ export default {
                         }
                     });
                     console.log(`Created status notification for passenger ${entry.passenger.id}`);
+
+                    // Emitting real-time socket event to passenger
+                    // @ts-ignore
+                    if (strapi.io) {
+                        // @ts-ignore
+                        strapi.io.to(`user_${entry.passenger.id}`).emit('join_request_updated', {
+                            requestId: result.documentId,
+                            status: result.status,
+                            tripId: entry.trip.documentId
+                        });
+                    }
                 }
 
                 // Seat management if approved

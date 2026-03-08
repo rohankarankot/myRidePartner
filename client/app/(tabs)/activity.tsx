@@ -104,7 +104,6 @@ export default function ActivityScreen() {
         queryKey: ['trips', user?.id],
         queryFn: () => tripService.getUserTrips(user!.id),
         enabled: !!user?.id,
-        refetchInterval: 15000, // Poll every 15 seconds
     });
 
     const {
@@ -116,7 +115,6 @@ export default function ActivityScreen() {
         queryKey: ['join-requests', user?.id],
         queryFn: () => joinRequestService.getJoinRequestsForUser(user!.id),
         enabled: !!user?.id,
-        refetchInterval: 15000,
     });
 
     const onRefresh = () => {

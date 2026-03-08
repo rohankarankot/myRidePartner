@@ -12,12 +12,25 @@ import { useAuth } from '@/context/auth-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { ratingService } from '@/services/rating-service';
+import { socketService } from '@/services/socket-service';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
     const router = useRouter();
     const { user } = useAuth();
     const queryClient = useQueryClient();
+
+    // ── Socket Room Management ────────────────────────────────────────
+    useEffect(() => {
+        if (documentId) {
+            console.log(`[Socket] Joining trip room: ${documentId}`);
+            socketService.emit('join_trip', documentId);
+            return () => {
+                console.log(`[Socket] Leaving trip room: ${documentId}`);
+                socketService.emit('leave_trip', documentId);
+            };
+        }
+    }, [documentId]);
 
 
 
@@ -60,7 +73,6 @@ export default function TripDetailsScreen() {
             return { trip: tripData, creatorProfile, requests };
         },
         enabled: !!documentId,
-        refetchInterval: 10000, // Poll every 10 seconds
     });
 
     // Check if user has already rated this trip
