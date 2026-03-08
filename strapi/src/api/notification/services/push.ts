@@ -11,15 +11,16 @@ export default {
             });
 
             if (userProfiles.length === 0 || !userProfiles[0].pushToken) {
-                console.log(`No push token found for user ${userId}`);
+                console.log(`[PushService] No push token found for user ${userId}. Skipping push notification.`);
                 return;
             }
 
             const pushToken = userProfiles[0].pushToken;
+            console.log(`[PushService] Attempting to send push to user ${userId} with token: ${pushToken}`);
 
             // Check if it's a valid Expo push token
             if (!Expo.isExpoPushToken(pushToken)) {
-                console.error(`Push token ${pushToken} is not a valid Expo push token`);
+                console.error(`[PushService] Token ${pushToken} for user ${userId} is not a valid Expo push token`);
                 return;
             }
 
@@ -38,14 +39,15 @@ export default {
                 try {
                     const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
                     tickets.push(...ticketChunk);
+                    console.log(`[PushService] Successfully sent chunk to Expo API`);
                 } catch (error) {
-                    console.error('Error sending push notification chunk:', error);
+                    console.error('[PushService] Error sending push notification chunk:', error);
                 }
             }
 
-            console.log(`Push notification sent to user ${userId}`);
+            console.log(`[PushService] Push notification delivery attempted for user ${userId}`);
         } catch (error) {
-            console.error('Error in sendPushNotification service:', error);
+            console.error('[PushService] Error in sendPushNotification service:', error);
         }
     }
 };

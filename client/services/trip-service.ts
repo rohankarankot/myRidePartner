@@ -20,7 +20,8 @@ class TripService {
     }
 
     async getTrips(page: number = 1, pageSize: number = 10, filters?: { gender?: string, date?: string }): Promise<TripResponse> {
-        let filterQuery = '';
+        let filterQuery = '&filters[status][$ne]=COMPLETED&filters[status][$ne]=CANCELLED';
+
         if (filters?.gender && filters.gender !== 'both') {
             filterQuery += `&filters[genderPreference][$eq]=${filters.gender}`;
         }

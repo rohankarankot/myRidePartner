@@ -19,13 +19,15 @@ export const PushNotificationHandler = () => {
         if (profile && profile.documentId) {
             // Check/request permissions when profile becomes available (logged in)
             pushNotificationService.requestPermissionsAsync().then(granted => {
-                if (granted && !profile.pushToken) {
-                    console.log('Registering for push notifications...');
-                    pushNotificationService.registerForPushNotificationsAsync(profile.documentId);
+                if (granted) {
+                    // Always try to register/update token to ensure it's correct for this device
+                    // The service can be optimized internally if needed
+                    console.log('Verifying push notification registration...');
+                    pushNotificationService.registerForPushNotificationsAsync(profile.documentId, profile.pushToken);
                 }
             });
         }
-    }, [profile]);
+    }, [profile?.documentId]);
 
     useEffect(() => {
         // Handle notification clicks

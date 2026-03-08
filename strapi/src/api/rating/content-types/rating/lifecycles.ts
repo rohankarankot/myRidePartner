@@ -1,21 +1,29 @@
 export default {
     async afterCreate(event) {
-        const { result, params } = event;
+        const { result } = event;
         const { ratee, stars } = result;
 
-        if (!ratee || !ratee.id) return;
+        // Strapi v5: ratee might be an ID or an object
+        const userId = typeof ratee === 'object' ? ratee?.id : ratee;
+
+        if (!userId) {
+            console.warn('[RatingLifecycle] No ratee found in result, skipping profile update');
+            return;
+        }
 
         // Fetch the user profile for the ratee
         const userProfiles = await strapi.documents('api::user-profile.user-profile').findMany({
-            filters: { userId: { id: ratee.id } }
+            filters: { userId: { id: userId } }
         });
 
-        if (userProfiles.length === 0) return;
+        if (userProfiles.length === 0) {
+            console.warn(`[RatingLifecycle] No profile found for user ${userId}`);
+            return;
+        }
 
         const profile = userProfiles[0];
 
         // Calculate new average rating
-        // Current stars sum + new stars / current count + 1
         const currentRating = profile.rating || 0;
         const currentCount = profile.ratingsCount || 0;
 
@@ -31,6 +39,11 @@ export default {
             }
         });
 
-        console.log(`Updated rating for user ${ratee.id}: ${newRating} (${newCount} ratings)`);
+        // CRITICAL for Strapi v5: Publish the document so changes are visible to clients
+        await strapi.documents('api::user-profile.user-profile').publish({
+            documentId: profile.documentId
+        });
+
+        console.log(`[RatingLifecycle] Updated and published rating for user ${userId}: ${newRating} (${newCount} ratings)`);
     }
 };

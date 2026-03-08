@@ -42,7 +42,7 @@ class PushNotificationService {
         return finalStatus === 'granted';
     }
 
-    async registerForPushNotificationsAsync(profileDocumentId: string) {
+    async registerForPushNotificationsAsync(profileDocumentId: string, currentSavedToken?: string) {
         const hasPermissions = await this.requestPermissionsAsync();
         if (!hasPermissions) {
             console.log('Failed to get permissions for push notifications!');
@@ -62,10 +62,15 @@ class PushNotificationService {
                 projectId,
             })).data;
 
-            console.log('Expo Push Token:', token);
+            console.log('Current Expo Push Token:', token);
 
-            // Update the user profile with the new token
-            await userService.updatePushToken(profileDocumentId, token);
+            // Only update if it's different from what's stored in the profile
+            if (token !== currentSavedToken) {
+                console.log('Updating push token on backend...');
+                await userService.updatePushToken(profileDocumentId, token);
+            } else {
+                console.log('Push token is already up to date.');
+            }
 
             return token;
         } catch (e) {

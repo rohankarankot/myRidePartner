@@ -55,7 +55,13 @@ export default {
                         completedTripsCount: currentCount + 1
                     }
                 });
-                console.log(`Incremented completedTripsCount for user ${creator.id} to ${currentCount + 1}`);
+
+                // CRITICAL for Strapi v5: Publish the document so changes are visible to clients
+                await strapi.documents('api::user-profile.user-profile').publish({
+                    documentId: profile.documentId
+                });
+
+                console.log(`Incremented and published completedTripsCount for user ${creator.id} to ${currentCount + 1}`);
             }
 
             // Also, we could automatically notify passengers here

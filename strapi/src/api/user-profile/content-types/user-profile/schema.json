@@ -31,7 +31,8 @@
       "type": "decimal"
     },
     "completedTripsCount": {
-      "type": "integer"
+      "type": "integer",
+      "default": 0
     },
     "ratingsCount": {
       "type": "integer",
