@@ -30,6 +30,9 @@ export default {
                 title: title,
                 body: body,
                 data: data,
+                priority: 'high',
+                channelId: 'default',
+                ttl: 60 * 60 * 24, // 1 day
             }];
 
             const chunks = expo.chunkPushNotifications(messages);
