@@ -139,8 +139,10 @@ export default function FindRidesScreen() {
           const isOwnTrip = user && trip.creator?.id === user.id;
           // Filter for upcoming trips (only if no specific date filter is applied)
           const isUpcoming = date ? true : trip.date >= todayString;
+          // Only show published trips
+          const isPublished = trip.status === 'PUBLISHED';
 
-          return !isOwnTrip && isUpcoming;
+          return !isOwnTrip && isUpcoming && isPublished;
         })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }

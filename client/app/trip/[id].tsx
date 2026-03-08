@@ -425,28 +425,45 @@ export default function TripDetailsScreen() {
                                         )}
                                         {userJoinRequest ? (
                                             <View style={[styles.statusBanner, {
-                                                backgroundColor: userJoinRequest.status === 'APPROVED' ? `${successColor}15` :
-                                                    userJoinRequest.status === 'REJECTED' ? `${dangerColor}15` : `${primaryColor}15`
+                                                backgroundColor: trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? `${successColor}10` :
+                                                    userJoinRequest.status === 'APPROVED' ? `${successColor}15` :
+                                                        userJoinRequest.status === 'REJECTED' ? `${dangerColor}15` : `${primaryColor}15`
                                             }]}>
                                                 <IconSymbol
-                                                    name={userJoinRequest.status === 'APPROVED' ? 'checkmark.circle.fill' :
-                                                        userJoinRequest.status === 'REJECTED' ? 'xmark.circle.fill' : 'clock.fill'}
+                                                    name={trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? 'star.fill' :
+                                                        userJoinRequest.status === 'APPROVED' ? 'checkmark.circle.fill' :
+                                                            userJoinRequest.status === 'REJECTED' ? 'xmark.circle.fill' : 'clock.fill'}
                                                     size={24}
-                                                    color={userJoinRequest.status === 'APPROVED' ? successColor :
-                                                        userJoinRequest.status === 'REJECTED' ? dangerColor : primaryColor}
+                                                    color={trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? '#F59E0B' :
+                                                        userJoinRequest.status === 'APPROVED' ? successColor :
+                                                            userJoinRequest.status === 'REJECTED' ? dangerColor : primaryColor}
                                                 />
                                                 <View style={styles.statusContent}>
                                                     <Text style={[styles.statusTitle, {
-                                                        color: userJoinRequest.status === 'APPROVED' ? successColor :
-                                                            userJoinRequest.status === 'REJECTED' ? dangerColor : primaryColor
+                                                        color: trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? '#92400E' :
+                                                            userJoinRequest.status === 'APPROVED' ? successColor :
+                                                                userJoinRequest.status === 'REJECTED' ? dangerColor : primaryColor
                                                     }]}>
-                                                        Request {userJoinRequest.status.charAt(0) + userJoinRequest.status.slice(1).toLowerCase()}
+                                                        {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ?
+                                                            (userRating ? 'Trip Completed' : 'Rate your Ride') :
+                                                            `Request ${userJoinRequest.status.charAt(0) + userJoinRequest.status.slice(1).toLowerCase()}`}
                                                     </Text>
                                                     <Text style={[styles.statusDesc, { color: subtextColor }]}>
-                                                        {userJoinRequest.status === 'APPROVED' ? 'You are part of this trip! See you there.' :
-                                                            userJoinRequest.status === 'REJECTED' ? 'The captain has declined your request.' :
-                                                                'Waiting for captain to approve your request.'}
+                                                        {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ?
+                                                            (userRating ? 'Thank you for providing feedback!' : `How was your ride with ${creatorProfile?.fullName || trip.creator?.username}?`) :
+                                                            (userJoinRequest.status === 'APPROVED' ? 'You are part of this trip! See you there.' :
+                                                                userJoinRequest.status === 'REJECTED' ? 'The captain has declined your request.' :
+                                                                    'Waiting for captain to approve your request.')}
                                                     </Text>
+
+                                                    {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' && !userRating && (
+                                                        <TouchableOpacity
+                                                            style={[styles.rateInlineButton, { backgroundColor: '#F59E0B' }]}
+                                                            onPress={() => setShowRatingModal(true)}
+                                                        >
+                                                            <Text style={styles.rateInlineButtonText}>Rate Captain</Text>
+                                                        </TouchableOpacity>
+                                                    )}
                                                 </View>
                                             </View>
                                         ) : (
@@ -1005,5 +1022,17 @@ const styles = StyleSheet.create({
         fontSize: 15,
         height: 80,
         textAlignVertical: 'top',
+    },
+    rateInlineButton: {
+        marginTop: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 10,
+        alignSelf: 'flex-start',
+    },
+    rateInlineButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
     },
 });
