@@ -316,7 +316,9 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     buttonDisabled: {
-        opacity: 0.7,
+        opacity: 0.15,
+        elevation: 0,
+        shadowOpacity: 0,
     },
     footer: {
         marginTop: 30,
