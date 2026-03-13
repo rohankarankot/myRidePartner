@@ -5,7 +5,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { joinRequestService } from '@/services/join-request-service';
-import { Trip, JoinRequest, TripStatus, JoinRequestStatus } from '@/types/api';
+import { Trip, JoinRequest, TripStatus, JoinRequestStatus, GenderPreference } from '@/types/api';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 import { useQuery } from '@tanstack/react-query';
@@ -18,11 +18,11 @@ const TripCard = (props: {
     price: string,
     status: TripStatus | JoinRequestStatus,
     isPriceCalculated: boolean | null,
+    genderPreference: GenderPreference,
     pendingRequestsCount?: number,
     onPress: (documentId: string) => void
 }) => {
-    const { documentId, from, to, date, price, status, isPriceCalculated, pendingRequestsCount = 0, onPress } = props;
-    console.log(isPriceCalculated, "props");
+    const { documentId, from, to, date, price, status, isPriceCalculated, genderPreference, pendingRequestsCount = 0, onPress } = props;
 
     const textColor = useThemeColor({}, 'text');
     const subtextColor = useThemeColor({}, 'subtext');
@@ -59,6 +59,7 @@ const TripCard = (props: {
                 <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
                     <Text style={[styles.statusText, { color: statusStyle.text }]}>{status}</Text>
                 </View>
+
                 {pendingRequestsCount > 0 ? (
                     <View style={[styles.pendingBadge, { backgroundColor: primaryColor }]}>
                         <Text style={styles.pendingBadgeText}>{pendingRequestsCount} Pending</Text>
@@ -76,12 +77,25 @@ const TripCard = (props: {
                     <Text style={[styles.address, { color: textColor }]} numberOfLines={2}>{from}</Text>
                     <Text style={[styles.address, { color: textColor, marginTop: 20 }]} numberOfLines={2}>{to}</Text>
                 </View>
+                <View style={[styles.genderBadge, { backgroundColor: genderPreference === 'both' ? '#F3F4FB' : genderPreference === 'men' ? '#EBF5FF' : '#FFF1F2' }]}>
+                    <IconSymbol
+                        name={genderPreference === 'both' ? 'person.2.fill' : genderPreference === 'men' ? 'person.fill' : 'person.fill'}
+                        size={10}
+                        color={genderPreference === 'both' ? '#6B7280' : genderPreference === 'men' ? '#3B82F6' : '#F43F5E'}
+                    />
+                    <Text style={[styles.genderText, { color: genderPreference === 'both' ? '#6B7280' : genderPreference === 'men' ? '#3B82F6' : '#F43F5E' }]}>
+                        {genderPreference === 'both' ? 'All' : genderPreference === 'men' ? 'Men' : 'Women'}
+                    </Text>
+                </View>
             </View>
 
             <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
             <View style={styles.cardFooter}>
-                <Text style={[styles.price, { color: primaryColor }]}>{!isPriceCalculated ? price : "Calculated on departure"}</Text>
+                <View>
+
+                    <Text style={[styles.price, { color: primaryColor }]}>{!isPriceCalculated ? price : "Calculated on departure"}</Text>
+                </View>
                 <IconSymbol name="chevron.right" size={18} color={subtextColor} />
             </View>
         </TouchableOpacity>
@@ -166,6 +180,7 @@ export default function ActivityScreen() {
                                         date={`${trip.date} • ${trip.time}`}
                                         price={`₹${trip.pricePerSeat}`}
                                         status={trip.status}
+                                        genderPreference={trip.genderPreference}
                                         pendingRequestsCount={trip.joinRequests?.filter(r => r.status === 'PENDING').length}
                                         onPress={(docId) => router.push(`/trip/${docId}`)}
                                     />
@@ -186,6 +201,7 @@ export default function ActivityScreen() {
                                         date={`${request.trip?.date} • ${request.trip?.time}`}
                                         price={`₹${request.trip?.pricePerSeat}`}
                                         status={request.status}
+                                        genderPreference={request.trip?.genderPreference || 'both'}
                                         onPress={(docId) => router.push(`/trip/${docId}`)}
                                     />
                                 ))}
@@ -244,6 +260,20 @@ const styles = StyleSheet.create({
     statusText: {
         fontSize: 11,
         fontWeight: '700',
+    },
+    genderBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 4,
+        height: 24,
+    },
+    genderText: {
+        fontSize: 11,
+        fontWeight: '700',
+        textTransform: 'capitalize',
     },
     pendingBadge: {
         marginLeft: 8,
