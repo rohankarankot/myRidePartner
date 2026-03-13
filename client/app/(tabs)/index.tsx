@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
-import { Trip } from '@/types/api';
+import { Trip, GenderPreference } from '@/types/api';
 import { useRouter } from 'expo-router';
 import { isToday, isTomorrow, format } from 'date-fns';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -28,7 +28,7 @@ const formatDisplayDate = (dateStr: string) => {
 };
 
 // Reusable component based on the original static design
-const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, onPress }: {
+const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, genderPreference, onPress }: {
   documentId: string,
   from: string,
   to: string,
@@ -37,6 +37,7 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
   price: string | undefined,
   isCalculated: boolean,
   status: string,
+  genderPreference: GenderPreference,
   onPress: (id: string) => void
 }) => {
   const textColor = useThemeColor({}, 'text');
@@ -66,6 +67,16 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
             )}
           </View>
           <Text style={[styles.addressText, { color: textColor }]} numberOfLines={1}>{to}</Text>
+        </View>
+        <View style={[styles.genderBadge, { backgroundColor: genderPreference === 'both' ? '#F3F4FB' : genderPreference === 'men' ? '#EBF5FF' : '#FFF1F2' }]}>
+          <IconSymbol
+            name={genderPreference === 'both' ? 'person.2.fill' : genderPreference === 'men' ? 'person.fill' : 'person.fill'}
+            size={10}
+            color={genderPreference === 'both' ? '#6B7280' : genderPreference === 'men' ? '#3B82F6' : '#F43F5E'}
+          />
+          <Text style={[styles.genderText, { color: genderPreference === 'both' ? '#6B7280' : genderPreference === 'men' ? '#3B82F6' : '#F43F5E' }]}>
+            {genderPreference === 'both' ? 'All' : genderPreference === 'men' ? 'Men' : 'Women'}
+          </Text>
         </View>
       </View>
 
@@ -230,6 +241,7 @@ export default function FindRidesScreen() {
               price={item.pricePerSeat?.toString()}
               isCalculated={item.isPriceCalculated}
               status={item.status}
+              genderPreference={item.genderPreference}
               onPress={(id) => router.push(`/trip/${id}`)}
             />
           )}
@@ -416,6 +428,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 9,
     fontWeight: '800',
+  },
+  genderBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    height: 24,
+    alignSelf: 'center',
+  },
+  genderText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'capitalize',
   },
   center: {
     flex: 1,

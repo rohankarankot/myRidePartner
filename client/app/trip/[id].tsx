@@ -13,12 +13,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { ratingService } from '@/services/rating-service';
 import { socketService } from '@/services/socket-service';
+import { useUserStore } from '@/store/user-store';
+import { CustomAlert } from '@/components/CustomAlert';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
     const router = useRouter();
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const { profile } = useUserStore();
+
+    const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender;
 
     // ── Socket Room Management ────────────────────────────────────────
     useEffect(() => {
@@ -38,6 +43,7 @@ export default function TripDetailsScreen() {
     const [agreeToCancel, setAgreeToCancel] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
+    const [showProfileAlert, setShowProfileAlert] = useState(false);
 
     // Rating State
     const [showRatingModal, setShowRatingModal] = useState(false);
@@ -106,6 +112,11 @@ export default function TripDetailsScreen() {
 
     const handleJoinRequest = async () => {
         if (!user || !documentId || !trip) return;
+
+        if (isProfileIncomplete) {
+            setShowProfileAlert(true);
+            return;
+        }
 
         if (trip.availableSeats <= 0) {
             Alert.alert('No Seats Available', 'This trip is already full.');
@@ -239,6 +250,20 @@ export default function TripDetailsScreen() {
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+            <CustomAlert
+                visible={showProfileAlert}
+                title="Complete Your Profile"
+                message="You need to provide your Name, Phone Number, and Gender before you can request to join a ride."
+                primaryButton={{
+                    text: "Go to Profile",
+                    onPress: () => {
+                        setShowProfileAlert(false);
+                        router.push('/(tabs)/profile');
+                    }
+                }}
+                onClose={() => setShowProfileAlert(false)}
+                icon="person.crop.circle.badge.exclamationmark"
+            />
             <Stack.Screen
                 options={{
                     title: loading ? 'Loading details...' : 'Trip Details',
