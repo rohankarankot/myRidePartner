@@ -94,12 +94,13 @@ export default function TabLayout() {
         },
         headerTintColor: Colors[colorScheme ?? 'light'].text,
         tabBarButton: HapticTab,
+        headerTitleAlign: 'center',
         headerRight: () => <HeaderRight type="notifications" />,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Find',
+          title: 'My Ride Partner',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
         }}
       />

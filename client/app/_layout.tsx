@@ -34,6 +34,7 @@ export default function RootLayout() {
             <BottomSheetModalProvider>
               <Stack
                 screenOptions={{
+                  headerTitleAlign: 'center',
                   headerRight: () => <HeaderRight type="notifications" />,
                 }}>
                 <Stack.Screen name="login" options={{ headerShown: false }} />
