@@ -174,7 +174,7 @@ export default function FindRidesScreen() {
   const loading = isLoading && !isRefetching;
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View  >
 
       <View style={[styles.searchContainer, { backgroundColor: cardColor, borderColor }]}>
         <IconSymbol name="magnifyingglass" size={20} color={subtextColor} />
@@ -285,9 +285,7 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
   },
-  header: {
-    paddingTop: 5
-  },
+
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -38,6 +38,7 @@ export default function LoginScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const router = useRouter();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [isTermsAccepted, setIsTermsAccepted] = useState(true);
 
     const textColor = useThemeColor({}, 'text');
     const primaryColor = useThemeColor({}, 'primary');
@@ -69,7 +70,7 @@ export default function LoginScreen() {
     }, []);
 
     const handleGoogleLogin = async () => {
-        if (isLoggingIn) return;
+        if (isLoggingIn || !isTermsAccepted) return;
 
         setIsLoggingIn(true);
         try {
@@ -129,6 +130,7 @@ export default function LoginScreen() {
                         <BlurView intensity={colorScheme === 'dark' ? 20 : 40} style={styles.blurContainer}>
                             <LoginCardContent
                                 isLoggingIn={isLoggingIn}
+                                isTermsAccepted={isTermsAccepted}
                                 onLogin={handleGoogleLogin}
                                 textColor={textColor}
                                 subtextColor={subtextColor}
@@ -139,6 +141,7 @@ export default function LoginScreen() {
                         <View style={[styles.androidCard, { backgroundColor: cardColor, borderColor: textColor + '10' }]}>
                             <LoginCardContent
                                 isLoggingIn={isLoggingIn}
+                                isTermsAccepted={isTermsAccepted}
                                 onLogin={handleGoogleLogin}
                                 textColor={textColor}
                                 subtextColor={subtextColor}
@@ -150,16 +153,32 @@ export default function LoginScreen() {
 
                 {/* Footer Section */}
                 <Animated.View entering={FadeIn.delay(800)} style={styles.footer}>
-                    <Text style={[styles.footerText, { color: subtextColor }]}>
-                        By continuing, you agree to our Terms and Privacy Policy.
-                    </Text>
+                    <View style={styles.termsRow}>
+                        <TouchableOpacity
+                            onPress={() => setIsTermsAccepted(!isTermsAccepted)}
+                            style={styles.checkbox}
+                            activeOpacity={0.7}
+                        >
+                            <IconSymbol
+                                name={isTermsAccepted ? "checkmark.circle.fill" : "checkmark.circle"}
+                                size={22}
+                                color={isTermsAccepted ? primaryColor : subtextColor}
+                            />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => router.push('/terms')}>
+                            <Text style={[styles.footerText, { color: subtextColor }]}>
+                                By continuing, you agree to
+                            </Text>
+                            <Text style={{ color: primaryColor, textDecorationLine: 'underline' }}>Terms and Privacy Policy</Text>.
+                        </TouchableOpacity>
+                    </View>
                 </Animated.View>
 
             </Animated.View>
-            <View style={{ display: 'flex', alignItems: 'center', position: 'absolute', bottom: 30, left: 0, right: 0 }}>
-                <Text style={{ color: textColor, fontSize: 14 }}>An Initiative by MH13 Community 🚩</Text>
+            <View style={{ display: 'flex', alignItems: 'center', position: 'absolute', bottom: 70, left: 0, right: 0 }}>
+                <Text style={{ color: textColor, fontSize: 14 }}>🚩 An initiative by MH13 Community 🚩</Text>
                 <TouchableOpacity onPress={() => Linking.openURL('https://github.com/rohankarankot/myRidePartner')}>
-                    <Text style={{ color: "#7b88ffff", fontSize: 12, marginTop: 10, width: '100%', textAlign: 'center' }}>Contributions are welcomed</Text>
+                    <Text style={{ color: "#7b88ffff", fontSize: 12, marginTop: 10, width: '100%', textAlign: 'center', textDecorationLine: 'underline' }}>Contributions are welcomed</Text>
                 </TouchableOpacity>
 
             </View>
@@ -167,7 +186,7 @@ export default function LoginScreen() {
     );
 }
 
-const LoginCardContent = ({ isLoggingIn, onLogin, textColor, subtextColor, primaryColor }: any) => (
+const LoginCardContent = ({ isLoggingIn, isTermsAccepted, onLogin, textColor, subtextColor, primaryColor }: any) => (
     <View style={styles.cardInner}>
         <Text style={[styles.cardTitle, { color: textColor }]}>Sign In</Text>
         <Text style={[styles.cardSubtitle, { color: subtextColor }]}>
@@ -175,9 +194,13 @@ const LoginCardContent = ({ isLoggingIn, onLogin, textColor, subtextColor, prima
         </Text>
 
         <TouchableOpacity
-            style={[styles.button, { backgroundColor: primaryColor }, isLoggingIn && styles.buttonDisabled]}
+            style={[
+                styles.button,
+                { backgroundColor: primaryColor },
+                (!isTermsAccepted || isLoggingIn) && styles.buttonDisabled
+            ]}
             onPress={onLogin}
-            disabled={isLoggingIn}
+            disabled={isLoggingIn || !isTermsAccepted}
             activeOpacity={0.8}
         >
             {isLoggingIn ? (
@@ -298,10 +321,18 @@ const styles = StyleSheet.create({
         marginTop: 30,
         alignItems: 'center',
     },
+    termsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    checkbox: {
+        marginRight: 10,
+    },
     footerText: {
-        fontSize: 15,
-        textAlign: 'center',
-        opacity: 0.6,
-        lineHeight: 18,
+        fontSize: 14,
+        textAlign: 'left',
+        opacity: 0.8,
+        lineHeight: 20,
     },
 });

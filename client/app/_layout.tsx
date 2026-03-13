@@ -39,6 +39,7 @@ export default function RootLayout() {
                 <Stack.Screen name="login" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />
+                <Stack.Screen name="terms" options={{ title: 'Terms & Privacy', headerBackTitle: 'Back', headerShown: true }} />
                 <Stack.Screen name="requests/index" options={{ title: 'Join Requests', headerBackTitle: 'Back' }} />
                 <Stack.Screen name="requests/[documentId]" options={{ title: 'Request Details', headerBackTitle: 'Back' }} />
               </Stack>
