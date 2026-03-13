@@ -231,7 +231,6 @@ export default function CreateScreen() {
             />
             <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['top']}>
                 <ScrollView contentContainerStyle={styles.container}>
-                    <Text style={[styles.title, { color: textColor }]}>Publish Ride</Text>
 
                     <View style={[styles.card, { backgroundColor: cardColor }]}>
                         <FormField
@@ -377,7 +376,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     container: {
-        padding: 20,
+        paddingRight: 20,
+        paddingLeft: 20,
+        paddingBottom: 50,
     },
     title: {
         fontSize: 28,

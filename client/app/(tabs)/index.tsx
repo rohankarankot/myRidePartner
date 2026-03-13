@@ -175,20 +175,7 @@ export default function FindRidesScreen() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <View style={styles.headerTop}>
-        <Text style={[styles.title, { color: textColor }]}>Find a Ride</Text>
-        <TouchableOpacity
-          style={styles.notificationBtn}
-          onPress={handleOpenNotifications}
-        >
-          <IconSymbol name="bell.fill" size={24} color={textColor} />
-          {unreadCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: primaryColor }]}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
+
       <View style={[styles.searchContainer, { backgroundColor: cardColor, borderColor }]}>
         <IconSymbol name="magnifyingglass" size={20} color={subtextColor} />
         <TextInput

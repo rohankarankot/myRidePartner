@@ -12,6 +12,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
+import { HeaderRight } from '@/components/ui/HeaderRight';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -84,8 +85,16 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: Colors[colorScheme ?? 'light'].card,
+        },
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+        headerTintColor: Colors[colorScheme ?? 'light'].text,
         tabBarButton: HapticTab,
+        headerRight: () => <HeaderRight type="notifications" />,
       }}>
       <Tabs.Screen
         name="index"
@@ -111,16 +120,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          headerShown: true,
           title: 'Profile',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-          headerStyle: {
-            backgroundColor: Colors[colorScheme ?? 'light'].card,
-          },
-          headerTintColor: Colors[colorScheme ?? 'light'].text,
-
+          headerRight: () => <HeaderRight type="settings" />,
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
         }}
       />

@@ -19,6 +19,8 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { PushNotificationHandler } from '@/components/push-notification-handler';
 import { SocketHandler } from '@/components/socket-handler';
 
+import { HeaderRight } from '@/components/ui/HeaderRight';
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -30,7 +32,10 @@ export default function RootLayout() {
           <SocketHandler />
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <BottomSheetModalProvider>
-              <Stack>
+              <Stack
+                screenOptions={{
+                  headerRight: () => <HeaderRight type="notifications" />,
+                }}>
                 <Stack.Screen name="login" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />

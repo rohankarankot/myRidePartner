@@ -141,7 +141,6 @@ export default function ActivityScreen() {
                     <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
                 }
             >
-                <Text style={[styles.title, { color: textColor }]}>My Activity</Text>
 
                 {trips.length === 0 && requests.length === 0 ? (
                     <View style={styles.emptyContainer}>
