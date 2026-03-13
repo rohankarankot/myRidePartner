@@ -165,11 +165,12 @@ export default function LoginScreen() {
                                 color={isTermsAccepted ? primaryColor : subtextColor}
                             />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => router.push('/terms')}>
+                        <TouchableOpacity onPress={() => router.push('/terms')} style={{ display: 'flex' }}>
                             <Text style={[styles.footerText, { color: subtextColor }]}>
                                 By continuing, you agree to
                             </Text>
-                            <Text style={{ color: primaryColor, textDecorationLine: 'underline' }}>Terms and Privacy Policy</Text>.
+                            <Text style={{ color: primaryColor, textDecorationLine: 'underline' }}>Terms and Privacy Policy.</Text>
+
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
@@ -178,11 +179,11 @@ export default function LoginScreen() {
             <View style={{ display: 'flex', alignItems: 'center', position: 'absolute', bottom: 70, left: 0, right: 0 }}>
                 <Text style={{ color: textColor, fontSize: 14 }}>🚩 An initiative by MH13 Community 🚩</Text>
                 <TouchableOpacity onPress={() => Linking.openURL('https://github.com/rohankarankot/myRidePartner')}>
-                    <Text style={{ color: "#7b88ffff", fontSize: 12, marginTop: 10, width: '100%', textAlign: 'center', textDecorationLine: 'underline' }}>Contributions are welcomed</Text>
+                    <Text style={{ color: primaryColor, fontSize: 12, marginTop: 10, width: '100%', textAlign: 'center', textDecorationLine: 'underline' }}>Contributions are welcomed</Text>
                 </TouchableOpacity>
 
             </View>
-        </View>
+        </View >
     );
 }
 
