@@ -100,7 +100,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'My Ride Partner',
+          headerTitle: 'My Ride Partner',
+          title: 'Find',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
         }}
       />

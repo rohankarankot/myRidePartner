@@ -22,6 +22,7 @@ const TripCard = (props: {
     onPress: (documentId: string) => void
 }) => {
     const { documentId, from, to, date, price, status, isPriceCalculated, pendingRequestsCount = 0, onPress } = props;
+    console.log(isPriceCalculated, "props");
 
     const textColor = useThemeColor({}, 'text');
     const subtextColor = useThemeColor({}, 'subtext');
@@ -80,7 +81,7 @@ const TripCard = (props: {
             <View style={[styles.divider, { backgroundColor: borderColor }]} />
 
             <View style={styles.cardFooter}>
-                <Text style={[styles.price, { color: primaryColor }]}>{isPriceCalculated === null ? price : "Calculated on departure"}</Text>
+                <Text style={[styles.price, { color: primaryColor }]}>{!isPriceCalculated ? price : "Calculated on departure"}</Text>
                 <IconSymbol name="chevron.right" size={18} color={subtextColor} />
             </View>
         </TouchableOpacity>
