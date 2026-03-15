@@ -171,9 +171,7 @@ export default function FindRidesScreen() {
     bottomSheetModalRef.current?.dismiss();
   };
 
-  const handleOpenNotifications = () => {
-    router.push('/notifications');
-  };
+
 
   const handleResetFilters = () => {
     setGender('both');
@@ -185,7 +183,7 @@ export default function FindRidesScreen() {
   const loading = isLoading && !isRefetching;
 
   const renderHeader = () => (
-    <View  >
+    <View style={{ paddingTop: 20 }}>
 
       <View style={[styles.searchContainer, { backgroundColor: cardColor, borderColor }]}>
         <IconSymbol name="magnifyingglass" size={20} color={subtextColor} />
@@ -227,7 +225,7 @@ export default function FindRidesScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['top']}>
+      <View style={[styles.safe, { backgroundColor }]} >
         <FlatList
           data={trips}
           keyExtractor={(item) => item.id.toString()}
@@ -259,7 +257,7 @@ export default function FindRidesScreen() {
             <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
           }
         />
-      </SafeAreaView>
+      </View>
 
       {/* Custom FAB */}
       <TouchableOpacity

@@ -229,7 +229,7 @@ export default function CreateScreen() {
                 icon="person.crop.circle.badge.exclamationmark"
                 dismissible={false}
             />
-            <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['top']}>
+            <View style={[styles.safe, { backgroundColor }]} >
                 <ScrollView contentContainerStyle={styles.container}>
 
                     <View style={[styles.card, { backgroundColor: cardColor }]}>
@@ -366,7 +366,7 @@ export default function CreateScreen() {
                         By publishing, you agree to share the ride cost fairly with co-passengers.
                     </Text>
                 </ScrollView>
-            </SafeAreaView>
+            </View>
         </>
     );
 }
@@ -374,6 +374,7 @@ export default function CreateScreen() {
 const styles = StyleSheet.create({
     safe: {
         flex: 1,
+        paddingTop: 20,
     },
     container: {
         paddingRight: 20,

@@ -102,7 +102,18 @@ const TripCard = (props: {
     );
 };
 
+// Define available tabs
+type FilterTab = 'published' | 'in-progress' | 'completed' | 'part-of' | 'leading';
+const FILTER_TABS: { id: FilterTab; label: string }[] = [
+    { id: 'published', label: 'Published' },
+    { id: 'in-progress', label: 'In Progress' },
+    { id: 'completed', label: 'Completed' },
+    { id: 'part-of', label: 'Part Of' },
+    { id: 'leading', label: 'Leading' },
+];
+
 export default function ActivityScreen() {
+    const [activeTab, setActiveTab] = useState<FilterTab>('published');
     const { user } = useAuth();
     const router = useRouter();
     const backgroundColor = useThemeColor({}, 'background');
@@ -140,6 +151,36 @@ export default function ActivityScreen() {
     const isLoading = isLoadingTrips || isLoadingRequests;
     const isRefetching = isRefetchingTrips || isRefetchingRequests;
 
+    // Dynamic filtering logic
+    const getFilteredData = () => {
+        let displayTrips: any[] = [];
+        let displayRequests: any[] = [];
+
+        switch (activeTab) {
+            case 'leading':
+                displayTrips = trips;
+                break;
+            case 'part-of':
+                displayRequests = requests;
+                break;
+            case 'published':
+                displayTrips = trips.filter(t => t.status === 'PUBLISHED');
+                break;
+            case 'in-progress':
+                displayTrips = trips.filter(t => t.status === 'STARTED');
+                displayRequests = requests.filter(r => r.trip?.status === 'STARTED' && r.status === 'APPROVED');
+                break;
+            case 'completed':
+                displayTrips = trips.filter(t => t.status === 'COMPLETED');
+                displayRequests = requests.filter(r => r.trip?.status === 'COMPLETED' && r.status === 'APPROVED');
+                break;
+        }
+
+        return { displayTrips, displayRequests };
+    };
+
+    const { displayTrips, displayRequests } = getFilteredData();
+
     if (isLoading && !isRefetching) {
         return (
             <View style={[styles.center, { backgroundColor }]}>
@@ -149,28 +190,57 @@ export default function ActivityScreen() {
     }
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['top']}>
+        <View style={[styles.safe, { backgroundColor }]}  >
+            {/* Top Tab Navigation */}
+            <View style={styles.tabsContainer}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.tabsScrollContent}
+                >
+                    {FILTER_TABS.map((tab) => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <TouchableOpacity
+                                key={tab.id}
+                                style={[
+                                    styles.tabButton,
+                                    isActive ? { backgroundColor: primaryColor, borderColor: primaryColor } : { borderColor: subtextColor + '40', backgroundColor: 'transparent' }
+                                ]}
+                                onPress={() => setActiveTab(tab.id)}
+                            >
+                                <Text style={[
+                                    styles.tabText,
+                                    isActive ? { color: '#fff' } : { color: subtextColor }
+                                ]}>
+                                    {tab.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+            </View>
+
             <ScrollView
                 contentContainerStyle={styles.container}
                 refreshControl={
                     <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
                 }
             >
-
-                {trips.length === 0 && requests.length === 0 ? (
+                {displayTrips.length === 0 && displayRequests.length === 0 ? (
                     <View style={styles.emptyContainer}>
                         <IconSymbol name="list.bullet" size={48} color={subtextColor} />
-                        <Text style={[styles.emptyText, { color: subtextColor }]}>No activity found yet.</Text>
+                        <Text style={[styles.emptyText, { color: subtextColor }]}>No {activeTab.replace('-', ' ')} activity found.</Text>
                         <TouchableOpacity style={styles.emptyButton} onPress={() => router.push('/')}>
                             <Text style={{ color: primaryColor, fontWeight: '600' }}>Find a ride</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
                     <>
-                        {trips.length > 0 && (
+                        {displayTrips.length > 0 && (
                             <>
                                 <Text style={[styles.sectionTitle, { color: textColor }]}>Trips You're Leading</Text>
-                                {trips.map((trip) => (
+                                {displayTrips.map((trip) => (
                                     <TripCard
                                         key={trip.id}
                                         isPriceCalculated={trip.isPriceCalculated}
@@ -181,17 +251,17 @@ export default function ActivityScreen() {
                                         price={`₹${trip.pricePerSeat}`}
                                         status={trip.status}
                                         genderPreference={trip.genderPreference}
-                                        pendingRequestsCount={trip.joinRequests?.filter(r => r.status === 'PENDING').length}
+                                        pendingRequestsCount={trip.joinRequests?.filter((r: any) => r.status === 'PENDING').length}
                                         onPress={(docId) => router.push(`/trip/${docId}`)}
                                     />
                                 ))}
                             </>
                         )}
 
-                        {requests.length > 0 && (
+                        {displayRequests.length > 0 && (
                             <>
-                                <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24 }]}>Trips You've Requested</Text>
-                                {requests.map((request) => (
+                                <Text style={[styles.sectionTitle, { color: textColor, marginTop: displayTrips.length > 0 ? 24 : 0 }]}>Trips You've Requested</Text>
+                                {displayRequests.map((request) => (
                                     <TripCard
                                         key={request.id}
                                         isPriceCalculated={request.trip?.isPriceCalculated}
@@ -210,7 +280,7 @@ export default function ActivityScreen() {
                     </>
                 )}
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -218,8 +288,31 @@ const styles = StyleSheet.create({
     safe: {
         flex: 1,
     },
+    tabsContainer: {
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.05)',
+        backgroundColor: 'transparent',
+    },
+    tabsScrollContent: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        gap: 8,
+    },
+    tabButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        marginRight: 8,
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
     container: {
         paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 40,
     },
     title: {
         fontSize: 28,
