@@ -13,21 +13,35 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
 import { HeaderRight } from '@/components/ui/HeaderRight';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
+  const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
 
   React.useEffect(() => {
-    if (!isLoading && !user) {
+    AsyncStorage.getItem('hasSeenOnboarding').then(value => {
+      setIsFirstLaunch(value !== 'true');
+    });
+  }, []);
+
+  React.useEffect(() => {
+    if (isFirstLaunch === null || isLoading) return;
+
+    if (isFirstLaunch) {
+      router.replace('/onboarding');
+    } else if (!user) {
       router.replace('/login');
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, isFirstLaunch]);
+
+  const showContent = !isLoading && user && isFirstLaunch === false;
 
   React.useEffect(() => {
-    if (!isLoading && user) {
+    if (showContent) {
       (async () => {
         const { status } = await Location.requestForegroundPermissionsAsync();
         setLocationPermission(status);
@@ -36,9 +50,7 @@ export default function TabLayout() {
         }
       })();
     }
-  }, [user, isLoading]);
-
-  const showContent = !isLoading && user;
+  }, [showContent]);
 
   if (!showContent) return null;
 
