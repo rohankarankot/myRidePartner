@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -9,6 +9,7 @@ import { Trip, JoinRequest, TripStatus, JoinRequestStatus, GenderPreference } fr
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 import { useQuery } from '@tanstack/react-query';
+import { useScrollToTop } from '@react-navigation/native';
 
 const TripCard = (props: {
     documentId: string,
@@ -116,6 +117,9 @@ export default function ActivityScreen() {
     const [activeTab, setActiveTab] = useState<FilterTab>('published');
     const { user } = useAuth();
     const router = useRouter();
+    const ref = useRef<ScrollView>(null);
+    useScrollToTop(ref);
+    
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
     const subtextColor = useThemeColor({}, 'subtext');
@@ -222,6 +226,7 @@ export default function ActivityScreen() {
             </View>
 
             <ScrollView
+                ref={ref}
                 contentContainerStyle={styles.container}
                 refreshControl={
                     <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />

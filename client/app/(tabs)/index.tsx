@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { Trip, GenderPreference } from '@/types/api';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { isToday, isTomorrow, format } from 'date-fns';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
@@ -13,6 +13,7 @@ import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { FilterBottomSheet } from '@/components/FilterBottomSheet';
 import { notificationService } from '@/services/notification-service';
 import { useQuery } from '@tanstack/react-query';
+import { useScrollToTop } from '@react-navigation/native';
 
 const formatDisplayDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -98,6 +99,18 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
 export default function FindRidesScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const navigation = useNavigation();
+  const ref = useRef<FlatList>(null);
+  const searchInputRef = useRef<import('react-native').TextInput>(null);
+  useScrollToTop(ref);
+
+  // Long press on the tab: focus search input
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('tabLongPress' as any, () => {
+      searchInputRef.current?.focus();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -188,6 +201,7 @@ export default function FindRidesScreen() {
       <View style={[styles.searchContainer, { backgroundColor: cardColor, borderColor }]}>
         <IconSymbol name="magnifyingglass" size={20} color={subtextColor} />
         <TextInput
+          ref={searchInputRef}
           placeholder="Search for a city or area..."
           placeholderTextColor={subtextColor}
           style={[styles.searchInput, { color: textColor }]}
@@ -227,6 +241,7 @@ export default function FindRidesScreen() {
     <View style={{ flex: 1 }}>
       <View style={[styles.safe, { backgroundColor }]} >
         <FlatList
+          ref={ref}
           data={trips}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
