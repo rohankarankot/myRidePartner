@@ -264,9 +264,10 @@ export default function ProfileScreen() {
                     title: 'Profile',
                     headerShown: true,
                     headerTransparent: false,
-                    headerStyle: { backgroundColor },
+                    headerStyle: { backgroundColor: cardColor },
                     headerTintColor: textColor,
                     headerShadowVisible: false,
+
                     headerRight: () =>
                         profile ? (
                             <TouchableOpacity
