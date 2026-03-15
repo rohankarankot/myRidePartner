@@ -15,6 +15,7 @@ import { ratingService } from '@/services/rating-service';
 import { socketService } from '@/services/socket-service';
 import { useUserStore } from '@/store/user-store';
 import { CustomAlert } from '@/components/CustomAlert';
+import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -204,24 +205,39 @@ export default function TripDetailsScreen() {
         }
     };
 
-    const handleUpdateTripStatus = async (status: TripStatus) => {
+    const updateTripStatusMutation = useOptimisticMutation({
+        mutationFn: (status: TripStatus) => tripService.updateTripStatus(documentId as string, status),
+        queryKeys: [
+            ['trip-details', documentId, user?.id],
+            ['trips', user?.id] // For Activity Screen Sync
+        ],
+        optimisticUpdateFn: (status, currentQueryClient) => {
+            if (!user) return;
+            
+            // 1. Update trip detail cache
+            currentQueryClient.setQueryData(['trip-details', documentId, user.id], (oldData: any) => {
+                if (!oldData) return oldData;
+                return {
+                    ...oldData,
+                    trip: { ...oldData.trip, status: status }
+                };
+            });
+            
+            // 2. Update trips list cache
+            currentQueryClient.setQueryData(['trips', user.id], (oldTrips: Trip[] | undefined) => {
+                if (!oldTrips) return oldTrips;
+                return oldTrips.map(t => 
+                    t.documentId === documentId ? { ...t, status: status } : t
+                );
+            });
+        },
+        successMessage: { title: 'Status Updated' },
+        errorMessage: { title: 'Update Failed', subtitle: 'Could not communicate with the server. Reverting changes.' }
+    });
+
+    const handleUpdateTripStatus = (status: TripStatus) => {
         if (!documentId) return;
-        try {
-            await tripService.updateTripStatus(documentId as string, status);
-            refetch();
-            Toast.show({
-                type: 'success',
-                text1: 'Status Updated',
-                text2: `Trip is now ${status.toLowerCase()}.`
-            });
-        } catch (error) {
-            console.error('Update trip status error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to update trip status.'
-            });
-        }
+        updateTripStatusMutation.mutate(status);
     };
 
     const handleSubmitRating = async () => {
