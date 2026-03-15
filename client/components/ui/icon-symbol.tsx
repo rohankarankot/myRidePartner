@@ -55,6 +55,7 @@ const MAPPING = {
   'pencil': 'edit',
   'rectangle.portrait.and.arrow.right': 'logout',
   'xmark.circle.fill': 'cancel',
+  'person.2.slash.fill': 'group-off',
 } as IconMapping;
 
 /**

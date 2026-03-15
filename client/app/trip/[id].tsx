@@ -44,6 +44,7 @@ export default function TripDetailsScreen() {
     const [isCancelling, setIsCancelling] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
+    const [showGenderAlert, setShowGenderAlert] = useState(false);
 
     // Rating State
     const [showRatingModal, setShowRatingModal] = useState(false);
@@ -115,6 +116,12 @@ export default function TripDetailsScreen() {
 
         if (isProfileIncomplete) {
             setShowProfileAlert(true);
+            return;
+        }
+
+        // Gender Preference Check
+        if (trip.genderPreference !== 'both' && trip.genderPreference !== profile?.gender) {
+            setShowGenderAlert(true);
             return;
         }
 
@@ -263,6 +270,17 @@ export default function TripDetailsScreen() {
                 }}
                 onClose={() => setShowProfileAlert(false)}
                 icon="person.crop.circle.badge.exclamationmark"
+            />
+            <CustomAlert
+                visible={showGenderAlert}
+                title="Gender Preference Mismatch"
+                message={`This trip is specifically for ${trip?.genderPreference === 'men' ? 'men' : 'women'}. Please look for rides that match your gender or have no preference.`}
+                primaryButton={{
+                    text: "Got it",
+                    onPress: () => setShowGenderAlert(false)
+                }}
+                onClose={() => setShowGenderAlert(false)}
+                icon="person.2.slash.fill"
             />
             <Stack.Screen
                 options={{
