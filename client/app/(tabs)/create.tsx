@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Platform, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Platform, Switch, KeyboardAvoidingView } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/context/auth-context';
@@ -14,7 +13,7 @@ import { useUserStore } from '@/store/user-store';
 import { useFocusEffect } from 'expo-router';
 import { CustomAlert } from '@/components/CustomAlert';
 
-const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType = 'default', editable = true, onPress }: {
+const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType = 'default', editable = true, onPress, multiline = false, numberOfLines = 1 }: {
     label: string,
     placeholder: string,
     icon: any,
@@ -22,7 +21,9 @@ const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType
     onChangeText?: (text: string) => void,
     keyboardType?: 'default' | 'numeric',
     editable?: boolean,
-    onPress?: () => void
+    onPress?: () => void,
+    multiline?: boolean,
+    numberOfLines?: number
 }) => {
     const textColor = useThemeColor({}, 'text');
     const subtextColor = useThemeColor({}, 'subtext');
@@ -46,6 +47,9 @@ const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType
                     keyboardType={keyboardType}
                     editable={editable && !onPress}
                     pointerEvents={onPress ? 'none' : 'auto'}
+                    multiline={multiline}
+                    numberOfLines={numberOfLines}
+                    textAlignVertical={multiline ? 'top' : 'auto'}
                 />
             </TouchableOpacity>
         </View>
@@ -63,6 +67,7 @@ export default function CreateScreen() {
 
     const [seats, setSeats] = useState('');
     const [price, setPrice] = useState('');
+    const [description, setDescription] = useState('');
     const [isPriceCalculated, setIsPriceCalculated] = useState(true);
     const [genderPreference, setGenderPreference] = useState<'men' | 'women' | 'both'>('both');
     const [showFromPicker, setShowFromPicker] = useState(false);
@@ -180,6 +185,7 @@ export default function CreateScreen() {
             destination: to,
             date: formatDate(date),
             time: formatTime(time),
+            description: description.trim() || undefined,
             availableSeats: parseInt(seats),
             pricePerSeat: isPriceCalculated ? undefined : parseFloat(price),
             isPriceCalculated: isPriceCalculated,
@@ -195,6 +201,7 @@ export default function CreateScreen() {
         setTime(new Date());
         setSeats('');
         setPrice('');
+        setDescription('');
         setIsPriceCalculated(false);
         setGenderPreference('both');
     };
@@ -229,7 +236,11 @@ export default function CreateScreen() {
                 icon="person.crop.circle.badge.exclamationmark"
                 dismissible={false}
             />
-            <View style={[styles.safe, { backgroundColor }]} >
+            <KeyboardAvoidingView
+                style={[styles.safe, { backgroundColor }]}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            >
                 <ScrollView contentContainerStyle={styles.container}>
 
                     <View style={[styles.card, { backgroundColor: cardColor }]}>
@@ -322,6 +333,18 @@ export default function CreateScreen() {
                             )}
                         </View>
 
+                        <View style={[styles.fieldContainer, { marginTop: 4 }]}>
+                            <FormField
+                                label="Trip Description & Rules"
+                                placeholder="E.g. max 1 medium bag per person, etc."
+                                icon="doc.text.fill"
+                                value={description}
+                                onChangeText={setDescription}
+                                multiline={true}
+                                numberOfLines={5}
+                            />
+                        </View>
+
                         <View style={styles.fieldContainer}>
                             <Text style={[styles.label, { color: textColor }]}>Gender Preference</Text>
                             <View style={styles.genderRow}>
@@ -366,7 +389,7 @@ export default function CreateScreen() {
                         By publishing, you agree to share the ride cost fairly with co-passengers.
                     </Text>
                 </ScrollView>
-            </View>
+            </KeyboardAvoidingView>
         </>
     );
 }

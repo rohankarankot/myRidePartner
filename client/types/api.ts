@@ -61,6 +61,7 @@ export type TripStatus = 'PUBLISHED' | 'STARTED' | 'COMPLETED' | 'CANCELLED';
 export interface Trip {
     id: number;
     documentId: string;
+    description?: string;
     startingPoint: string;
     destination: string;
     date: string;

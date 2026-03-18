@@ -110,7 +110,6 @@ const FILTER_TABS: { id: FilterTab; label: string }[] = [
     { id: 'in-progress', label: 'In Progress' },
     { id: 'completed', label: 'Completed' },
     { id: 'part-of', label: 'Part Of' },
-    { id: 'leading', label: 'Leading' },
 ];
 
 export default function ActivityScreen() {
@@ -119,7 +118,7 @@ export default function ActivityScreen() {
     const router = useRouter();
     const ref = useRef<ScrollView>(null);
     useScrollToTop(ref);
-    
+
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
     const subtextColor = useThemeColor({}, 'subtext');

@@ -12,6 +12,9 @@
     },
     "pluginOptions": {},
     "attributes": {
+        "description": {
+            "type": "text"
+        },
         "startingPoint": {
             "type": "string",
             "required": true

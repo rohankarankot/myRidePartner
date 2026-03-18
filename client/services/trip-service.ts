@@ -3,6 +3,7 @@ import { Trip, SingleTripResponse, TripResponse } from '../types/api';
 
 class TripService {
     async createTrip(tripData: {
+        description?: string;
         startingPoint: string;
         destination: string;
         date: string;

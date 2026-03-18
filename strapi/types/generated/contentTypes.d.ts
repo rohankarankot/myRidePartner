@@ -602,6 +602,7 @@ export interface ApiTripTrip extends Struct.CollectionTypeSchema {
       'plugin::users-permissions.user'
     >;
     date: Schema.Attribute.Date & Schema.Attribute.Required;
+    description: Schema.Attribute.Text;
     destination: Schema.Attribute.String & Schema.Attribute.Required;
     genderPreference: Schema.Attribute.Enumeration<['men', 'women', 'both']> &
       Schema.Attribute.Required &

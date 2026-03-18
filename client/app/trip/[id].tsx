@@ -213,7 +213,7 @@ export default function TripDetailsScreen() {
         ],
         optimisticUpdateFn: (status, currentQueryClient) => {
             if (!user) return;
-            
+
             // 1. Update trip detail cache
             currentQueryClient.setQueryData(['trip-details', documentId, user.id], (oldData: any) => {
                 if (!oldData) return oldData;
@@ -222,11 +222,11 @@ export default function TripDetailsScreen() {
                     trip: { ...oldData.trip, status: status }
                 };
             });
-            
+
             // 2. Update trips list cache
             currentQueryClient.setQueryData(['trips', user.id], (oldTrips: Trip[] | undefined) => {
                 if (!oldTrips) return oldTrips;
-                return oldTrips.map(t => 
+                return oldTrips.map(t =>
                     t.documentId === documentId ? { ...t, status: status } : t
                 );
             });
@@ -372,6 +372,16 @@ export default function TripDetailsScreen() {
                                         <InfoItem icon="person.fill" label="Gender Preference" value={trip.genderPreference === 'men' ? 'Only Men' : trip.genderPreference === 'women' ? 'Only Women' : 'Any'} textColor={textColor} subtextColor={subtextColor} />
                                     </View>
                                 </View>
+
+                                {/* Description / Captain's Note */}
+                                {trip.description && (
+                                    <View style={[styles.card, { backgroundColor: cardColor }]}>
+                                        <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8 }]}>Captain's Note</Text>
+                                        <Text style={{ color: subtextColor, fontSize: 14, lineHeight: 20 }}>
+                                            {trip.description}
+                                        </Text>
+                                    </View>
+                                )}
 
                                 {/* Captain Info */}
                                 <View style={[styles.card, { backgroundColor: cardColor }]}>
