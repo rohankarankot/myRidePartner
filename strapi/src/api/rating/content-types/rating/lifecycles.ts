@@ -1,7 +1,15 @@
 export default {
     async afterCreate(event) {
         const { result } = event;
-        const { ratee, stars } = result;
+        let { ratee, stars } = result;
+
+        if (!ratee) {
+            const ratingWithRatee = await strapi.documents('api::rating.rating').findOne({
+                documentId: result.documentId,
+                populate: ['ratee']
+            });
+            ratee = ratingWithRatee?.ratee;
+        }
 
         // Strapi v5: ratee might be an ID or an object
         const userId = typeof ratee === 'object' ? ratee?.id : ratee;

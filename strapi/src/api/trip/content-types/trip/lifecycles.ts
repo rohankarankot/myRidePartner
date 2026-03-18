@@ -40,9 +40,15 @@ export default {
 
         // 1. Handle COMPLETED status specifically for stats
         if (status === 'COMPLETED' && params.data.status === 'COMPLETED') {
-            if (creator && creator.id) {
+            const tripWithCreator = await strapi.documents('api::trip.trip').findOne({
+                documentId,
+                populate: ['creator']
+            });
+            const dbCreator = tripWithCreator?.creator;
+            
+            if (dbCreator && dbCreator.id) {
                 const userProfiles = await strapi.documents('api::user-profile.user-profile').findMany({
-                    filters: { userId: { id: creator.id } }
+                    filters: { userId: { id: dbCreator.id } }
                 });
 
                 if (userProfiles.length > 0) {
@@ -57,7 +63,7 @@ export default {
                     await strapi.documents('api::user-profile.user-profile').publish({
                         documentId: profile.documentId
                     });
-                    console.log(`Incremented completedTripsCount for user ${creator.id}`);
+                    console.log(`Incremented completedTripsCount for user ${dbCreator.id}`);
                 }
             }
         }

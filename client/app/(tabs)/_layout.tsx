@@ -107,7 +107,6 @@ export default function TabLayout() {
         headerTintColor: Colors[colorScheme ?? 'light'].text,
         tabBarButton: HapticTab,
         headerTitleAlign: 'center',
-        tabBarShowLabel: false,
         headerRight: () => <HeaderRight type="notifications" />,
       }}>
       <Tabs.Screen

@@ -42,9 +42,18 @@ class TripService {
     }
 
     async updateTripStatus(documentId: string, status: string): Promise<Trip> {
+        // 1. Update the document draft
         const { data } = await apiClient.put<SingleTripResponse>(`/api/trips/${documentId}`, {
             data: { status }
         });
+        
+        // 2. Publish the changes so they are visible to everyone
+        try {
+            await apiClient.post(`/api/trips/${documentId}/actions/publish`);
+        } catch (e) {
+            console.error('Failed to publish trip after updating status', e);
+        }
+        
         return data.data;
     }
     async deleteTrip(documentId: string): Promise<Trip> {

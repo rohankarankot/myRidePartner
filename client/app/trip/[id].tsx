@@ -31,12 +31,23 @@ export default function TripDetailsScreen() {
         if (documentId) {
             console.log(`[Socket] Joining trip room: ${documentId}`);
             socketService.emit('join_trip', documentId);
+            
+            const handleTripUpdate = (data: any) => {
+                console.log('[Socket] Trip updated:', data);
+                // Invalidate queries to instantly fetch the new API state
+                queryClient.invalidateQueries({ queryKey: ['trip-details', documentId] });
+                queryClient.invalidateQueries({ queryKey: ['trips'] });
+            };
+            
+            socketService.on('trip_updated', handleTripUpdate);
+            
             return () => {
                 console.log(`[Socket] Leaving trip room: ${documentId}`);
+                socketService.off('trip_updated', handleTripUpdate);
                 socketService.emit('leave_trip', documentId);
             };
         }
-    }, [documentId]);
+    }, [documentId, queryClient]);
 
 
 
