@@ -9,7 +9,7 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { ratingService } from '@/services/rating-service';
 import { useAuth } from '@/context/auth-context';
@@ -36,6 +36,10 @@ function StarRow({ stars }: { stars: number }) {
 
 export default function RatingsScreen() {
     const { user } = useAuth();
+    const { userId } = useLocalSearchParams();
+
+    const targetUserId = userId ? Number(userId) : user?.id;
+    const isCurrentUser = targetUserId === user?.id;
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -53,16 +57,16 @@ export default function RatingsScreen() {
         hasNextPage,
         isFetchingNextPage,
     } = useInfiniteQuery({
-        queryKey: ['ratings', 'user', user?.id],
+        queryKey: ['ratings', 'user', targetUserId],
         queryFn: ({ pageParam }: { pageParam: number }) =>
-            ratingService.getRatingsByUser(user!.id, pageParam, PAGE_SIZE),
+            ratingService.getRatingsByUser(targetUserId!, pageParam, PAGE_SIZE),
         getNextPageParam: (lastPage: any) => {
             const pagination = lastPage?.meta?.pagination;
             if (!pagination) return undefined;
             return pagination.page < pagination.pageCount ? pagination.page + 1 : undefined;
         },
         initialPageParam: 1,
-        enabled: !!user?.id,
+        enabled: !!targetUserId,
     });
 
     // Flatten pages into a single array
@@ -80,7 +84,7 @@ export default function RatingsScreen() {
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
             <Stack.Screen
                 options={{
-                    title: 'My Ratings',
+                    title: isCurrentUser ? 'My Ratings' : 'Ratings & Reviews',
                     headerShown: true,
                     headerStyle: { backgroundColor: cardColor },
                     headerTintColor: textColor,
@@ -105,7 +109,9 @@ export default function RatingsScreen() {
                     <IconSymbol name="star" size={48} color={borderColor} />
                     <Text style={[styles.emptyTitle, { color: textColor }]}>No Ratings Yet</Text>
                     <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
-                        Your ratings from passengers will appear here after completed trips.
+                        {isCurrentUser 
+                            ? 'Your ratings from passengers will appear here after completed trips.'
+                            : 'This user has not received any ratings yet.'}
                     </Text>
                 </View>
             ) : (
