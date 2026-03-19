@@ -1,0 +1,137 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { NotificationType } from '@prisma/client';
+import {
+  PaginationParams,
+  buildPaginationMeta,
+  PaginatedMeta,
+} from '../common/utils/query.utils';
+
+export interface NotificationFilters {
+  userId?: number;
+  read?: boolean;
+}
+
+@Injectable()
+export class NotificationsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Get paginated notifications with optional filters.
+   */
+  async findAll(
+    pagination: PaginationParams,
+    filters: NotificationFilters = {},
+  ): Promise<{ data: any[]; meta: PaginatedMeta }> {
+    const where: any = {};
+
+    if (filters.userId) {
+      where.userId = filters.userId;
+    }
+    if (filters.read !== undefined) {
+      where.read = filters.read;
+    }
+
+    const [notifications, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, username: true, email: true },
+          },
+        },
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+
+    return {
+      data: notifications,
+      meta: buildPaginationMeta(total, pagination),
+    };
+  }
+
+  /**
+   * Get unread count for a user.
+   */
+  async getUnreadCount(userId: number): Promise<number> {
+    return this.prisma.notification.count({
+      where: { userId, read: false },
+    });
+  }
+
+  /**
+   * Create a notification.
+   */
+  async create(data: {
+    title: string;
+    message: string;
+    type: NotificationType;
+    userId: number;
+    data?: any;
+    relatedId?: string;
+  }) {
+    return this.prisma.notification.create({
+      data: {
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        data: data.data,
+        relatedId: data.relatedId,
+        user: { connect: { id: data.userId } },
+      },
+    });
+  }
+
+  /**
+   * Mark a single notification as read.
+   */
+  async markAsRead(documentId: string) {
+    const notification = await this.prisma.notification.findUnique({
+      where: { documentId },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notification not found');
+    }
+
+    return this.prisma.notification.update({
+      where: { documentId },
+      data: { read: true },
+    });
+  }
+
+  /**
+   * Mark all notifications as read for a user.
+   */
+  async markAllAsRead(userId: number) {
+    await this.prisma.notification.updateMany({
+      where: { userId, read: false },
+      data: { read: true },
+    });
+
+    return { message: 'All notifications marked as read' };
+  }
+
+  /**
+   * Delete a notification.
+   */
+  async delete(documentId: string) {
+    return this.prisma.notification.delete({
+      where: { documentId },
+    });
+  }
+
+  /**
+   * Delete all notifications for a user.
+   */
+  async deleteAll(userId: number) {
+    await this.prisma.notification.deleteMany({
+      where: { userId },
+    });
+
+    return { message: 'All notifications deleted' };
+  }
+}

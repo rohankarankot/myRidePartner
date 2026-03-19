@@ -1,0 +1,33 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Gender } from '@prisma/client';
+
+export class CreateUserProfileDto {
+  @ApiProperty({ example: 'John Doe' })
+  fullName: string;
+
+  @ApiProperty({ example: '+1234567890' })
+  phoneNumber: string;
+
+  @ApiProperty({ enum: Gender })
+  gender: Gender;
+
+  @ApiProperty({ example: 1, description: 'Associated user ID' })
+  userId: number;
+}
+
+export class UpdateUserProfileDto {
+  @ApiPropertyOptional({ example: 'John Doe' })
+  fullName?: string;
+
+  @ApiPropertyOptional({ example: '+1234567890' })
+  phoneNumber?: string;
+
+  @ApiPropertyOptional({ description: 'Avatar URL' })
+  avatar?: string;
+
+  @ApiPropertyOptional({ enum: Gender })
+  gender?: Gender;
+
+  @ApiPropertyOptional({ description: 'Push notification token' })
+  pushToken?: string;
+}

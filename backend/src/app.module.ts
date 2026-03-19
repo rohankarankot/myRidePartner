@@ -7,6 +7,10 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { UserProfilesModule } from './user-profiles/user-profiles.module';
 import { UploadModule } from './upload/upload.module';
+import { TripsModule } from './trips/trips.module';
+import { JoinRequestsModule } from './join-requests/join-requests.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { RatingsModule } from './ratings/ratings.module';
 
 @Module({
   imports: [
@@ -14,10 +18,15 @@ import { UploadModule } from './upload/upload.module';
     UsersModule,
     AuthModule,
     UserProfilesModule,
-    UploadModule
+    UploadModule,
+    TripsModule,
+    JoinRequestsModule,
+    NotificationsModule,
+    RatingsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
 export class AppModule {}
+
 

@@ -1,35 +1,28 @@
 import apiClient from '../api/api-client';
-import { Notification, NotificationResponse, SingleNotificationResponse } from '../types/api';
+import { Notification, NotificationResponse } from '../types/api';
 
 class NotificationService {
     async getNotifications(userId: number): Promise<Notification[]> {
-        const response = await apiClient.get<NotificationResponse>(
-            `/api/notifications?filters[user][id][$eq]=${userId}&sort[0]=createdAt:desc&populate=*`
+        const { data } = await apiClient.get<NotificationResponse>(
+            `/api/notifications?userId=${userId}&pageSize=100`
         );
-        return response.data.data;
+        return data.data;
     }
 
     async getUnreadCount(userId: number): Promise<number> {
-        const response = await apiClient.get<NotificationResponse>(
-            `/api/notifications?filters[user][id][$eq]=${userId}&filters[read][$eq]=false`
+        const { data } = await apiClient.get<NotificationResponse>(
+            `/api/notifications?userId=${userId}&read=false&pageSize=1`
         );
-        return response.data.meta.pagination.total;
+        return data.meta.pagination.total;
     }
 
     async markAsRead(documentId: string): Promise<Notification> {
-        const response = await apiClient.put<SingleNotificationResponse>(`/api/notifications/${documentId}`, {
-            data: { read: true }
-        });
-        return response.data.data;
+        const { data } = await apiClient.put<Notification>(`/api/notifications/${documentId}/read`);
+        return data;
     }
 
     async markAllAsRead(userId: number): Promise<void> {
-        const unread = await this.getNotifications(userId);
-        const unreadItems = unread.filter(n => !n.read);
-
-        await Promise.all(
-            unreadItems.map(n => this.markAsRead(n.documentId))
-        );
+        await apiClient.put(`/api/notifications/read-all/${userId}`);
     }
 
     async deleteNotification(documentId: string): Promise<void> {
@@ -37,8 +30,7 @@ class NotificationService {
     }
 
     async deleteAllNotifications(userId: number): Promise<void> {
-        const all = await this.getNotifications(userId);
-        await Promise.all(all.map(n => this.deleteNotification(n.documentId)));
+        await apiClient.delete(`/api/notifications/all/${userId}`);
     }
 }
 
