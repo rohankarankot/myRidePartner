@@ -13,6 +13,13 @@ class RatingService {
         return data.data;
     }
 
+    async getRatingsByUser(userId: number, page = 1, pageSize = 10) {
+        const { data } = await apiClient.get<{ data: any[]; meta: { pagination: { page: number; pageSize: number; pageCount: number; total: number } } }>(
+            `/ratings/user/${userId}?page=${page}&pageSize=${pageSize}`
+        );
+        return data;
+    }
+
     async getRatingForTripByUser(tripDocumentId: string, userId: number): Promise<Rating | null> {
         const { data } = await apiClient.get<Rating | null>(
             `/ratings/trip/${tripDocumentId}/user/${userId}`

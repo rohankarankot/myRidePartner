@@ -348,13 +348,20 @@ export default function ProfileScreen() {
                 <View style={[styles.card, { backgroundColor: cardColor }]}>
                     <Text style={[styles.cardTitle, { color: textColor }]}>Statistics</Text>
 
-                    <View style={styles.row}>
+                    <TouchableOpacity
+                        style={styles.row}
+                        onPress={() => router.push('/ratings')}
+                        activeOpacity={0.6}
+                    >
                         <View style={styles.labelRow}>
                             <IconSymbol name="star.fill" size={14} color="#F59E0B" />
                             <Text style={[styles.label, { color: subtextColor }]}>Rating</Text>
                         </View>
-                        <Text style={[styles.value, { color: textColor }]}>{Number(rating).toFixed(1)}</Text>
-                    </View>
+                        <View style={styles.labelRow}>
+                            <Text style={[styles.value, { color: textColor }]}>{Number(rating).toFixed(1)}</Text>
+                            <IconSymbol name="chevron.right" size={12} color={subtextColor} />
+                        </View>
+                    </TouchableOpacity>
 
                     <View style={styles.row}>
                         <View style={styles.labelRow}>

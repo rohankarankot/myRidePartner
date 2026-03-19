@@ -7,10 +7,11 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { RatingsService } from './ratings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateRatingDto } from './dto/ratings.dto';
+import { parsePagination } from '../common/utils/query.utils';
 
 @ApiTags('Ratings')
 @ApiBearerAuth()
@@ -32,6 +33,20 @@ export class RatingsController {
     },
   ) {
     return this.ratingsService.create(body);
+  }
+
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get all ratings for a user', description: 'Returns paginated ratings received by a user' })
+  @ApiParam({ name: 'userId', example: 1 })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, example: 10 })
+  getRatingsByUser(
+    @Param('userId') userId: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    const pagination = parsePagination({ page, pageSize });
+    return this.ratingsService.getRatingsByUser(parseInt(userId, 10), pagination);
   }
 
   @Get('trip/:tripDocumentId/user/:userId')

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { PaginationParams, buildPaginationMeta } from '../common/utils/query.utils';
 
 @Injectable()
 export class RatingsService {
@@ -74,6 +75,29 @@ export class RatingsService {
     });
 
     return rating;
+  }
+
+  /**
+   * Get all ratings received by a user (paginated).
+   */
+  async getRatingsByUser(userId: number, pagination: PaginationParams) {
+    const [ratings, total] = await Promise.all([
+      this.prisma.rating.findMany({
+        where: { rateeId: userId },
+        include: {
+          rater: {
+            select: { id: true, username: true, userProfile: { select: { fullName: true, avatar: true } } },
+          },
+          trip: { select: { id: true, documentId: true, startingPoint: true, destination: true, date: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prisma.rating.count({ where: { rateeId: userId } }),
+    ]);
+
+    return { data: ratings, meta: buildPaginationMeta(total, pagination) };
   }
 
   /**
