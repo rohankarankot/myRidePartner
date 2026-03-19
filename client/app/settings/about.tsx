@@ -61,7 +61,7 @@ export default function AboutScreen() {
                     <Text style={[styles.sectionTitle, { color: subtextColor }]}>TECHNOLOGIES USED</Text>
 
                     <View style={styles.techStack}>
-                        {['React Native', 'Expo', 'NestJS', 'Prisma', 'PostgreSQL', 'TypeScript', 'Zustand', 'Socket.io', 'Cloudinary'].map((tech) => (
+                        {['React Native', 'Expo', 'NestJS', 'Prisma', 'PostgreSQL', 'Next js', 'TypeScript', 'Zustand', 'Socket.io', 'Cloudinary'].map((tech) => (
                             <View key={tech} style={[styles.techChip, { backgroundColor: borderColor + '40', }]}>
                                 <Text style={[styles.techChipText, { color: textColor }]}>{tech}</Text>
                             </View>

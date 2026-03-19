@@ -21,7 +21,7 @@ export default function TermsScreen() {
 
                     <Text style={[styles.sectionTitle, { color: textColor }]}>2. User Responsibilities</Text>
                     <Text style={[styles.text, { color: subtextColor }]}>
-                        Users are responsible for their own safety and behavior. My Ride Partner is a platform to connect riders and drivers.
+                        Users are responsible for their own safety and behavior. My Ride Partner is a platform to connect riders and captains.
                     </Text>
 
                     <Text style={[styles.sectionTitle, { color: textColor }]}>3. Privacy Policy</Text>
