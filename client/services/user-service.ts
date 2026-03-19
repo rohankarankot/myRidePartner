@@ -8,12 +8,14 @@ class UserService {
     }
 
     async getUserProfile(userId: number): Promise<UserProfile | null> {
-        // Fetch profile specifically for this userId
-        const { data } = await apiClient.get<UserProfileResponse>(
-            `/api/user-profiles?filters[userId][id][$eq]=${userId}&populate=userId&populate=avatar`
-        );
-
-        return data.data.length > 0 ? data.data[0] : null;
+        try {
+            const { data } = await apiClient.get<UserProfile>(`/api/user-profiles/user/${userId}`);
+            data.documentId = String(data.id);
+            return data;
+        } catch (error: any) {
+            if (error.response?.status === 404) return null;
+            throw error;
+        }
     }
 
     async createProfile(profileData: {
@@ -22,33 +24,28 @@ class UserService {
         gender: 'men' | 'women';
         userId: number;
     }): Promise<UserProfile> {
-        const { data } = await apiClient.post<{ data: UserProfile }>('/api/user-profiles?populate=avatar', {
-            data: {
-                ...profileData,
-                publishedAt: new Date()
-            }
-        });
-        return data.data;
+        const { data } = await apiClient.post<UserProfile>('/api/user-profiles', profileData);
+        data.documentId = String(data.id);
+        return data;
     }
 
     async updateProfile(documentId: string, profileData: {
         fullName?: string;
         phoneNumber?: string;
         gender?: 'men' | 'women';
-        avatar?: number;
+        avatar?: number | string;
         pushToken?: string;
     }): Promise<UserProfile> {
-        const { data } = await apiClient.put<{ data: UserProfile }>(`/api/user-profiles/${documentId}?populate=avatar`, {
-            data: profileData
-        });
-        return data.data;
+        const { data } = await apiClient.patch<UserProfile>(`/api/user-profiles/${documentId}`, profileData);
+        data.documentId = String(data.id);
+        return data;
     }
 
     async updatePushToken(documentId: string, pushToken: string): Promise<UserProfile> {
         return this.updateProfile(documentId, { pushToken });
     }
 
-    async uploadFile(fileUri: string): Promise<number> {
+    async uploadFile(fileUri: string): Promise<string> {
         const formData = new FormData();
         const filename = fileUri.split('/').pop() || `avatar-${Date.now()}.jpg`;
         const match = /\.(\w+)$/.exec(filename);

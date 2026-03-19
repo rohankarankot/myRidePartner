@@ -12,7 +12,8 @@ export interface User {
 }
 
 export interface AuthResponse {
-    jwt: string;
+    jwt?: string;
+    access_token?: string;
     user: User;
 }
 
@@ -37,7 +38,7 @@ export interface UserProfile {
     ratingsCount?: number;
     isVerified?: boolean;
     userId?: User;
-    avatar?: Media;
+    avatar?: Media | string;
     gender?: 'men' | 'women';
     pushToken?: string;
 }

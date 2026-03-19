@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { OAuth2Client } from 'google-auth-library';
 
+import { ConfigService } from '@nestjs/config';
+
 @Injectable()
 export class AuthService {
   private googleClient: OAuth2Client;
@@ -10,8 +12,9 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {
-    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    this.googleClient = new OAuth2Client(this.configService.get<string>('GOOGLE_CLIENT_ID'));
   }
 
   async verifyGoogleToken(token: string) {
@@ -37,6 +40,7 @@ export class AuthService {
         user,
       };
     } catch (error) {
+      console.error('Google token verification failed:', error);
       throw new UnauthorizedException('Invalid Google token');
     }
   }

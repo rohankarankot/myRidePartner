@@ -16,22 +16,54 @@ enum Gender {
   women
 }
 
+enum GenderPreference {
+  men
+  women
+  both
+}
+
+enum TripStatus {
+  PUBLISHED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum NotificationType {
+  JOIN_REQUEST
+  TRIP_UPDATE
+  SYSTEM
+  TRIP_COMPLETED
+}
+
 model User {
-  id                 Int          @id @default(autoincrement())
+  id                 Int            @id @default(autoincrement())
   username           String?
-  email              String       @unique
-  provider           String?      @default("local")
+  email              String         @unique
+  provider           String?        @default("local")
   password           String?
   resetPasswordToken String?
   confirmationToken  String?
-  confirmed          Boolean      @default(false)
-  blocked            Boolean      @default(false)
-  
+  confirmed          Boolean        @default(false)
+  blocked            Boolean        @default(false)
+
   // Relations
   userProfile        UserProfile?
+  createdTrips       Trip[]         @relation("TripCreator")
+  joinRequests       JoinRequest[]  @relation("PassengerRequests")
+  notifications      Notification[]
+  ratingsGiven       Rating[]       @relation("Rater")
+  ratingsReceived    Rating[]       @relation("Ratee")
 
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 }
 
 model UserProfile {
@@ -53,5 +85,95 @@ model UserProfile {
 
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+}
+
+model Trip {
+  id               Int              @id @default(autoincrement())
+  documentId       String           @unique @default(uuid())
+  description      String?
+  startingPoint    String
+  destination      String
+  date             String           // YYYY-MM-DD format
+  time             String           // HH:mm format
+  availableSeats   Int
+  pricePerSeat     Decimal?         @db.Decimal(10, 2)
+  isPriceCalculated Boolean         @default(false)
+  genderPreference GenderPreference @default(both)
+  status           TripStatus       @default(PUBLISHED)
+
+  // Relations
+  creatorId        Int
+  creator          User             @relation("TripCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  joinRequests     JoinRequest[]
+  ratings          Rating[]
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([status])
+  @@index([date])
+  @@index([creatorId])
+}
+
+model JoinRequest {
+  id             Int               @id @default(autoincrement())
+  documentId     String            @unique @default(uuid())
+  status         JoinRequestStatus @default(PENDING)
+  requestedSeats Int               @default(1)
+  message        String?
+
+  // Relations
+  tripId         Int
+  trip           Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  passengerId    Int
+  passenger      User              @relation("PassengerRequests", fields: [passengerId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([tripId])
+  @@index([passengerId])
+}
+
+model Notification {
+  id         Int              @id @default(autoincrement())
+  documentId String           @unique @default(uuid())
+  title      String
+  message    String
+  type       NotificationType
+  read       Boolean          @default(false)
+  data       Json?
+  relatedId  String?
+
+  // Relations
+  userId     Int
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([userId, read])
+}
+
+model Rating {
+  id         Int      @id @default(autoincrement())
+  documentId String   @unique @default(uuid())
+  stars      Int
+  comment    String?
+
+  // Relations
+  tripId     Int
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  raterId    Int
+  rater      User     @relation("Rater", fields: [raterId], references: [id], onDelete: Cascade)
+  rateeId    Int
+  ratee      User     @relation("Ratee", fields: [rateeId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tripId, raterId])
+  @@index([rateeId])
 }
 

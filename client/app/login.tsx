@@ -78,10 +78,15 @@ export default function LoginScreen() {
             await GoogleSignin.signOut();
             await GoogleSignin.signIn();
             const tokens = await GoogleSignin.getTokens();
-            const data = await authService.googleLogin(tokens.accessToken);
+            if (!tokens.idToken) {
+                throw new Error("No ID Token found from Google Sign-In");
+            }
+            const data = await authService.googleLogin(tokens.idToken);
 
-            if (data.jwt) {
-                await signIn(data.jwt, data.user);
+            const token = data.jwt || data.access_token;
+
+            if (token) {
+                await signIn(token, data.user);
                 router.replace('/(tabs)');
             } else {
                 console.error('Login failed', data);

@@ -97,7 +97,7 @@ export default function ProfileScreen() {
     });
 
     const updateProfileMutation = useMutation({
-        mutationFn: (data: { documentId: string; fullName: string; phoneNumber: string; gender: 'men' | 'women'; avatar?: number }) =>
+        mutationFn: (data: { documentId: string; fullName: string; phoneNumber: string; gender: 'men' | 'women'; avatar?: string }) =>
             userService.updateProfile(data.documentId, {
                 fullName: data.fullName,
                 phoneNumber: data.phoneNumber,
@@ -232,7 +232,9 @@ export default function ProfileScreen() {
 
     // fallback info if profile doesn't exist
     const user = profile?.userId || authUser;
-    const avatar = profile?.avatar?.formats?.small;
+    const avatarUrl = typeof profile?.avatar === 'string'
+        ? profile.avatar
+        : profile?.avatar?.url || profile?.avatar?.formats?.small?.url;
     const name = profile?.fullName || 'No Name Set';
     const phone = profile?.phoneNumber || 'N/A';
     const profileGender = profile?.gender;
@@ -300,8 +302,8 @@ export default function ProfileScreen() {
                     >
                         <Image
                             source={
-                                avatar?.url
-                                    ? { uri: avatar.url }
+                                avatarUrl
+                                    ? { uri: avatarUrl }
                                     : { uri: DUMMY_AVATAR }
                             }
                             style={styles.avatar}
