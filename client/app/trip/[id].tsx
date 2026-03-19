@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, RefreshControl, KeyboardAvoidingView, Platform, Keyboard, BackHandler, Image } from 'react-native';
+import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -24,23 +25,23 @@ export default function TripDetailsScreen() {
     const queryClient = useQueryClient();
     const { profile } = useUserStore();
 
-    const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender;
+    const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender || !profile.city;
 
     // ── Socket Room Management ────────────────────────────────────────
     useEffect(() => {
         if (documentId) {
             console.log(`[Socket] Joining trip room: ${documentId}`);
             socketService.emit('join_trip', documentId);
-            
+
             const handleTripUpdate = (data: any) => {
                 console.log('[Socket] Trip updated:', data);
                 // Invalidate queries to instantly fetch the new API state
                 queryClient.invalidateQueries({ queryKey: ['trip-details', documentId] });
                 queryClient.invalidateQueries({ queryKey: ['trips'] });
             };
-            
+
             socketService.on('trip_updated', handleTripUpdate);
-            
+
             return () => {
                 console.log(`[Socket] Leaving trip room: ${documentId}`);
                 socketService.off('trip_updated', handleTripUpdate);
@@ -57,6 +58,35 @@ export default function TripDetailsScreen() {
     const [isJoining, setIsJoining] = useState(false);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
     const [showGenderAlert, setShowGenderAlert] = useState(false);
+
+    // Join Request State
+    const joinSheetRef = useRef<BottomSheetModal>(null);
+    const joinSnapPoints = useMemo(() => ['55%'], []);
+    const [sheetIndex, setSheetIndex] = useState(-1);
+    const handleSheetChanges = useCallback((index: number) => {
+        setSheetIndex(index);
+    }, []);
+
+    useEffect(() => {
+        const handleBackPress = () => {
+            if (sheetIndex >= 0) {
+                joinSheetRef.current?.dismiss();
+                return true;
+            }
+            return false;
+        };
+
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+        return () => backHandler.remove();
+    }, [sheetIndex]);
+    const renderBackdrop = useCallback(
+        (props: any) => (
+            <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} />
+        ),
+        []
+    );
+    const [selectedSeats, setSelectedSeats] = useState(1);
+    const [requestMessage, setRequestMessage] = useState('');
 
     // Rating State
     const [showRatingModal, setShowRatingModal] = useState(false);
@@ -123,7 +153,13 @@ export default function TripDetailsScreen() {
     const joinRequests = tripDetails?.requests || [];
     const userJoinRequest = user ? joinRequests.find(r => r.passenger.id === user.id) || null : null;
 
-    const handleJoinRequest = async () => {
+    const getAvatarUrl = (profile: any) => {
+        if (!profile?.avatar) return null;
+        if (typeof profile.avatar === 'string') return profile.avatar;
+        return profile.avatar.url;
+    };
+
+    const handleInitiateJoin = () => {
         if (!user || !documentId || !trip) return;
 
         if (isProfileIncomplete) {
@@ -142,19 +178,30 @@ export default function TripDetailsScreen() {
             return;
         }
 
+        // Reset and show modal to select seats
+        setSelectedSeats(1);
+        setRequestMessage('');
+        joinSheetRef.current?.present();
+    };
+
+    const confirmJoinRequest = async () => {
+        if (!user || !documentId || !trip) return;
+
+        joinSheetRef.current?.dismiss();
+        Keyboard.dismiss();
         setIsJoining(true);
         try {
             await joinRequestService.createJoinRequest({
                 trip: documentId as string,
                 passenger: user.id,
-                requestedSeats: 1, // Defaulting to 1 for now
-                message: ''
+                requestedSeats: selectedSeats,
+                message: requestMessage.trim()
             });
             refetch();
             Toast.show({
                 type: 'success',
                 text1: 'Request Sent',
-                text2: 'Your request to join has been sent to the captain.'
+                text2: `Requested ${selectedSeats} ${selectedSeats === 1 ? 'seat' : 'seats'} to join the trip.`
             });
         } catch (error) {
             console.error('Join request error:', error);
@@ -287,7 +334,7 @@ export default function TripDetailsScreen() {
             <CustomAlert
                 visible={showProfileAlert}
                 title="Complete Your Profile"
-                message="You need to provide your Name, Phone Number, and Gender before you can request to join a ride."
+                message="You need to provide your Name, Phone Number, Gender, and City before you can request to join a ride."
                 primaryButton={{
                     text: "Go to Profile",
                     onPress: () => {
@@ -395,22 +442,35 @@ export default function TripDetailsScreen() {
                                 )}
 
                                 {/* Captain Info */}
-                                <View style={[styles.card, { backgroundColor: cardColor }]}>
+                                <TouchableOpacity 
+                                    style={[styles.card, { backgroundColor: cardColor }]}
+                                    activeOpacity={0.7}
+                                    onPress={() => router.push(`/user/${trip.creator?.id}`)}
+                                >
                                     <Text style={[styles.sectionTitle, { color: textColor }]}>Captain</Text>
                                     <View style={styles.creatorRow}>
-                                        <View style={[styles.avatarPlaceholder, { backgroundColor: primaryColor }]}>
-                                            <Text style={styles.avatarText}>
-                                                {(creatorProfile?.fullName || trip.creator?.username)?.charAt(0).toUpperCase()}
-                                            </Text>
-                                        </View>
+                                        {getAvatarUrl(creatorProfile) ? (
+                                            <Image
+                                                source={{ uri: getAvatarUrl(creatorProfile) as string }}
+                                                style={[styles.avatarPlaceholder, { backgroundColor: 'transparent' }]}
+                                            />
+                                        ) : (
+                                            <View style={[styles.avatarPlaceholder, { backgroundColor: primaryColor }]}>
+                                                <Text style={styles.avatarText}>
+                                                    {(creatorProfile?.fullName || trip.creator?.username)?.charAt(0).toUpperCase()}
+                                                </Text>
+                                            </View>
+                                        )}
                                         <View style={styles.creatorDetails}>
                                             <Text style={[styles.creatorName, { color: textColor }]}>
                                                 {creatorProfile?.fullName || trip.creator?.username}
                                             </Text>
-                                            <Text style={[styles.creatorSub, { color: subtextColor }]}>4.8 ★ Driver</Text>
+                                            <Text style={[styles.creatorSub, { color: subtextColor }]}>
+                                                {creatorProfile?.rating ? `${Number(creatorProfile.rating).toFixed(1)} ★` : 'New'} | Your ride leader
+                                            </Text>
                                         </View>
                                     </View>
-                                </View>
+                                </TouchableOpacity>
 
                                 {/* Actions */}
                                 {isCreator ? (
@@ -442,6 +502,12 @@ export default function TripDetailsScreen() {
                                                             <Text style={styles.statusText}>{request.status}</Text>
                                                         </View>
                                                     </View>
+
+                                                    {request.message ? (
+                                                        <View style={[styles.requestMessageContainer, { backgroundColor: `${subtextColor}15` }]}>
+                                                            <Text style={[styles.requestMessageText, { color: textColor }]}>"{request.message}"</Text>
+                                                        </View>
+                                                    ) : null}
 
                                                     {request.status === 'PENDING' && (
                                                         <View style={styles.requestActions}>
@@ -555,7 +621,7 @@ export default function TripDetailsScreen() {
                                                         opacity: (trip.availableSeats === 0 || trip.status !== 'PUBLISHED') ? 0.6 : 1
                                                     }
                                                 ]}
-                                                onPress={handleJoinRequest}
+                                                onPress={handleInitiateJoin}
                                                 disabled={isJoining || trip.availableSeats === 0 || trip.status !== 'PUBLISHED'}
                                             >
                                                 {isJoining ? (
@@ -575,6 +641,80 @@ export default function TripDetailsScreen() {
                     })()}
                 </ScrollView>
             )}
+
+            {/* Join Request Seats Modal */}
+            <BottomSheetModal
+                ref={joinSheetRef}
+                index={0}
+                snapPoints={joinSnapPoints}
+                onChange={handleSheetChanges}
+                backdropComponent={renderBackdrop}
+                backgroundStyle={{ backgroundColor: cardColor }}
+                handleIndicatorStyle={{ backgroundColor: subtextColor }}
+                enablePanDownToClose
+                keyboardBehavior="fillParent"
+            >
+                <BottomSheetView style={[styles.modalContent, { paddingBottom: Platform.OS === 'ios' ? 40 : 20 }]}>
+                    <View style={styles.modalHeader}>
+                        <View style={[styles.iconCircle, { backgroundColor: `${primaryColor}18` }]}>
+                            <IconSymbol name="person.2.fill" size={24} color={primaryColor} />
+                        </View>
+                        <Text style={[styles.modalTitle, { color: textColor }]}>Request to Join</Text>
+                    </View>
+
+                    <Text style={[styles.modalDescription, { color: subtextColor, marginBottom: 20 }]}>
+                        How many seats would you like to request?
+                    </Text>
+
+                    {/* Seat Selector */}
+                    <View style={styles.seatSelectorRow}>
+                        <TouchableOpacity
+                            style={[styles.seatBtn, { backgroundColor: `${subtextColor}15` }]}
+                            onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}
+                        >
+                            <IconSymbol name="minus" size={20} color={textColor} />
+                        </TouchableOpacity>
+                        <Text style={[styles.seatValue, { color: textColor }]}>{selectedSeats}</Text>
+                        <TouchableOpacity
+                            style={[styles.seatBtn, { backgroundColor: `${primaryColor}15` }]}
+                            onPress={() => setSelectedSeats(Math.min(trip?.availableSeats || 1, selectedSeats + 1))}
+                            disabled={selectedSeats >= (trip?.availableSeats || 1)}
+                        >
+                            <IconSymbol name="plus" size={20} color={primaryColor} />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={[styles.availableText, { color: subtextColor }]}>
+                        Max {trip?.availableSeats} {trip?.availableSeats === 1 ? 'seat' : 'seats'} available
+                    </Text>
+
+                    <View style={[styles.commentBox, { borderColor, backgroundColor: `${subtextColor}05`, width: '100%', marginBottom: 20 }]}>
+                        <BottomSheetTextInput
+                            style={[styles.commentInput, { color: textColor }]}
+                            placeholder="Add a message to the captain (optional)..."
+                            placeholderTextColor={subtextColor}
+                            multiline
+                            numberOfLines={3}
+                            value={requestMessage}
+                            onChangeText={setRequestMessage}
+                        />
+                    </View>
+
+                    <View style={styles.modalActions}>
+                        <TouchableOpacity
+                            style={[styles.modalButton, styles.secondaryButton, { borderColor }]}
+                            onPress={() => joinSheetRef.current?.dismiss()}
+                        >
+                            <Text style={[styles.secondaryButtonText, { color: textColor }]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.modalButton, { backgroundColor: primaryColor }]}
+                            onPress={confirmJoinRequest}
+                        >
+                            <Text style={{ color: '#fff', fontWeight: '700' }}>Confirm Request</Text>
+                        </TouchableOpacity>
+                    </View>
+                </BottomSheetView>
+            </BottomSheetModal>
 
             {/* Cancellation Modal */}
             <Modal
@@ -648,72 +788,77 @@ export default function TripDetailsScreen() {
                 statusBarTranslucent={true}
                 animationType="slide"
             >
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: cardColor, paddingBottom: 32 }]}>
-                        <View style={styles.modalHeader}>
-                            <View style={[styles.starCircle, { backgroundColor: `${primaryColor}18` }]}>
-                                <IconSymbol name="star.fill" size={32} color={primaryColor} />
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { backgroundColor: cardColor, paddingBottom: 32 }]}>
+                            <View style={styles.modalHeader}>
+                                <View style={[styles.starCircle, { backgroundColor: `${primaryColor}18` }]}>
+                                    <IconSymbol name="star.fill" size={32} color={primaryColor} />
+                                </View>
+                                <Text style={[styles.modalTitle, { color: textColor }]}>Rate your Captain</Text>
+                                <Text style={[styles.modalSubtitle, { color: subtextColor }]}>
+                                    How was your ride with {creatorProfile?.fullName || trip?.creator?.username}?
+                                </Text>
                             </View>
-                            <Text style={[styles.modalTitle, { color: textColor }]}>Rate your Captain</Text>
-                            <Text style={[styles.modalSubtitle, { color: subtextColor }]}>
-                                How was your ride with {creatorProfile?.fullName || trip?.creator?.username}?
-                            </Text>
-                        </View>
 
-                        <View style={styles.starsRow}>
-                            {[1, 2, 3, 4, 5].map((star) => (
+                            <View style={styles.starsRow}>
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <TouchableOpacity
+                                        key={star}
+                                        onPress={() => setSelectedStars(star)}
+                                        activeOpacity={0.7}
+                                        style={styles.starButton}
+                                    >
+                                        <IconSymbol
+                                            name={star <= selectedStars ? "star.fill" : "star"}
+                                            size={40}
+                                            color={star <= selectedStars ? "#F59E0B" : borderColor}
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <View style={[styles.commentBox, { borderColor, backgroundColor: `${subtextColor}05` }]}>
+                                <TextInput
+                                    style={[styles.commentInput, { color: textColor }]}
+                                    placeholder="Add a comment (optional)..."
+                                    placeholderTextColor={subtextColor}
+                                    multiline
+                                    numberOfLines={3}
+                                    value={ratingComment}
+                                    onChangeText={setRatingComment}
+                                />
+                            </View>
+
+                            <View style={styles.modalActions}>
                                 <TouchableOpacity
-                                    key={star}
-                                    onPress={() => setSelectedStars(star)}
-                                    activeOpacity={0.7}
-                                    style={styles.starButton}
+                                    style={[styles.modalButton, styles.secondaryButton, { borderColor }]}
+                                    onPress={() => setShowRatingModal(false)}
+                                    disabled={isSubmittingRating}
                                 >
-                                    <IconSymbol
-                                        name={star <= selectedStars ? "star.fill" : "star"}
-                                        size={40}
-                                        color={star <= selectedStars ? "#F59E0B" : borderColor}
-                                    />
+                                    <Text style={[styles.secondaryButtonText, { color: textColor }]}>Maybe Later</Text>
                                 </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        <View style={[styles.commentBox, { borderColor, backgroundColor: `${subtextColor}05` }]}>
-                            <TextInput
-                                style={[styles.commentInput, { color: textColor }]}
-                                placeholder="Add a comment (optional)..."
-                                placeholderTextColor={subtextColor}
-                                multiline
-                                numberOfLines={3}
-                                value={ratingComment}
-                                onChangeText={setRatingComment}
-                            />
-                        </View>
-
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={[styles.modalButton, styles.secondaryButton, { borderColor }]}
-                                onPress={() => setShowRatingModal(false)}
-                                disabled={isSubmittingRating}
-                            >
-                                <Text style={[styles.secondaryButtonText, { color: textColor }]}>Maybe Later</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.modalButton,
-                                    { backgroundColor: selectedStars > 0 ? primaryColor : `${primaryColor}40` }
-                                ]}
-                                onPress={handleSubmitRating}
-                                disabled={selectedStars === 0 || isSubmittingRating}
-                            >
-                                {isSubmittingRating ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <Text style={{ color: '#fff', fontWeight: '700' }}>Submit Rating</Text>
-                                )}
-                            </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.modalButton,
+                                        { backgroundColor: selectedStars > 0 ? primaryColor : `${primaryColor}40` }
+                                    ]}
+                                    onPress={handleSubmitRating}
+                                    disabled={selectedStars === 0 || isSubmittingRating}
+                                >
+                                    {isSubmittingRating ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Text style={{ color: '#fff', fontWeight: '700' }}>Submit Rating</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </SafeAreaView>
     );
@@ -903,10 +1048,21 @@ const styles = StyleSheet.create({
     },
     requestName: {
         fontSize: 15,
-        fontWeight: '600',
+        fontWeight: 'bold',
     },
     requestSub: {
-        fontSize: 12,
+        fontSize: 13,
+        marginTop: 2,
+    },
+    requestMessageContainer: {
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 16,
+        marginHorizontal: 4,
+    },
+    requestMessageText: {
+        fontSize: 14,
+        fontStyle: 'italic',
     },
     requestActions: {
         flexDirection: 'row',
@@ -1027,8 +1183,41 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     secondaryButtonText: {
-        fontSize: 15,
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    iconCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    seatSelectorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginVertical: 16,
+        gap: 24,
+    },
+    seatBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    seatValue: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        minWidth: 32,
+        textAlign: 'center',
+    },
+    availableText: {
+        textAlign: 'center',
+        marginBottom: 24,
+        fontSize: 13,
     },
     confirmCancelButton: {
         // backgroundColor set dynamically

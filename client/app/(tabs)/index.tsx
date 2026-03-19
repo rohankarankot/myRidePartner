@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { Trip, GenderPreference } from '@/types/api';
 import { useRouter, useNavigation } from 'expo-router';
 import { isToday, isTomorrow, format } from 'date-fns';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
-import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useUserStore } from '@/store/user-store';
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetTextInput, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { CITIES } from '@/constants/cities';
 import { FilterBottomSheet } from '@/components/FilterBottomSheet';
+import { Tabs } from 'expo-router';
 import { notificationService } from '@/services/notification-service';
-import { useQuery } from '@tanstack/react-query';
 import { useScrollToTop } from '@react-navigation/native';
 
 const formatDisplayDate = (dateStr: string) => {
@@ -28,8 +29,8 @@ const formatDisplayDate = (dateStr: string) => {
   }
 };
 
-// Reusable component based on the original static design
-const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, genderPreference, onPress }: {
+// Reusable component matching the Activity screen card style
+const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, genderPreference, avatarUrl, captainName, onPress }: {
   documentId: string,
   from: string,
   to: string,
@@ -39,6 +40,8 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
   isCalculated: boolean,
   status: string,
   genderPreference: GenderPreference,
+  avatarUrl?: string,
+  captainName?: string,
   onPress: (id: string) => void
 }) => {
   const textColor = useThemeColor({}, 'text');
@@ -52,26 +55,37 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
       style={[styles.tripCard, { backgroundColor: cardColor }]}
       onPress={() => onPress(documentId)}
     >
-      <View style={styles.routeContainer}>
-        <View style={styles.dotContainer}>
+      {/* Header: Avatar | Name + Date·Time */}
+      <View style={styles.cardHeader}>
+        <Image
+          source={avatarUrl ? { uri: avatarUrl } : { uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }}
+          style={styles.cardAvatar}
+        />
+        <View style={styles.captainInfo}>
+          <Text style={[styles.captainName, { color: textColor }]}>{captainName || 'Captain'}</Text>
+          <Text style={[styles.timeText, { color: subtextColor }]}>{formatDisplayDate(date)} • {time}</Text>
+        </View>
+        {status !== 'PUBLISHED' && (
+          <View style={[styles.statusBadge, { backgroundColor: getTripStatusColor(status as any, '#10B981', '#EF4444', '#3B82F6', '#6B7280') }]}>
+            <Text style={styles.statusText}>{status}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Route */}
+      <View style={styles.routeRow}>
+        <View style={styles.iconColumn}>
           <View style={[styles.dot, { backgroundColor: primaryColor }]} />
           <View style={[styles.line, { backgroundColor: borderColor }]} />
           <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
         </View>
         <View style={styles.addresses}>
-          <View style={styles.addressRow}>
-            <Text style={[styles.addressText, { color: textColor }]} numberOfLines={1}>{from}</Text>
-            {status !== 'PUBLISHED' && (
-              <View style={[styles.statusBadge, { backgroundColor: getTripStatusColor(status as any, '#10B981', '#EF4444', '#3B82F6', '#6B7280') }]}>
-                <Text style={styles.statusText}>{status}</Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.addressText, { color: textColor }]} numberOfLines={1}>{to}</Text>
+          <Text style={[styles.addressText, { color: textColor }]} numberOfLines={1}>{from}</Text>
+          <Text style={[styles.addressText, { color: textColor, marginTop: 20 }]} numberOfLines={1}>{to}</Text>
         </View>
         <View style={[styles.genderBadge, { backgroundColor: genderPreference === 'both' ? '#F3F4FB' : genderPreference === 'men' ? '#EBF5FF' : '#FFF1F2' }]}>
           <IconSymbol
-            name={genderPreference === 'both' ? 'person.2.fill' : genderPreference === 'men' ? 'person.fill' : 'person.fill'}
+            name={genderPreference === 'both' ? 'person.2.fill' : 'person.fill'}
             size={10}
             color={genderPreference === 'both' ? '#6B7280' : genderPreference === 'men' ? '#3B82F6' : '#F43F5E'}
           />
@@ -83,10 +97,11 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
 
       <View style={[styles.cardDivider, { backgroundColor: borderColor }]} />
 
+      {/* Footer: price */}
       <View style={styles.cardFooter}>
         <View style={styles.footerInfo}>
-          <IconSymbol name="calendar" size={16} color={subtextColor} />
-          <Text style={[styles.footerText, { color: subtextColor }]}>{formatDisplayDate(date)} at {time}</Text>
+          <IconSymbol name="car.fill" size={16} color={subtextColor} />
+          <Text style={[styles.footerText, { color: subtextColor }]}>{status}</Text>
         </View>
         <Text style={[styles.priceTag, { color: primaryColor, fontSize: isCalculated ? 14 : 18 }]}>
           {isCalculated ? 'Calculated on demand' : `₹${price}`}
@@ -97,7 +112,9 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
 };
 
 export default function FindRidesScreen() {
+
   const { user } = useAuth();
+  const { profile } = useUserStore();
   const router = useRouter();
   const navigation = useNavigation();
   const ref = useRef<FlatList>(null);
@@ -124,6 +141,22 @@ export default function FindRidesScreen() {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const bottomSheetModalRef = React.useRef<BottomSheetModal>(null);
 
+  // City selection state (static for now)
+  const [selectedCity, setSelectedCity] = useState(profile?.city || 'Pune');
+  const [citySearch, setCitySearch] = useState('');
+  const citySheetRef = useRef<BottomSheetModal>(null);
+
+  const filteredCities = CITIES.filter(city =>
+    city.toLowerCase().includes(citySearch.toLowerCase())
+  );
+
+  const renderBackdrop = React.useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} />
+    ),
+    []
+  );
+
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['unread-notifications-count', user?.id],
     queryFn: () => notificationService.getUnreadCount(user!.id),
@@ -139,13 +172,14 @@ export default function FindRidesScreen() {
     hasNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ['all-trips-paged', gender, date ? format(date, 'yyyy-MM-dd') : 'all'],
+    queryKey: ['all-trips-paged', selectedCity, gender, date ? format(date, 'yyyy-MM-dd') : 'all'],
     queryFn: ({ pageParam = 1 }) => tripService.getTrips(
       pageParam as number,
       10,
       {
         gender,
-        date: date ? format(date, 'yyyy-MM-dd') : undefined
+        date: date ? format(date, 'yyyy-MM-dd') : undefined,
+        city: selectedCity
       }
     ),
     getNextPageParam: (lastPage) => {
@@ -196,18 +230,18 @@ export default function FindRidesScreen() {
   const loading = isLoading && !isRefetching;
 
   const renderHeader = () => (
-    <View style={{ paddingTop: 20 }}>
+    <View style={{ paddingTop: 10, paddingBottom: 8 }}>
 
-      <View style={[styles.searchContainer, { backgroundColor: cardColor, borderColor }]}>
+      <View style={[styles.searchContainer, { backgroundColor: cardColor, borderColor, height: 54, borderRadius: 16 }]}>
         <IconSymbol name="magnifyingglass" size={20} color={subtextColor} />
         <TextInput
           ref={searchInputRef}
           placeholder="Search for a city or area..."
           placeholderTextColor={subtextColor}
-          style={[styles.searchInput, { color: textColor }]}
+          style={[styles.searchInput, { color: textColor, fontSize: 16 }]}
         />
       </View>
-      <Text style={[styles.sectionTitle, { color: textColor, marginTop: 20 }]}>
+      <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24, fontSize: 18, fontWeight: '700' }]}>
         {date ? `Rides for ${format(date, 'MMM d, yyyy')}` : 'Upcoming Rides'}
       </Text>
     </View>
@@ -239,6 +273,36 @@ export default function FindRidesScreen() {
 
   return (
     <View style={{ flex: 1 }}>
+      <Tabs.Screen
+        options={{
+          headerTitle: 'My Ride Partner',
+          headerLeft: () => (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                marginLeft: 16,
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderRadius: 12,
+                backgroundColor: 'rgba(0,0,0,0.03)'
+              }}
+              activeOpacity={0.7}
+              onPress={() => citySheetRef.current?.present()}
+            >
+              <IconSymbol name="mappin.circle.fill" size={18} color={primaryColor} />
+              <View>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: subtextColor, textTransform: 'uppercase', letterSpacing: 0.5 }}>City</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: textColor }}>{selectedCity}</Text>
+                  <IconSymbol name="chevron.down" size={10} color={primaryColor} />
+                </View>
+              </View>
+            </TouchableOpacity>
+          )
+        }}
+      />
       <View style={[styles.safe, { backgroundColor }]} >
         <FlatList
           ref={ref}
@@ -255,6 +319,12 @@ export default function FindRidesScreen() {
               isCalculated={item.isPriceCalculated}
               status={item.status}
               genderPreference={item.genderPreference}
+              avatarUrl={
+                typeof item.creator?.userProfile?.avatar === 'string'
+                  ? item.creator.userProfile.avatar
+                  : (item.creator?.userProfile?.avatar as any)?.url
+              }
+              captainName={item.creator?.username}
               onPress={(id) => router.push(`/trip/${id}`)}
             />
           )}
@@ -292,6 +362,109 @@ export default function FindRidesScreen() {
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
       />
+
+      {/* City Selection Bottom Sheet */}
+      <BottomSheetModal
+        ref={citySheetRef}
+        snapPoints={['80%']}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ backgroundColor: cardColor }}
+        handleIndicatorStyle={{ backgroundColor: subtextColor }}
+        enablePanDownToClose
+        keyboardBehavior="fillParent"
+        keyboardBlurBehavior="restore"
+      >
+        <BottomSheetFlatList
+          data={filteredCities}
+          keyExtractor={(item: string) => item}
+          ListHeaderComponent={() => (
+            <View style={{ padding: 24, paddingBottom: 16 }}>
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 22, fontWeight: '800', color: textColor, marginBottom: 4 }}>
+                  Select City
+                </Text>
+                <Text style={{ fontSize: 14, color: subtextColor }}>
+                  Choose your city to find nearby rides
+                </Text>
+              </View>
+
+              <View style={{
+                backgroundColor: `${subtextColor}10`,
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                height: 48
+              }}>
+                <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
+                <BottomSheetTextInput
+                  placeholder="Search your city..."
+                  placeholderTextColor={subtextColor}
+                  style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 15 }}
+                  value={citySearch}
+                  onChangeText={setCitySearch}
+                />
+              </View>
+            </View>
+          )}
+          renderItem={({ item }: { item: string }) => {
+            const isActive = item === selectedCity;
+            return (
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 18,
+                  paddingHorizontal: 12,
+                  borderRadius: 16,
+                  marginBottom: 8,
+                  marginHorizontal: 24,
+                  backgroundColor: isActive ? `${primaryColor}10` : 'transparent',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isActive ? primaryColor : 'transparent'
+                }}
+                onPress={() => {
+                  setSelectedCity(item);
+                  setCitySearch('');
+                  citySheetRef.current?.dismiss();
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: isActive ? primaryColor : `${subtextColor}15`,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}>
+                    <IconSymbol
+                      name="mappin.circle.fill"
+                      size={20}
+                      color={isActive ? '#fff' : subtextColor}
+                    />
+                  </View>
+                  <Text style={{
+                    fontSize: 17,
+                    color: isActive ? primaryColor : textColor,
+                    fontWeight: isActive ? '700' : '500'
+                  }}>
+                    {item}
+                  </Text>
+                </View>
+                {isActive && (
+                  <View style={{ backgroundColor: primaryColor, borderRadius: 12, padding: 4 }}>
+                    <IconSymbol name="checkmark" size={14} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        />
+      </BottomSheetModal>
     </View>
   );
 }
@@ -377,15 +550,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 3,
+    gap: 12,
   },
-  routeContainer: {
+  cardHeader: {
     flexDirection: 'row',
-  },
-  dotContainer: {
     alignItems: 'center',
-    marginRight: 15,
-    justifyContent: 'space-between',
-    paddingVertical: 5,
+    gap: 12,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconColumn: {
+    alignItems: 'center',
+    marginRight: 12,
+    paddingVertical: 4,
   },
   dot: {
     width: 10,
@@ -396,6 +575,29 @@ const styles = StyleSheet.create({
     width: 2,
     flex: 1,
     marginVertical: 4,
+  },
+  avatarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f0f0f0',
+  },
+  captainInfo: {
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  captainName: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  timeText: {
+    fontSize: 12,
+    marginTop: 2,
   },
   addresses: {
     flex: 1,

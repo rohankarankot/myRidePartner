@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { CONFIG } from '@/constants/config';
 
 const apiClient = axios.create({
-    baseURL: CONFIG.STRAPI_URL,
+    baseURL: `${CONFIG.API_URL}/api`,
 });
 
 apiClient.interceptors.request.use(

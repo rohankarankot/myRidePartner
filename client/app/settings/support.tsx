@@ -45,8 +45,8 @@ export default function HelpSupportScreen() {
                 <Text style={[styles.sectionTitle, { color: subtextColor }]}>Frequently Asked Questions</Text>
                 <View style={[styles.card, { backgroundColor: cardColor, padding: 0 }]}>
                     <FaqItem
-                        question="How do I create a ride?"
-                        answer="Tap the 'Create' tab at the bottom of the screen, fill in your trip details, vehicle info, and price, then hit publish."
+                        question="How do I publish a ride?"
+                        answer="Tap the 'Publish' tab at the bottom of the screen, fill in your trip details, vehicle info, and price, then hit publish."
                     />
                     <FaqItem
                         question="How do I join a ride?"
@@ -54,7 +54,7 @@ export default function HelpSupportScreen() {
                     />
                     <FaqItem
                         question="How are prices determined?"
-                        answer="Drivers set the price per seat based on the distance and travel costs to ensure a fair split among riders."
+                        answer="Captains set the price per seat based on the distance and travel costs to ensure a fair split among riders."
                     />
                     <FaqItem
                         question="Can I cancel a request?"

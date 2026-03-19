@@ -2,10 +2,10 @@ import apiClient from '@/api/api-client';
 import { AuthResponse } from '@/types/api';
 
 class AuthService {
-    async googleLogin(accessToken: string): Promise<AuthResponse> {
-        const { data } = await apiClient.get<AuthResponse>(
-            `/api/auth/google/callback?access_token=${accessToken}`
-        );
+    async googleLogin(idToken: string): Promise<AuthResponse> {
+        const { data } = await apiClient.post<AuthResponse>('/auth/google', {
+            token: idToken
+        });
         return data;
     }
 }

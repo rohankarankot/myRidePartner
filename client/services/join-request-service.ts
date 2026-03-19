@@ -1,5 +1,5 @@
 import apiClient from '../api/api-client';
-import { JoinRequest, JoinRequestResponse, SingleJoinRequestResponse, JoinRequestStatus } from '../types/api';
+import { JoinRequest, JoinRequestStatus } from '../types/api';
 
 class JoinRequestService {
     async createJoinRequest(data: {
@@ -8,54 +8,48 @@ class JoinRequestService {
         requestedSeats: number;
         message?: string;
     }): Promise<JoinRequest> {
-        const response = await apiClient.post<SingleJoinRequestResponse>('/api/join-requests', {
-            data
-        });
-        return response.data.data;
-    }
-
-    async getJoinRequestsForTrip(tripDocumentId: string): Promise<JoinRequest[]> {
-        const response = await apiClient.get<JoinRequestResponse>(
-            `/api/join-requests?filters[trip][documentId][$eq]=${tripDocumentId}&populate[passenger][populate]=*`
-        );
-        return response.data.data;
+        const { data: response } = await apiClient.post<JoinRequest>('/join-requests', data);
+        return response;
     }
 
     async getJoinRequestsForUser(userId: number): Promise<JoinRequest[]> {
-        const response = await apiClient.get<JoinRequestResponse>(
-            `/api/join-requests?filters[passenger][id][$eq]=${userId}&populate[trip][populate]=*`
+        const { data } = await apiClient.get<JoinRequest[]>(
+            `/join-requests/user/${userId}`
         );
-        return response.data.data;
+        return data;
+    }
+
+    async getJoinRequestsForTrip(tripDocumentId: string): Promise<JoinRequest[]> {
+        const { data } = await apiClient.get<JoinRequest[]>(
+            `/join-requests?tripDocumentId=${tripDocumentId}`
+        );
+        return data;
     }
 
     async updateJoinRequestStatus(documentId: string, status: JoinRequestStatus): Promise<JoinRequest> {
-        const response = await apiClient.put<SingleJoinRequestResponse>(`/api/join-requests/${documentId}`, {
-            data: { status }
-        });
-        return response.data.data;
+        const { data } = await apiClient.put<JoinRequest>(
+            `/join-requests/${documentId}/status`,
+            { status }
+        );
+        return data;
     }
 
     async deleteJoinRequest(documentId: string): Promise<void> {
-        await apiClient.delete(`/api/join-requests/${documentId}`);
+        await apiClient.delete(`/join-requests/${documentId}`);
     }
 
     async getPendingRequestsForCaptain(userId: number): Promise<JoinRequest[]> {
-        const response = await apiClient.get<JoinRequestResponse>(
-            `/api/notifications?filters[user][id][$eq]=${userId}&filters[read][$eq]=false`
+        const { data } = await apiClient.get<JoinRequest[]>(
+            `/join-requests/pending/${userId}`
         );
-        // Wait, why did I change this to notifications? That's wrong.
-        // Let me restore the correct one.
-        const res = await apiClient.get<JoinRequestResponse>(
-            `/api/join-requests?filters[trip][creator][id][$eq]=${userId}&filters[status][$eq]=PENDING&populate[trip][populate]=*&populate[passenger][populate]=*`
-        );
-        return res.data.data;
+        return data;
     }
 
     async getJoinRequestByDocumentId(documentId: string): Promise<JoinRequest> {
-        const response = await apiClient.get<SingleJoinRequestResponse>(
-            `/api/join-requests/${documentId}?populate[trip][populate]=*&populate[passenger][populate]=*`
+        const { data } = await apiClient.get<JoinRequest>(
+            `/join-requests/${documentId}`
         );
-        return response.data.data;
+        return data;
     }
 }
 

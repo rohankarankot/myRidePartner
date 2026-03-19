@@ -1,5 +1,5 @@
 import apiClient from '../api/api-client';
-import { Trip, SingleTripResponse, TripResponse } from '../types/api';
+import { Trip, TripResponse, TripStatus } from '../types/api';
 
 class TripService {
     async createTrip(tripData: {
@@ -14,55 +14,51 @@ class TripService {
         genderPreference: string;
         creator: number;
     }): Promise<Trip> {
-        const { data } = await apiClient.post<SingleTripResponse>('/api/trips', {
+        const { data } = await apiClient.post<{ data: Trip }>('/trips', {
             data: tripData
         });
         return data.data;
     }
 
-    async getTrips(page: number = 1, pageSize: number = 10, filters?: { gender?: string, date?: string }): Promise<TripResponse> {
-        let filterQuery = '&filters[status][$eq]=PUBLISHED';
+    async getTrips(page: number = 1, pageSize: number = 10, filters?: { gender?: string, date?: string, city?: string }): Promise<TripResponse> {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('pageSize', String(pageSize));
+        params.set('status', 'PUBLISHED');
 
         if (filters?.gender && filters.gender !== 'both') {
-            filterQuery += `&filters[genderPreference][$eq]=${filters.gender}`;
+            params.set('gender', filters.gender);
         }
         if (filters?.date) {
-            filterQuery += `&filters[date][$eq]=${filters.date}`;
+            params.set('date', filters.date);
+        }
+        if (filters?.city) {
+            params.set('city', filters.city);
         }
 
-        const { data } = await apiClient.get<TripResponse>(
-            `/api/trips?populate=*&pagination[page]=${page}&pagination[pageSize]=${pageSize}${filterQuery}`
-        );
+        const { data } = await apiClient.get<TripResponse>(`/trips?${params.toString()}`);
         return data;
     }
 
     async getUserTrips(userId: number): Promise<Trip[]> {
-        const { data } = await apiClient.get<{ data: Trip[] }>(`/api/trips?filters[creator][id][$eq]=${userId}&populate=*`);
+        const { data } = await apiClient.get<{ data: Trip[] }>(`/trips/user/${userId}`);
         return data.data;
     }
 
     async updateTripStatus(documentId: string, status: string): Promise<Trip> {
-        // 1. Update the document draft
-        const { data } = await apiClient.put<SingleTripResponse>(`/api/trips/${documentId}`, {
+        const { data } = await apiClient.put<{ data: Trip }>(`/trips/${documentId}`, {
             data: { status }
         });
-        
-        // 2. Publish the changes so they are visible to everyone
-        try {
-            await apiClient.post(`/api/trips/${documentId}/actions/publish`);
-        } catch (e) {
-            console.error('Failed to publish trip after updating status', e);
-        }
-        
         return data.data;
     }
+
     async deleteTrip(documentId: string): Promise<Trip> {
-        const { data } = await apiClient.delete<SingleTripResponse>(`/api/trips/${documentId}`);
+        const { data } = await apiClient.delete<{ data: Trip }>(`/trips/${documentId}`);
         return data.data;
     }
 
     async getTripById(documentId: string): Promise<Trip> {
-        const { data } = await apiClient.get<SingleTripResponse>(`/api/trips/${documentId}?populate=*`);
+        const { data } = await apiClient.get<{ data: Trip }>(`/trips/${documentId}`);
         return data.data;
     }
 }
