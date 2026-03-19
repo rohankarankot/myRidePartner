@@ -31,6 +31,8 @@ class SocketService {
         this.socket.on('connect_error', (error) => {
             console.error('[Socket] Connection error:', error);
         });
+
+        this.socket.connect();
     }
 
     disconnect() {

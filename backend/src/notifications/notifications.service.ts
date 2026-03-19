@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { ExpoPushService } from './expo-push.service';
 import { NotificationType } from '@prisma/client';
 import {
   PaginationParams,
@@ -18,6 +19,7 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly expoPushService: ExpoPushService,
   ) {}
 
   /**
@@ -90,6 +92,30 @@ export class NotificationsService {
 
     // Emit to socket
     this.eventsGateway.emitToUser(data.userId, 'new_notification', notification);
+
+    // Send push notification
+    try {
+      const userProfile = await this.prisma.userProfile.findUnique({
+        where: { userId: data.userId },
+        select: { pushToken: true },
+      });
+
+      if (userProfile?.pushToken) {
+        await this.expoPushService.sendNotification(
+          userProfile.pushToken,
+          data.title,
+          data.message,
+          {
+            type: data.type,
+            relatedId: data.relatedId,
+            ...data.data,
+          },
+        );
+      }
+    } catch (error) {
+      // Don't fail the whole request if push notification fails
+      console.error('Failed to send push notification:', error);
+    }
 
     return notification;
   }
