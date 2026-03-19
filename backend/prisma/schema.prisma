@@ -43,6 +43,12 @@ enum NotificationType {
   TRIP_COMPLETED
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
 model User {
   id                 Int            @id @default(autoincrement())
   username           String?
@@ -53,6 +59,7 @@ model User {
   confirmationToken  String?
   confirmed          Boolean        @default(false)
   blocked            Boolean        @default(false)
+  role               UserRole       @default(USER)
 
   // Relations
   userProfile        UserProfile?

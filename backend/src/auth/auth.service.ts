@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { OAuth2Client } from 'google-auth-library';
+import * as bcrypt from 'bcrypt';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -36,13 +37,30 @@ export class AuthService {
       }
 
       return {
-        access_token: this.jwtService.sign({ email: user.email, sub: user.id }),
+        access_token: this.jwtService.sign({ email: user.email, sub: user.id, role: user.role }),
         user,
       };
     } catch (error) {
       console.error('Google token verification failed:', error);
       throw new UnauthorizedException('Invalid Google token');
     }
+  }
+
+  async validateUser(email: string, pass: string): Promise<any> {
+    const user = await this.usersService.findByEmail(email);
+    if (user && user.password && await bcrypt.compare(pass, user.password)) {
+      const { password, ...result } = user;
+      return result;
+    }
+    return null;
+  }
+
+  async login(user: any) {
+    const payload = { email: user.email, sub: user.id, role: user.role };
+    return {
+      access_token: this.jwtService.sign(payload),
+      user,
+    };
   }
 }
 

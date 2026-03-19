@@ -12,6 +12,8 @@ import { JoinRequestsModule } from './join-requests/join-requests.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { EventsModule } from './events/events.module';
+import { PrismaModule } from './prisma.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -25,9 +27,11 @@ import { EventsModule } from './events/events.module';
     NotificationsModule,
     RatingsModule,
     EventsModule,
+    PrismaModule,
+    AdminModule,
   ],
   controllers: [AppController],
-  providers: [AppService, PrismaService],
+  providers: [AppService],
 })
 export class AppModule {}
 
