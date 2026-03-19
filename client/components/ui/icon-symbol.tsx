@@ -56,6 +56,8 @@ const MAPPING = {
   'rectangle.portrait.and.arrow.right': 'logout',
   'xmark.circle.fill': 'cancel',
   'person.2.slash.fill': 'group-off',
+  'plus': 'add',
+  'minus': 'remove',
 } as IconMapping;
 
 /**

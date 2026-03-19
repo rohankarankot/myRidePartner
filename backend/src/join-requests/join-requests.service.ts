@@ -85,7 +85,12 @@ export class JoinRequestsService {
         trip: {
           include: {
             creator: {
-              select: { id: true, username: true, email: true },
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: { select: { fullName: true, avatar: true } },
+              },
             },
             joinRequests: {
               select: { status: true },

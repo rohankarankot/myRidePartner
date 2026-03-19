@@ -28,7 +28,7 @@ const formatDisplayDate = (dateStr: string) => {
   }
 };
 
-// Reusable component based on the original static design
+// Reusable component matching the Activity screen card style
 const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, genderPreference, avatarUrl, captainName, onPress }: {
   documentId: string,
   from: string,
@@ -54,36 +54,37 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
       style={[styles.tripCard, { backgroundColor: cardColor }]}
       onPress={() => onPress(documentId)}
     >
-      <View style={styles.routeContainer}>
-        <View style={styles.dotContainer}>
+      {/* Header: Avatar | Name + Date·Time */}
+      <View style={styles.cardHeader}>
+        <Image
+          source={avatarUrl ? { uri: avatarUrl } : { uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }}
+          style={styles.cardAvatar}
+        />
+        <View style={styles.captainInfo}>
+          <Text style={[styles.captainName, { color: textColor }]}>{captainName || 'Captain'}</Text>
+          <Text style={[styles.timeText, { color: subtextColor }]}>{formatDisplayDate(date)} • {time}</Text>
+        </View>
+        {status !== 'PUBLISHED' && (
+          <View style={[styles.statusBadge, { backgroundColor: getTripStatusColor(status as any, '#10B981', '#EF4444', '#3B82F6', '#6B7280') }]}>
+            <Text style={styles.statusText}>{status}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Route */}
+      <View style={styles.routeRow}>
+        <View style={styles.iconColumn}>
           <View style={[styles.dot, { backgroundColor: primaryColor }]} />
           <View style={[styles.line, { backgroundColor: borderColor }]} />
           <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
         </View>
-        <View style={styles.avatarContainer}>
-          <Image
-            source={avatarUrl ? { uri: avatarUrl } : { uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }}
-            style={styles.cardAvatar}
-          />
-          <View style={styles.captainInfo}>
-            <Text style={[styles.captainName, { color: textColor }]}>{captainName || 'Captain'}</Text>
-            <Text style={[styles.timeText, { color: subtextColor }]}>{formatDisplayDate(date)} • {time}</Text>
-          </View>
-        </View>
         <View style={styles.addresses}>
-          <View style={styles.addressRow}>
-            <Text style={[styles.addressText, { color: textColor }]} numberOfLines={1}>{from}</Text>
-            {status !== 'PUBLISHED' && (
-              <View style={[styles.statusBadge, { backgroundColor: getTripStatusColor(status as any, '#10B981', '#EF4444', '#3B82F6', '#6B7280') }]}>
-                <Text style={styles.statusText}>{status}</Text>
-              </View>
-            )}
-          </View>
-          <Text style={[styles.addressText, { color: textColor }]} numberOfLines={1}>{to}</Text>
+          <Text style={[styles.addressText, { color: textColor }]} numberOfLines={1}>{from}</Text>
+          <Text style={[styles.addressText, { color: textColor, marginTop: 20 }]} numberOfLines={1}>{to}</Text>
         </View>
         <View style={[styles.genderBadge, { backgroundColor: genderPreference === 'both' ? '#F3F4FB' : genderPreference === 'men' ? '#EBF5FF' : '#FFF1F2' }]}>
           <IconSymbol
-            name={genderPreference === 'both' ? 'person.2.fill' : genderPreference === 'men' ? 'person.fill' : 'person.fill'}
+            name={genderPreference === 'both' ? 'person.2.fill' : 'person.fill'}
             size={10}
             color={genderPreference === 'both' ? '#6B7280' : genderPreference === 'men' ? '#3B82F6' : '#F43F5E'}
           />
@@ -95,6 +96,7 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
 
       <View style={[styles.cardDivider, { backgroundColor: borderColor }]} />
 
+      {/* Footer: price */}
       <View style={styles.cardFooter}>
         <View style={styles.footerInfo}>
           <IconSymbol name="car.fill" size={16} color={subtextColor} />
@@ -109,6 +111,7 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
 };
 
 export default function FindRidesScreen() {
+
   const { user } = useAuth();
   const router = useRouter();
   const navigation = useNavigation();
@@ -395,15 +398,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 3,
+    gap: 12,
   },
-  routeContainer: {
+  cardHeader: {
     flexDirection: 'row',
-  },
-  dotContainer: {
     alignItems: 'center',
-    marginRight: 15,
-    justifyContent: 'space-between',
-    paddingVertical: 5,
+    gap: 12,
+  },
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconColumn: {
+    alignItems: 'center',
+    marginRight: 12,
+    paddingVertical: 4,
   },
   dot: {
     width: 10,

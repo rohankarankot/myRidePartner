@@ -5,10 +5,10 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { joinRequestService } from '@/services/join-request-service';
 import { TripStatus, JoinRequestStatus, GenderPreference } from '@/types/api';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 import { useQuery } from '@tanstack/react-query';
-import { useScrollToTop } from '@react-navigation/native';
+import { useScrollToTop, useFocusEffect } from '@react-navigation/native';
 
 const TripCard = (props: {
     documentId: string,
@@ -125,7 +125,19 @@ const FILTER_TABS: { id: FilterTab; label: string }[] = [
 ];
 
 export default function ActivityScreen() {
-    const [activeTab, setActiveTab] = useState<FilterTab>('published');
+    const params = useLocalSearchParams<{ tab?: FilterTab }>();
+    const [activeTab, setActiveTab] = useState<FilterTab>(params.tab ?? 'published');
+
+    // useFocusEffect runs whenever the screen gains focus, unlike useEffect which only
+    // runs when the dep value actually changes in React's eyes — important for bottom tabs
+    // that stay mounted in the background.
+    useFocusEffect(
+        useCallback(() => {
+            if (params.tab) {
+                setActiveTab(params.tab);
+            }
+        }, [params.tab])
+    );
     const { user } = useAuth();
     const router = useRouter();
     const ref = useRef<ScrollView>(null);

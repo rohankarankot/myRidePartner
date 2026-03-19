@@ -363,13 +363,20 @@ export default function ProfileScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    <View style={styles.row}>
+                    <TouchableOpacity
+                        style={styles.row}
+                        onPress={() => router.navigate({ pathname: '/(tabs)/activity', params: { tab: 'completed' } })}
+                        activeOpacity={0.6}
+                    >
                         <View style={styles.labelRow}>
                             <IconSymbol name="flag.checkered" size={14} color={primaryColor} />
                             <Text style={[styles.label, { color: subtextColor }]}>Completed Trips</Text>
                         </View>
-                        <Text style={[styles.value, { color: textColor }]}>{completedTripsCount}</Text>
-                    </View>
+                        <View style={styles.labelRow}>
+                            <Text style={[styles.value, { color: textColor }]}>{completedTripsCount}</Text>
+                            <IconSymbol name="chevron.right" size={12} color={subtextColor} />
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Account Info Card */}
