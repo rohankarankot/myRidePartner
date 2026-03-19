@@ -11,8 +11,47 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+enum Gender {
+  men
+  women
 }
+
+model User {
+  id                 Int          @id @default(autoincrement())
+  username           String?
+  email              String       @unique
+  provider           String?      @default("local")
+  password           String?
+  resetPasswordToken String?
+  confirmationToken  String?
+  confirmed          Boolean      @default(false)
+  blocked            Boolean      @default(false)
+  
+  // Relations
+  userProfile        UserProfile?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model UserProfile {
+  id                   Int       @id @default(autoincrement())
+  fullName             String?
+  phoneNumber          String?
+  avatar               String?   // URL or media reference
+  rating               Decimal?  @db.Decimal(3, 2)
+  completedTripsCount  Int       @default(0)
+  ratingsCount         Int       @default(0)
+  isVerified           Boolean   @default(false)
+  governmentIdVerified Boolean   @default(false)
+  gender               Gender?
+  pushToken            String?
+
+  // Relations
+  userId               Int       @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
