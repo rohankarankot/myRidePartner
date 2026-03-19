@@ -22,6 +22,7 @@ class UserService {
         fullName: string;
         phoneNumber: string;
         gender: 'men' | 'women';
+        city: string;
         userId: number;
     }): Promise<UserProfile> {
         const { data } = await apiClient.post<UserProfile>('/user-profiles', profileData);
@@ -33,6 +34,7 @@ class UserService {
         fullName?: string;
         phoneNumber?: string;
         gender?: 'men' | 'women';
+        city?: string;
         avatar?: number | string;
         pushToken?: string;
     }): Promise<UserProfile> {

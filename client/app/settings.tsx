@@ -66,8 +66,7 @@ export default function SettingsScreen() {
                     ))}
                 </View>
 
-                <SettingItem icon="person.fill" label="Account Settings" onPress={() => router.push('/settings/account')} />
-                <SettingItem icon="gearshape.fill" label="Notifications" onPress={() => router.push('/settings/notifications')} />
+                <SettingItem icon="bell.fill" label="Notifications" onPress={() => router.push('/notifications')} />
                 <SettingItem icon="plus.circle.fill" label="Privacy & Security" onPress={() => router.push('/settings/privacy')} />
                 <SettingItem icon="magnifyingglass" label="Help & Support" onPress={() => router.push('/settings/support')} />
                 <SettingItem icon="list.bullet" label="About My Ride Partner" onPress={() => router.push('/settings/about')} />
@@ -141,5 +140,9 @@ const styles = StyleSheet.create({
     },
     version: {
         fontSize: 12,
+        marginBottom: 4,
+    },
+    creatorLine: {
+        fontSize: 11,
     }
 });

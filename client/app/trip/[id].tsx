@@ -25,7 +25,7 @@ export default function TripDetailsScreen() {
     const queryClient = useQueryClient();
     const { profile } = useUserStore();
 
-    const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender;
+    const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender || !profile.city;
 
     // ── Socket Room Management ────────────────────────────────────────
     useEffect(() => {
@@ -334,7 +334,7 @@ export default function TripDetailsScreen() {
             <CustomAlert
                 visible={showProfileAlert}
                 title="Complete Your Profile"
-                message="You need to provide your Name, Phone Number, and Gender before you can request to join a ride."
+                message="You need to provide your Name, Phone Number, Gender, and City before you can request to join a ride."
                 primaryButton={{
                     text: "Go to Profile",
                     onPress: () => {

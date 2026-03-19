@@ -20,6 +20,9 @@ export class CreateTripDto {
   @ApiProperty({ example: 3 })
   availableSeats: number;
 
+  @ApiPropertyOptional({ example: 'Pune' })
+  city?: string;
+
   @ApiPropertyOptional({ example: 15.5 })
   pricePerSeat?: number;
 

@@ -84,6 +84,7 @@ model UserProfile {
   isVerified           Boolean   @default(false)
   governmentIdVerified Boolean   @default(false)
   gender               Gender?
+  city                 String?
   pushToken            String?
 
   // Relations
@@ -103,6 +104,7 @@ model Trip {
   date             String           // YYYY-MM-DD format
   time             String           // HH:mm format
   availableSeats   Int
+  city             String?          // Static city name for filtering
   pricePerSeat     Decimal?         @db.Decimal(10, 2)
   isPriceCalculated Boolean         @default(false)
   genderPreference GenderPreference @default(both)

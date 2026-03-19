@@ -99,7 +99,7 @@ export default function CreateScreen() {
     const queryClient = useQueryClient();
     const { profile } = useUserStore();
 
-    const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender;
+    const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender || !profile.city;
 
     useFocusEffect(
         React.useCallback(() => {
@@ -187,6 +187,7 @@ export default function CreateScreen() {
             time: formatTime(time),
             description: description.trim() || undefined,
             availableSeats: parseInt(seats),
+            city: profile?.city,
             pricePerSeat: isPriceCalculated ? undefined : parseFloat(price),
             isPriceCalculated: isPriceCalculated,
             genderPreference: genderPreference,
@@ -223,7 +224,7 @@ export default function CreateScreen() {
             <CustomAlert
                 visible={showProfileAlert}
                 title="Complete Your Profile"
-                message="You need to provide your Name, Phone Number, and Gender before you can publish a ride."
+                message="You need to provide your Name, Phone Number, Gender, and City before you can publish a ride."
                 primaryButton={{
                     text: "Go to Profile",
                     onPress: () => {

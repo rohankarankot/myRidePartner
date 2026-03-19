@@ -139,8 +139,8 @@ export default function UserProfileScreen() {
                             style={styles.statItem}
                             onPress={() => router.push(`/ratings?userId=${userId}`)}
                         >
-                            <View style={[styles.statIconContainer, { backgroundColor: `${primaryColor}15` }]}>
-                                <IconSymbol name="person.2.fill" size={20} color={primaryColor} />
+                            <View style={[styles.statIconContainer, { backgroundColor: '#6366F115' }]}>
+                                <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
                             </View>
                             <Text style={[styles.statValue, { color: textColor }]}>
                                 {profile.ratingsCount || 0}
@@ -154,8 +154,12 @@ export default function UserProfileScreen() {
                 <Text style={[styles.sectionTitle, { color: subtextColor, marginTop: 24 }]}>ABOUT</Text>
                 <View style={[styles.infoCard, { backgroundColor: cardColor }]}>
                     <View style={styles.infoRow}>
-                        <View style={[styles.infoIcon, { backgroundColor: `${primaryColor}10` }]}>
-                            <IconSymbol name="person.fill" size={20} color={primaryColor} />
+                        <View style={[styles.infoIcon, { backgroundColor: profile.gender === 'men' ? '#3B82F615' : profile.gender === 'women' ? '#EC489915' : '#94A3B815' }]}>
+                            <IconSymbol 
+                                name="person.fill" 
+                                size={20} 
+                                color={profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' : '#94A3B8'} 
+                            />
                         </View>
                         <View style={styles.infoContent}>
                             <Text style={[styles.infoLabel, { color: subtextColor }]}>Gender</Text>
@@ -164,6 +168,23 @@ export default function UserProfileScreen() {
                             </Text>
                         </View>
                     </View>
+
+                    {profile.city && (
+                        <>
+                            <View style={{ height: 1, backgroundColor: borderColor, marginVertical: 12, marginLeft: 56, opacity: 0.5 }} />
+                            <View style={styles.infoRow}>
+                                <View style={[styles.infoIcon, { backgroundColor: '#F59E0B15' }]}>
+                                    <IconSymbol name="mappin.circle.fill" size={20} color="#F59E0B" />
+                                </View>
+                                <View style={styles.infoContent}>
+                                    <Text style={[styles.infoLabel, { color: subtextColor }]}>City</Text>
+                                    <Text style={[styles.infoValue, { color: textColor }]}>
+                                        {profile.city}
+                                    </Text>
+                                </View>
+                            </View>
+                        </>
+                    )}
                 </View>
 
             </ScrollView>

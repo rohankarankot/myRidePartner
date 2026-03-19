@@ -44,6 +44,7 @@ export interface UserProfile {
     user?: User;
     avatar?: Media | string;
     gender?: 'men' | 'women';
+    city?: string;
     pushToken?: string;
 }
 

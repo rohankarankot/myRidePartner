@@ -14,6 +14,7 @@ export interface TripFilters {
   genderPreference?: GenderPreference;
   date?: string;
   creatorId?: number;
+  city?: string;
 }
 
 @Injectable()
@@ -44,6 +45,9 @@ export class TripsService {
     }
     if (filters.creatorId) {
       where.creatorId = filters.creatorId;
+    }
+    if (filters.city) {
+      where.city = filters.city;
     }
 
     const [trips, total] = await Promise.all([
@@ -145,6 +149,7 @@ export class TripsService {
     date: string;
     time: string;
     availableSeats: number;
+    city?: string;
     pricePerSeat?: number;
     isPriceCalculated: boolean;
     genderPreference: string;
@@ -158,6 +163,7 @@ export class TripsService {
         date: data.date,
         time: data.time,
         availableSeats: data.availableSeats,
+        city: data.city,
         pricePerSeat: data.pricePerSeat,
         isPriceCalculated: data.isPriceCalculated,
         genderPreference: data.genderPreference as GenderPreference,

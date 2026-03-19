@@ -28,8 +28,10 @@ import {
     BottomSheetView,
     BottomSheetBackdrop,
     BottomSheetTextInput,
+    BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { Colors } from '@/constants/theme';
+import { CITIES } from '@/constants/cities';
 
 const DUMMY_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 
@@ -51,11 +53,14 @@ export default function ProfileScreen() {
     const [fullName, setFullName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [gender, setGender] = useState<'men' | 'women'>('men');
+    const [city, setCity] = useState('');
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [showSignOutModal, setShowSignOutModal] = useState(false);
+    const [showCityPicker, setShowCityPicker] = useState(false);
+    const [citySearch, setCitySearch] = useState('');
 
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-    const snapPoints = ['80%'];
+    const snapPoints = ['90%'];
 
 
 
@@ -73,7 +78,7 @@ export default function ProfileScreen() {
     const borderColor = useThemeColor({}, 'border');
 
     const createProfileMutation = useMutation({
-        mutationFn: (data: { fullName: string; phoneNumber: string; gender: 'men' | 'women'; userId: number }) =>
+        mutationFn: (data: { fullName: string; phoneNumber: string; gender: 'men' | 'women'; city: string; userId: number }) =>
             userService.createProfile(data),
         onSuccess: (data) => {
             setProfile(data);
@@ -97,11 +102,12 @@ export default function ProfileScreen() {
     });
 
     const updateProfileMutation = useMutation({
-        mutationFn: (data: { documentId: string; fullName: string; phoneNumber: string; gender: 'men' | 'women'; avatar?: string }) =>
+        mutationFn: (data: { documentId: string; fullName: string; phoneNumber: string; gender: 'men' | 'women'; city: string; avatar?: string }) =>
             userService.updateProfile(data.documentId, {
                 fullName: data.fullName,
                 phoneNumber: data.phoneNumber,
                 gender: data.gender,
+                city: data.city,
                 avatar: data.avatar,
             }),
         onSuccess: (data) => {
@@ -157,6 +163,7 @@ export default function ProfileScreen() {
                 fullName: profile!.fullName,
                 phoneNumber: profile!.phoneNumber,
                 gender: profile!.gender!,
+                city: profile!.city!,
                 avatar: fileId,
             });
         } catch (error) {
@@ -176,20 +183,28 @@ export default function ProfileScreen() {
             setFullName(profile.fullName || '');
             setPhoneNumber(profile.phoneNumber || '');
             setGender(profile.gender || 'men');
+            setCity(profile.city || '');
         } else {
             setFullName('');
             setPhoneNumber('');
             setGender('men');
+            setCity('');
         }
         bottomSheetModalRef.current?.present();
     }, [profile]);
 
+    const selectCity = (selected: string) => {
+        setCity(selected);
+        setShowCityPicker(false);
+        setCitySearch('');
+    };
+
     const handleSubmit = () => {
-        if (!fullName.trim() || !phoneNumber.trim()) {
+        if (!fullName.trim() || !phoneNumber.trim() || !city.trim()) {
             Toast.show({
                 type: 'error',
                 text1: 'Required Fields',
-                text2: 'Please enter both your name and phone number.'
+                text2: 'Please enter your name, phone number, and city.'
             });
             return;
         }
@@ -200,12 +215,14 @@ export default function ProfileScreen() {
                 fullName: fullName.trim(),
                 phoneNumber: phoneNumber.trim(),
                 gender,
+                city,
             });
         } else if (authUser) {
             createProfileMutation.mutate({
                 fullName: fullName.trim(),
                 phoneNumber: phoneNumber.trim(),
                 gender,
+                city,
                 userId: authUser.id,
             });
         }
@@ -319,7 +336,13 @@ export default function ProfileScreen() {
                         )}
                     </TouchableOpacity>
                     <Text style={[styles.name, { color: textColor }]}>{name}</Text>
-                    <Text style={[styles.email, { color: subtextColor }]}>{user?.email}</Text>
+                    {profile?.city && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                            <IconSymbol name="mappin.circle.fill" size={12} color={primaryColor} />
+                            <Text style={[styles.cityText, { color: subtextColor }]}>{profile.city}</Text>
+                        </View>
+                    )}
+                    <Text style={[styles.email, { color: subtextColor, marginTop: 4 }]}>{user?.email}</Text>
 
                     {!profile ? (
                         <TouchableOpacity
@@ -393,7 +416,7 @@ export default function ProfileScreen() {
 
                     <View style={styles.row}>
                         <View style={styles.labelRow}>
-                            <IconSymbol name="phone.fill" size={14} color={subtextColor} />
+                            <IconSymbol name="phone.fill" size={14} color="#10B981" />
                             <Text style={[styles.label, { color: subtextColor }]}>Phone</Text>
                         </View>
                         <Text style={[styles.value, { color: textColor }]}>{phone}</Text>
@@ -401,7 +424,11 @@ export default function ProfileScreen() {
 
                     <View style={styles.row}>
                         <View style={styles.labelRow}>
-                            <IconSymbol name="person.fill" size={14} color={subtextColor} />
+                            <IconSymbol 
+                                name="person.fill" 
+                                size={14} 
+                                color={profileGender === 'men' ? '#3B82F6' : profileGender === 'women' ? '#EC4899' : '#94A3B8'} 
+                            />
                             <Text style={[styles.label, { color: subtextColor }]}>Gender</Text>
                         </View>
                         <Text style={[styles.value, { color: textColor }]}>
@@ -409,13 +436,23 @@ export default function ProfileScreen() {
                         </Text>
                     </View>
 
-                    <View style={[styles.row, { marginBottom: 0 }]}>
+                    <View style={styles.row}>
                         <View style={styles.labelRow}>
-                            <IconSymbol name="envelope.fill" size={14} color={subtextColor} />
+                            <IconSymbol name="envelope.fill" size={14} color="#3B82F6" />
                             <Text style={[styles.label, { color: subtextColor }]}>Email</Text>
                         </View>
                         <Text style={[styles.value, { color: textColor }]}>{user?.email}</Text>
                     </View>
+
+                    {profile?.city && (
+                        <View style={[styles.row, { marginBottom: 0 }]}>
+                            <View style={styles.labelRow}>
+                                <IconSymbol name="mappin.circle.fill" size={14} color="#F59E0B" />
+                                <Text style={[styles.label, { color: subtextColor }]}>City</Text>
+                            </View>
+                            <Text style={[styles.value, { color: textColor, fontWeight: '700' }]}>{profile.city}</Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Actions Card */}
@@ -432,6 +469,22 @@ export default function ProfileScreen() {
                             <Text style={[styles.actionLabel, { color: textColor }]}>
                                 {!profile ? 'Complete Profile' : 'Edit Profile'}
                             </Text>
+                        </View>
+                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+                    <TouchableOpacity
+                        style={styles.actionRow}
+                        onPress={() => router.push('/notifications')}
+                        activeOpacity={0.6}
+                    >
+                        <View style={styles.actionLeft}>
+                            <View style={[styles.actionIcon, { backgroundColor: '#F8717115' }]}>
+                                <IconSymbol name="bell.fill" size={16} color="#F87171" />
+                            </View>
+                            <Text style={[styles.actionLabel, { color: textColor }]}>Notifications</Text>
                         </View>
                         <IconSymbol name="chevron.right" size={16} color={subtextColor} />
                     </TouchableOpacity>
@@ -503,7 +556,7 @@ export default function ProfileScreen() {
                 keyboardBehavior="fillParent"
                 keyboardBlurBehavior="restore"
             >
-                <BottomSheetView style={styles.modalContent}>
+                <BottomSheetScrollView contentContainerStyle={styles.modalContent}>
                     <View style={styles.modalHeaderRow}>
                         <Text style={[styles.modalTitle, { color: textColor }]}>
                             {profile ? 'Edit Profile' : 'Complete Profile'}
@@ -556,10 +609,66 @@ export default function ProfileScreen() {
                         </TouchableOpacity>
                     </View>
 
+                    <Text style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>CITY</Text>
+                    <TouchableOpacity
+                        style={[styles.input, { borderColor, justifyContent: 'center' }]}
+                        onPress={() => setShowCityPicker(!showCityPicker)}
+                    >
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={{ color: city ? textColor : subtextColor, fontSize: 16 }}>
+                                {city || 'Select your city'}
+                            </Text>
+                            <IconSymbol name="chevron.down" size={16} color={subtextColor} />
+                        </View>
+                    </TouchableOpacity>
 
+                    {showCityPicker && (
+                        <View style={{ 
+                            backgroundColor: `${subtextColor}05`, 
+                            borderRadius: 12, 
+                            marginTop: 8,
+                            maxHeight: 250,
+                            borderWidth: 1,
+                            borderColor: `${borderColor}50`,
+                            padding: 8
+                        }}>
+                             <BottomSheetTextInput
+                                style={[styles.input, { height: 44, marginBottom: 8, borderColor: `${borderColor}30`, fontSize: 14, backgroundColor: cardColor }]}
+                                placeholder="Search city..."
+                                placeholderTextColor={subtextColor}
+                                value={citySearch}
+                                onChangeText={setCitySearch}
+                                autoFocus={false}
+                            />
+                            <ScrollView nestedScrollEnabled style={{ maxHeight: 180 }}>
+                                {CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase())).map((c) => (
+                                    <TouchableOpacity
+                                        key={c}
+                                        style={{
+                                            paddingVertical: 12,
+                                            paddingHorizontal: 16,
+                                            borderRadius: 8,
+                                            backgroundColor: city === c ? `${primaryColor}10` : 'transparent',
+                                            flexDirection: 'row',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}
+                                        onPress={() => selectCity(c)}
+                                    >
+                                        <Text style={{ 
+                                            fontSize: 15, 
+                                            color: city === c ? primaryColor : textColor,
+                                            fontWeight: city === c ? '700' : '400'
+                                        }}>{c}</Text>
+                                        {city === c && <IconSymbol name="checkmark" size={14} color={primaryColor} />}
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
 
                     <TouchableOpacity
-                        style={[styles.saveButton, { backgroundColor: primaryColor }]}
+                        style={[styles.saveButton, { backgroundColor: primaryColor, marginTop: 24 }]}
                         onPress={handleSubmit}
                         disabled={isPending}
                     >
@@ -571,7 +680,7 @@ export default function ProfileScreen() {
                             </Text>
                         )}
                     </TouchableOpacity>
-                </BottomSheetView>
+                </BottomSheetScrollView>
             </BottomSheetModal>
         </SafeAreaView>
     );
@@ -643,6 +752,10 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 22,
         fontWeight: '700',
+    },
+    cityText: {
+        fontSize: 14,
+        fontWeight: '500',
     },
     email: {
         fontSize: 14,

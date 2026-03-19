@@ -31,6 +31,7 @@ export class TripsController {
   @ApiQuery({ name: 'gender', required: false, enum: ['men', 'women', 'both'] })
   @ApiQuery({ name: 'date', required: false, example: '2025-03-20' })
   @ApiQuery({ name: 'creatorId', required: false, example: 1 })
+  @ApiQuery({ name: 'city', required: false, example: 'Pune' })
   findAll(
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
@@ -38,6 +39,7 @@ export class TripsController {
     @Query('gender') gender?: string,
     @Query('date') date?: string,
     @Query('creatorId') creatorId?: string,
+    @Query('city') city?: string,
   ) {
     const pagination = parsePagination({ page, pageSize });
 
@@ -46,6 +48,7 @@ export class TripsController {
     if (gender && gender !== 'both') filters.genderPreference = gender as GenderPreference;
     if (date) filters.date = date;
     if (creatorId) filters.creatorId = parseInt(creatorId, 10);
+    if (city) filters.city = city;
 
     return this.tripsService.findAll(pagination, filters);
   }

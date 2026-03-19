@@ -20,7 +20,7 @@ class TripService {
         return data.data;
     }
 
-    async getTrips(page: number = 1, pageSize: number = 10, filters?: { gender?: string, date?: string }): Promise<TripResponse> {
+    async getTrips(page: number = 1, pageSize: number = 10, filters?: { gender?: string, date?: string, city?: string }): Promise<TripResponse> {
         const params = new URLSearchParams();
         params.set('page', String(page));
         params.set('pageSize', String(pageSize));
@@ -31,6 +31,9 @@ class TripService {
         }
         if (filters?.date) {
             params.set('date', filters.date);
+        }
+        if (filters?.city) {
+            params.set('city', filters.city);
         }
 
         const { data } = await apiClient.get<TripResponse>(`/trips?${params.toString()}`);
