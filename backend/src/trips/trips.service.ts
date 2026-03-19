@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
-import { Prisma, TripStatus, GenderPreference } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
+import { Prisma, TripStatus, GenderPreference, NotificationType } from '@prisma/client';
 import {
   PaginationParams,
   buildPaginationMeta,
@@ -20,6 +21,7 @@ export class TripsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -154,6 +156,17 @@ export class TripsService {
    * Update a trip by documentId (general update).
    */
   async update(documentId: string, data: Prisma.TripUpdateInput) {
+    // 1. Get the current trip to identify change
+    const oldTrip = await this.prisma.trip.findUnique({
+      where: { documentId },
+      select: { status: true, startingPoint: true, destination: true },
+    });
+
+    if (!oldTrip) {
+      throw new NotFoundException(`Trip not found`);
+    }
+
+    // 2. Perform the update
     const trip = await this.prisma.trip.update({
       where: { documentId },
       data,
@@ -164,11 +177,86 @@ export class TripsService {
       },
     });
 
+    // 3. Emit real-time event through socket trip room
     this.eventsGateway.emitToTripRoom(documentId, 'trip_updated', {
       documentId,
+      status: trip.status,
     });
 
+    // 4. Send notifications to all approved passengers if status changed
+    if (data.status && data.status !== oldTrip.status) {
+      this.notifyPassengersOfStatusChange(trip);
+
+      // 5. Increment completed trips count if status is COMPLETED
+      if (data.status === 'COMPLETED') {
+        this.incrementCompletedTripsStats(trip);
+      }
+    }
+
     return { data: trip };
+  }
+
+  /**
+   * Helper to increment completedTripsCount for creator and passengers.
+   */
+  private async incrementCompletedTripsStats(trip: any) {
+    // 1. Increment for creator (Captain)
+    await this.prisma.userProfile.update({
+      where: { userId: trip.creatorId },
+      data: { completedTripsCount: { increment: 1 } },
+    });
+
+    // 2. Increment for approved passengers
+    const passengers = await this.prisma.joinRequest.findMany({
+      where: {
+        tripId: trip.id,
+        status: 'APPROVED',
+      },
+      select: {
+        passengerId: true,
+      },
+    });
+
+    for (const p of passengers) {
+      await this.prisma.userProfile.update({
+        where: { userId: p.passengerId },
+        data: { completedTripsCount: { increment: 1 } },
+      });
+    }
+  }
+
+  /**
+   * Helper to notify all approved passengers of a trip status change.
+   */
+  private async notifyPassengersOfStatusChange(trip: any) {
+    const passengers = await this.prisma.joinRequest.findMany({
+      where: {
+        tripId: trip.id,
+        status: 'APPROVED',
+      },
+      select: {
+        passengerId: true,
+      },
+    });
+
+    const statusLabels: Record<string, string> = {
+      STARTED: 'started',
+      COMPLETED: 'completed',
+      CANCELLED: 'cancelled',
+    };
+
+    const label = statusLabels[trip.status] || trip.status.toLowerCase();
+
+    for (const p of passengers) {
+      await this.notificationsService.create({
+        userId: p.passengerId,
+        title: `Trip ${label}`,
+        message: `The trip from ${trip.startingPoint} to ${trip.destination} has been ${label}.`,
+        type: trip.status === 'COMPLETED' ? NotificationType.TRIP_COMPLETED : NotificationType.TRIP_UPDATE,
+        relatedId: trip.documentId,
+        data: { tripId: trip.documentId },
+      });
+    }
   }
 
   /**

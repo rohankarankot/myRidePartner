@@ -353,7 +353,7 @@ export default function ProfileScreen() {
                             <IconSymbol name="star.fill" size={14} color="#F59E0B" />
                             <Text style={[styles.label, { color: subtextColor }]}>Rating</Text>
                         </View>
-                        <Text style={[styles.value, { color: textColor }]}>{(rating).toFixed(1)}</Text>
+                        <Text style={[styles.value, { color: textColor }]}>{Number(rating).toFixed(1)}</Text>
                     </View>
 
                     <View style={styles.row}>
