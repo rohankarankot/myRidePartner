@@ -12,9 +12,11 @@ export class UsersService {
   }
 
   async createWithGoogle(email: string, name: string, picture: string): Promise<User> {
+    const username = email.split('@')[0];
     return this.prisma.user.create({
       data: {
         email,
+        username,
         provider: "google",
         confirmed: true,
         userProfile: {

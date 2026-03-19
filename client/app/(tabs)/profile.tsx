@@ -231,7 +231,7 @@ export default function ProfileScreen() {
     }
 
     // fallback info if profile doesn't exist
-    const user = profile?.userId || authUser;
+    const user = profile?.user || authUser;
     const avatarUrl = typeof profile?.avatar === 'string'
         ? profile.avatar
         : profile?.avatar?.url || profile?.avatar?.formats?.small?.url;

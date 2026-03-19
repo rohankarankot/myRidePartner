@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -29,7 +29,7 @@ const formatDisplayDate = (dateStr: string) => {
 };
 
 // Reusable component based on the original static design
-const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, genderPreference, onPress }: {
+const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, genderPreference, avatarUrl, captainName, onPress }: {
   documentId: string,
   from: string,
   to: string,
@@ -39,6 +39,8 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
   isCalculated: boolean,
   status: string,
   genderPreference: GenderPreference,
+  avatarUrl?: string,
+  captainName?: string,
   onPress: (id: string) => void
 }) => {
   const textColor = useThemeColor({}, 'text');
@@ -57,6 +59,16 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
           <View style={[styles.dot, { backgroundColor: primaryColor }]} />
           <View style={[styles.line, { backgroundColor: borderColor }]} />
           <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
+        </View>
+        <View style={styles.avatarContainer}>
+          <Image
+            source={avatarUrl ? { uri: avatarUrl } : { uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }}
+            style={styles.cardAvatar}
+          />
+          <View style={styles.captainInfo}>
+            <Text style={[styles.captainName, { color: textColor }]}>{captainName || 'Captain'}</Text>
+            <Text style={[styles.timeText, { color: subtextColor }]}>{formatDisplayDate(date)} • {time}</Text>
+          </View>
         </View>
         <View style={styles.addresses}>
           <View style={styles.addressRow}>
@@ -85,8 +97,8 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
 
       <View style={styles.cardFooter}>
         <View style={styles.footerInfo}>
-          <IconSymbol name="calendar" size={16} color={subtextColor} />
-          <Text style={[styles.footerText, { color: subtextColor }]}>{formatDisplayDate(date)} at {time}</Text>
+          <IconSymbol name="car.fill" size={16} color={subtextColor} />
+          <Text style={[styles.footerText, { color: subtextColor }]}>{status}</Text>
         </View>
         <Text style={[styles.priceTag, { color: primaryColor, fontSize: isCalculated ? 14 : 18 }]}>
           {isCalculated ? 'Calculated on demand' : `₹${price}`}
@@ -255,6 +267,12 @@ export default function FindRidesScreen() {
               isCalculated={item.isPriceCalculated}
               status={item.status}
               genderPreference={item.genderPreference}
+              avatarUrl={
+                typeof item.creator?.userProfile?.avatar === 'string'
+                  ? item.creator.userProfile.avatar
+                  : (item.creator?.userProfile?.avatar as any)?.url
+              }
+              captainName={item.creator?.username}
               onPress={(id) => router.push(`/trip/${id}`)}
             />
           )}
@@ -396,6 +414,29 @@ const styles = StyleSheet.create({
     width: 2,
     flex: 1,
     marginVertical: 4,
+  },
+  avatarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f0f0f0',
+  },
+  captainInfo: {
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  captainName: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  timeText: {
+    fontSize: 12,
+    marginTop: 2,
   },
   addresses: {
     flex: 1,

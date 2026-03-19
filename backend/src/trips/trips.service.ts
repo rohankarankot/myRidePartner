@@ -54,7 +54,14 @@ export class TripsService {
         orderBy: { createdAt: 'desc' },
         include: {
           creator: {
-            select: { id: true, username: true, email: true },
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              userProfile: {
+                select: { avatar: true },
+              },
+            },
           },
         },
       }),
@@ -75,7 +82,14 @@ export class TripsService {
       where: { documentId },
       include: {
         creator: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
         },
         joinRequests: {
           include: {
@@ -103,7 +117,14 @@ export class TripsService {
       orderBy: { createdAt: 'desc' },
       include: {
         creator: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
         },
         joinRequests: {
           select: { status: true },
@@ -144,7 +165,14 @@ export class TripsService {
       },
       include: {
         creator: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
         },
       },
     });
@@ -172,7 +200,14 @@ export class TripsService {
       data,
       include: {
         creator: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
         },
       },
     });

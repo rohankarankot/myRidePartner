@@ -9,6 +9,9 @@ export interface User {
     createdAt: string;
     updatedAt: string;
     publishedAt: string;
+    userProfile?: {
+        avatar?: string | { url: string; formats?: any };
+    };
 }
 
 export interface AuthResponse {
@@ -37,7 +40,8 @@ export interface UserProfile {
     completedTripsCount?: number;
     ratingsCount?: number;
     isVerified?: boolean;
-    userId?: User;
+    userId: number;
+    user?: User;
     avatar?: Media | string;
     gender?: 'men' | 'women';
     pushToken?: string;

@@ -1,11 +1,10 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { joinRequestService } from '@/services/join-request-service';
-import { Trip, JoinRequest, TripStatus, JoinRequestStatus, GenderPreference } from '@/types/api';
+import { TripStatus, JoinRequestStatus, GenderPreference } from '@/types/api';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 import { useQuery } from '@tanstack/react-query';
@@ -20,10 +19,12 @@ const TripCard = (props: {
     status: TripStatus | JoinRequestStatus,
     isPriceCalculated: boolean | null,
     genderPreference: GenderPreference,
+    avatarUrl?: string,
+    captainName?: string,
     pendingRequestsCount?: number,
     onPress: (documentId: string) => void
 }) => {
-    const { documentId, from, to, date, price, status, isPriceCalculated, genderPreference, pendingRequestsCount = 0, onPress } = props;
+    const { documentId, from, to, date, price, status, isPriceCalculated, genderPreference, avatarUrl, captainName, pendingRequestsCount = 0, onPress } = props;
 
     const textColor = useThemeColor({}, 'text');
     const subtextColor = useThemeColor({}, 'subtext');
@@ -56,7 +57,16 @@ const TripCard = (props: {
             onPress={() => onPress(documentId)}
         >
             <View style={styles.cardHeader}>
-                <Text style={[styles.dateText, { color: subtextColor }]}>{date}</Text>
+                <View style={[styles.avatarContainer, { flex: 1 }]}>
+                    <Image
+                        source={avatarUrl ? { uri: avatarUrl } : { uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }}
+                        style={styles.cardAvatar}
+                    />
+                    <View style={styles.captainInfo}>
+                        <Text style={[styles.captainName, { color: textColor }]}>{captainName || 'Captain'}</Text>
+                        <Text style={[styles.dateText, { color: subtextColor }]}>{date}</Text>
+                    </View>
+                </View>
                 <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
                     <Text style={[styles.statusText, { color: statusStyle.text }]}>{status}</Text>
                 </View>
@@ -69,11 +79,13 @@ const TripCard = (props: {
             </View>
 
             <View style={styles.routeRow}>
+
                 <View style={styles.iconColumn}>
                     <View style={[styles.dot, { backgroundColor: primaryColor }]} />
                     <View style={[styles.line, { backgroundColor: borderColor }]} />
                     <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
                 </View>
+
                 <View style={styles.addressList}>
                     <Text style={[styles.address, { color: textColor }]} numberOfLines={2}>{from}</Text>
                     <Text style={[styles.address, { color: textColor, marginTop: 20 }]} numberOfLines={2}>{to}</Text>
@@ -255,6 +267,12 @@ export default function ActivityScreen() {
                                         price={`₹${trip.pricePerSeat}`}
                                         status={trip.status}
                                         genderPreference={trip.genderPreference}
+                                        avatarUrl={
+                                            typeof trip.creator?.userProfile?.avatar === 'string'
+                                                ? trip.creator.userProfile.avatar
+                                                : (trip.creator?.userProfile?.avatar as any)?.url
+                                        }
+                                        captainName={trip.creator?.username}
                                         pendingRequestsCount={trip.joinRequests?.filter((r: any) => r.status === 'PENDING').length}
                                         onPress={(docId) => router.push(`/trip/${docId}`)}
                                     />
@@ -276,6 +294,12 @@ export default function ActivityScreen() {
                                         price={`₹${request.trip?.pricePerSeat}`}
                                         status={request.status}
                                         genderPreference={request.trip?.genderPreference || 'both'}
+                                        avatarUrl={
+                                            typeof request.trip?.creator?.userProfile?.avatar === 'string'
+                                                ? request.trip.creator.userProfile.avatar
+                                                : (request.trip?.creator?.userProfile?.avatar as any)?.url
+                                        }
+                                        captainName={request.trip?.creator?.username}
                                         onPress={(docId) => router.push(`/trip/${docId}`)}
                                     />
                                 ))}
@@ -401,6 +425,24 @@ const styles = StyleSheet.create({
         width: 1,
         height: 30,
         marginVertical: 2,
+    },
+    avatarContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    cardAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f0f0f0',
+    },
+    captainInfo: {
+        marginLeft: 12,
+        justifyContent: 'center',
+    },
+    captainName: {
+        fontSize: 15,
+        fontWeight: '700',
     },
     addressList: {
         flex: 1,
