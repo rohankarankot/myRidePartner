@@ -4,22 +4,24 @@ import { CONFIG } from '@/constants/config';
 class SocketService {
     private socket: Socket | null = null;
 
-    connect(userId: number) {
+    connect(userId: number, token: string) {
         if (this.socket?.connected) {
             return;
         }
 
-        this.socket = io(CONFIG.STRAPI_URL, {
-            transports: ['polling', 'websocket'], // Allow polling first, then upgrade
+        this.socket = io(CONFIG.API_URL, {
+            auth: { token },
+            autoConnect: false,
+            transports: ['websocket'],
             forceNew: true,
             reconnectionAttempts: 5,
             timeout: 10000,
         });
 
         this.socket.on('connect', () => {
-            console.log('[Socket] Connected to server');
-            // Authenticate with backend to join personal room
-            this.socket?.emit('authenticate', userId);
+            console.log('[Socket] Connected to server (securely)');
+            // Explicit authenticate emit is now deprecated but kept for backward compatibility if needed
+            // this.socket?.emit('authenticate', userId);
         });
 
         this.socket.on('disconnect', (reason) => {

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 import { Prisma, TripStatus, GenderPreference } from '@prisma/client';
 import {
   PaginationParams,
@@ -16,7 +17,10 @@ export interface TripFilters {
 
 @Injectable()
 export class TripsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   /**
    * Paginated list of trips with optional filters.
@@ -99,6 +103,9 @@ export class TripsService {
         creator: {
           select: { id: true, username: true, email: true },
         },
+        joinRequests: {
+          select: { status: true },
+        },
       },
     });
 
@@ -155,6 +162,10 @@ export class TripsService {
           select: { id: true, username: true, email: true },
         },
       },
+    });
+
+    this.eventsGateway.emitToTripRoom(documentId, 'trip_updated', {
+      documentId,
     });
 
     return { data: trip };

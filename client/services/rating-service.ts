@@ -9,13 +9,13 @@ class RatingService {
         rater: number; // userId
         ratee: number; // userId
     }): Promise<Rating> {
-        const { data } = await apiClient.post<{ data: Rating }>('/api/ratings', ratingData);
+        const { data } = await apiClient.post<{ data: Rating }>('/ratings', ratingData);
         return data.data;
     }
 
     async getRatingForTripByUser(tripDocumentId: string, userId: number): Promise<Rating | null> {
         const { data } = await apiClient.get<Rating | null>(
-            `/api/ratings/trip/${tripDocumentId}/user/${userId}`
+            `/ratings/trip/${tripDocumentId}/user/${userId}`
         );
         return data;
     }

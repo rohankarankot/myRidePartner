@@ -33,6 +33,12 @@ export class JoinRequestsController {
   findPendingForCaptain(@Param('captainId') captainId: string) {
     return this.joinRequestsService.findPendingForCaptain(parseInt(captainId, 10));
   }
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get join requests for a passenger', description: 'Get all join requests made by a specific user' })
+  @ApiParam({ name: 'userId', example: 1 })
+  findByPassenger(@Param('userId') userId: string) {
+    return this.joinRequestsService.findByPassenger(parseInt(userId, 10));
+  }
 
   @Get(':documentId')
   @ApiOperation({ summary: 'Get a join request by document ID' })

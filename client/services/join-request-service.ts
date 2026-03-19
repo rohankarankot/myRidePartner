@@ -8,39 +8,46 @@ class JoinRequestService {
         requestedSeats: number;
         message?: string;
     }): Promise<JoinRequest> {
-        const { data: response } = await apiClient.post<JoinRequest>('/api/join-requests', data);
+        const { data: response } = await apiClient.post<JoinRequest>('/join-requests', data);
         return response;
+    }
+
+    async getJoinRequestsForUser(userId: number): Promise<JoinRequest[]> {
+        const { data } = await apiClient.get<JoinRequest[]>(
+            `/join-requests/user/${userId}`
+        );
+        return data;
     }
 
     async getJoinRequestsForTrip(tripDocumentId: string): Promise<JoinRequest[]> {
         const { data } = await apiClient.get<JoinRequest[]>(
-            `/api/join-requests?tripDocumentId=${tripDocumentId}`
+            `/join-requests?tripDocumentId=${tripDocumentId}`
         );
         return data;
     }
 
     async updateJoinRequestStatus(documentId: string, status: JoinRequestStatus): Promise<JoinRequest> {
         const { data } = await apiClient.put<JoinRequest>(
-            `/api/join-requests/${documentId}/status`,
+            `/join-requests/${documentId}/status`,
             { status }
         );
         return data;
     }
 
     async deleteJoinRequest(documentId: string): Promise<void> {
-        await apiClient.delete(`/api/join-requests/${documentId}`);
+        await apiClient.delete(`/join-requests/${documentId}`);
     }
 
     async getPendingRequestsForCaptain(userId: number): Promise<JoinRequest[]> {
         const { data } = await apiClient.get<JoinRequest[]>(
-            `/api/join-requests/pending/${userId}`
+            `/join-requests/pending/${userId}`
         );
         return data;
     }
 
     async getJoinRequestByDocumentId(documentId: string): Promise<JoinRequest> {
         const { data } = await apiClient.get<JoinRequest>(
-            `/api/join-requests/${documentId}`
+            `/join-requests/${documentId}`
         );
         return data;
     }

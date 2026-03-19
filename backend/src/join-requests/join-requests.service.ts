@@ -1,10 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { EventsGateway } from '../events/events.gateway';
 import { PrismaService } from '../prisma.service';
-import { JoinRequestStatus } from '@prisma/client';
+import { JoinRequestStatus, NotificationType } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class JoinRequestsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsGateway: EventsGateway,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Get all join requests for a specific trip.
@@ -57,6 +63,32 @@ export class JoinRequestsService {
           include: {
             creator: {
               select: { id: true, username: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    return requests;
+  }
+  /**
+   * Get all join requests made by a specific passenger.
+   */
+  async findByPassenger(passengerId: number) {
+    const requests = await this.prisma.joinRequest.findMany({
+      where: { passengerId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        passenger: {
+          select: { id: true, username: true, email: true },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: { id: true, username: true, email: true },
+            },
+            joinRequests: {
+              select: { status: true },
             },
           },
         },
@@ -132,6 +164,21 @@ export class JoinRequestsService {
       },
     });
 
+    // Notify trip captain (real-time + DB)
+    const captainId = request.trip.creatorId;
+    this.eventsGateway.emitToUser(captainId, 'join_request_created', {
+      tripId: data.trip,
+    });
+    
+    await this.notificationsService.create({
+      title: 'New Join Request',
+      message: `${request.passenger.username} wants to join your trip!`,
+      type: NotificationType.JOIN_REQUEST,
+      userId: captainId,
+      relatedId: data.trip, // tripDocumentId
+      data: { tripId: data.trip },
+    });
+
     return request;
   }
 
@@ -172,6 +219,29 @@ export class JoinRequestsService {
           },
         },
       },
+    });
+
+    // Notify passenger (real-time + DB)
+    this.eventsGateway.emitToUser(request.passengerId, 'join_request_updated', {
+      tripId: request.trip.documentId,
+      status: request.status,
+    });
+    
+    await this.notificationsService.create({
+      title: 'Join Request Update',
+      message: `Your request for trip to ${request.trip.destination} was ${request.status.toLowerCase()}.`,
+      type: NotificationType.TRIP_UPDATE,
+      userId: request.passengerId,
+      relatedId: request.trip.documentId,
+      data: { 
+        tripId: request.trip.documentId,
+        status: request.status
+      },
+    });
+
+    // Update trip room
+    this.eventsGateway.emitToTripRoom(request.trip.documentId, 'trip_updated', {
+      documentId: request.trip.documentId,
     });
 
     return request;

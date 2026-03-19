@@ -11,6 +11,7 @@ import { TripsModule } from './trips/trips.module';
 import { JoinRequestsModule } from './join-requests/join-requests.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RatingsModule } from './ratings/ratings.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RatingsModule } from './ratings/ratings.module';
     JoinRequestsModule,
     NotificationsModule,
     RatingsModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

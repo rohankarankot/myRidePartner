@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 import { NotificationType } from '@prisma/client';
 import {
   PaginationParams,
@@ -14,7 +15,10 @@ export interface NotificationFilters {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   /**
    * Get paginated notifications with optional filters.
@@ -73,7 +77,7 @@ export class NotificationsService {
     data?: any;
     relatedId?: string;
   }) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         title: data.title,
         message: data.message,
@@ -83,6 +87,11 @@ export class NotificationsService {
         user: { connect: { id: data.userId } },
       },
     });
+
+    // Emit to socket
+    this.eventsGateway.emitToUser(data.userId, 'new_notification', notification);
+
+    return notification;
   }
 
   /**

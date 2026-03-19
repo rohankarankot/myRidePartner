@@ -14,7 +14,7 @@ class TripService {
         genderPreference: string;
         creator: number;
     }): Promise<Trip> {
-        const { data } = await apiClient.post<{ data: Trip }>('/api/trips', {
+        const { data } = await apiClient.post<{ data: Trip }>('/trips', {
             data: tripData
         });
         return data.data;
@@ -33,29 +33,29 @@ class TripService {
             params.set('date', filters.date);
         }
 
-        const { data } = await apiClient.get<TripResponse>(`/api/trips?${params.toString()}`);
+        const { data } = await apiClient.get<TripResponse>(`/trips?${params.toString()}`);
         return data;
     }
 
     async getUserTrips(userId: number): Promise<Trip[]> {
-        const { data } = await apiClient.get<{ data: Trip[] }>(`/api/trips/user/${userId}`);
+        const { data } = await apiClient.get<{ data: Trip[] }>(`/trips/user/${userId}`);
         return data.data;
     }
 
     async updateTripStatus(documentId: string, status: string): Promise<Trip> {
-        const { data } = await apiClient.put<{ data: Trip }>(`/api/trips/${documentId}`, {
+        const { data } = await apiClient.put<{ data: Trip }>(`/trips/${documentId}`, {
             data: { status }
         });
         return data.data;
     }
 
     async deleteTrip(documentId: string): Promise<Trip> {
-        const { data } = await apiClient.delete<{ data: Trip }>(`/api/trips/${documentId}`);
+        const { data } = await apiClient.delete<{ data: Trip }>(`/trips/${documentId}`);
         return data.data;
     }
 
     async getTripById(documentId: string): Promise<Trip> {
-        const { data } = await apiClient.get<{ data: Trip }>(`/api/trips/${documentId}`);
+        const { data } = await apiClient.get<{ data: Trip }>(`/trips/${documentId}`);
         return data.data;
     }
 }

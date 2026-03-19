@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 fetchAndStoreProfile(userObj.id);
 
                 // Initialize socket connection
-                socketService.connect(userObj.id);
+                socketService.connect(userObj.id, storedToken);
             }
         } catch (e) {
             console.error('Failed to load auth data', e);
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchAndStoreProfile(newUser.id);
 
         // Initialize socket connection
-        socketService.connect(newUser.id);
+        socketService.connect(newUser.id, newToken);
     };
 
     const signOut = async () => {

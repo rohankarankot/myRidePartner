@@ -3,13 +3,13 @@ import { User, UserProfile, UserProfileResponse } from '@/types/api';
 
 class UserService {
     async getCurrentUser(): Promise<User> {
-        const { data } = await apiClient.get<User>('/api/users/me');
+        const { data } = await apiClient.get<User>('/users/me');
         return data;
     }
 
     async getUserProfile(userId: number): Promise<UserProfile | null> {
         try {
-            const { data } = await apiClient.get<UserProfile>(`/api/user-profiles/user/${userId}`);
+            const { data } = await apiClient.get<UserProfile>(`/user-profiles/user/${userId}`);
             data.documentId = String(data.id);
             return data;
         } catch (error: any) {
@@ -24,7 +24,7 @@ class UserService {
         gender: 'men' | 'women';
         userId: number;
     }): Promise<UserProfile> {
-        const { data } = await apiClient.post<UserProfile>('/api/user-profiles', profileData);
+        const { data } = await apiClient.post<UserProfile>('/user-profiles', profileData);
         data.documentId = String(data.id);
         return data;
     }
@@ -36,7 +36,7 @@ class UserService {
         avatar?: number | string;
         pushToken?: string;
     }): Promise<UserProfile> {
-        const { data } = await apiClient.patch<UserProfile>(`/api/user-profiles/${documentId}`, profileData);
+        const { data } = await apiClient.patch<UserProfile>(`/user-profiles/${documentId}`, profileData);
         data.documentId = String(data.id);
         return data;
     }
@@ -58,7 +58,7 @@ class UserService {
             type: type,
         } as any);
 
-        const { data } = await apiClient.post<any[]>('/api/upload', formData, {
+        const { data } = await apiClient.post<any[]>('/upload', formData, {
             transformRequest: (data) => data, // Prevent axios from transforming FormData
             headers: {
                 'Content-Type': 'multipart/form-data',
