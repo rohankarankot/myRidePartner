@@ -16,7 +16,7 @@ export default function RequestListingPage() {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/requests`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/requests`, {
           headers: {
             Authorization: `Bearer ${(session as any)?.accessToken}`,
           },

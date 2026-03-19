@@ -26,7 +26,8 @@ export interface User {
 
 export const columns: ColumnDef<User>[] = [
   {
-    accessorKey: 'userProfile.avatar',
+    id: 'user',
+    accessorFn: (row) => row.userProfile?.avatar,
     header: 'USER',
     cell: ({ row }) => {
       const user = row.original;
@@ -71,7 +72,8 @@ export const columns: ColumnDef<User>[] = [
     },
   },
   {
-    accessorKey: '_count.createdTrips',
+    id: 'trips',
+    accessorFn: (row) => row._count?.createdTrips || 0,
     header: 'TRIPS',
   },
   {

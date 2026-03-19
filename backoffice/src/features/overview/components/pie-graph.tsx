@@ -19,54 +19,42 @@ import {
   ChartTooltipContent
 } from '@/components/ui/chart';
 
-const chartData = [
-  { browser: 'chrome', visitors: 275, fill: 'var(--primary)' },
-  { browser: 'safari', visitors: 200, fill: 'var(--primary-light)' },
-  { browser: 'firefox', visitors: 287, fill: 'var(--primary-lighter)' },
-  { browser: 'edge', visitors: 173, fill: 'var(--primary-dark)' },
-  { browser: 'other', visitors: 190, fill: 'var(--primary-darker)' }
-];
-
 const chartConfig = {
-  visitors: {
-    label: 'Visitors'
+  trips: {
+    label: 'Trips'
   },
-  chrome: {
-    label: 'Chrome',
+  PUBLISHED: {
+    label: 'Published',
     color: 'var(--primary)'
   },
-  safari: {
-    label: 'Safari',
+  STARTED: {
+    label: 'Started',
     color: 'var(--primary)'
   },
-  firefox: {
-    label: 'Firefox',
+  COMPLETED: {
+    label: 'Completed',
     color: 'var(--primary)'
   },
-  edge: {
-    label: 'Edge',
-    color: 'var(--primary)'
-  },
-  other: {
-    label: 'Other',
+  CANCELLED: {
+    label: 'Cancelled',
     color: 'var(--primary)'
   }
 } satisfies ChartConfig;
 
-export function PieGraph() {
-  const totalVisitors = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.visitors, 0);
-  }, []);
+export function PieGraph({ data = [] }: { data?: any[] }) {
+  const totalTrips = React.useMemo(() => {
+    return data.reduce((acc, curr) => acc + curr.count, 0);
+  }, [data]);
 
   return (
     <Card className='@container/card'>
       <CardHeader>
-        <CardTitle>Pie Chart - Donut with Text</CardTitle>
+        <CardTitle>Trips by Status</CardTitle>
         <CardDescription>
           <span className='hidden @[540px]/card:block'>
-            Total visitors by browser for the last 6 months
+            Overview of current trips status
           </span>
-          <span className='@[540px]/card:hidden'>Browser distribution</span>
+          <span className='@[540px]/card:hidden'>Trips status</span>
         </CardDescription>
       </CardHeader>
       <CardContent className='px-2 pt-4 sm:px-6 sm:pt-6'>
@@ -76,11 +64,11 @@ export function PieGraph() {
         >
           <PieChart>
             <defs>
-              {['chrome', 'safari', 'firefox', 'edge', 'other'].map(
-                (browser, index) => (
+              {['PUBLISHED', 'STARTED', 'COMPLETED', 'CANCELLED'].map(
+                (status, index) => (
                   <linearGradient
-                    key={browser}
-                    id={`fill${browser}`}
+                    key={status}
+                    id={`fill${status}`}
                     x1='0'
                     y1='0'
                     x2='0'
@@ -105,12 +93,12 @@ export function PieGraph() {
               content={<ChartTooltipContent hideLabel />}
             />
             <Pie
-              data={chartData.map((item) => ({
+              data={data.map((item) => ({
                 ...item,
-                fill: `url(#fill${item.browser})`
+                fill: `url(#fill${item.status})`
               }))}
-              dataKey='visitors'
-              nameKey='browser'
+              dataKey='count'
+              nameKey='status'
               innerRadius={60}
               strokeWidth={2}
               stroke='var(--background)'
@@ -130,14 +118,14 @@ export function PieGraph() {
                           y={viewBox.cy}
                           className='fill-foreground text-3xl font-bold'
                         >
-                          {totalVisitors.toLocaleString()}
+                          {totalTrips.toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
                           className='fill-muted-foreground text-sm'
                         >
-                          Total Visitors
+                          Total Trips
                         </tspan>
                       </text>
                     );
@@ -150,12 +138,10 @@ export function PieGraph() {
       </CardContent>
       <CardFooter className='flex-col gap-2 text-sm'>
         <div className='flex items-center gap-2 leading-none font-medium'>
-          Chrome leads with{' '}
-          {((chartData[0].visitors / totalVisitors) * 100).toFixed(1)}%{' '}
-          <IconTrendingUp className='h-4 w-4' />
+          Current distribution of trips
         </div>
         <div className='text-muted-foreground leading-none'>
-          Based on data from January - June 2024
+          Based on real-time data
         </div>
       </CardFooter>
     </Card>

@@ -16,7 +16,7 @@ export default function TripListingPage() {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/trips`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/trips`, {
           headers: {
             Authorization: `Bearer ${(session as any)?.accessToken}`,
           },

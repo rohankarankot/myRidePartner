@@ -27,10 +27,14 @@ export default async function OverViewPage() {
     totalTrips: 0,
     completedTrips: 0,
     approvedRequests: 0,
+    recentUsers: [],
+    tripsByStatus: [],
+    registrationsByMonth: [],
+    activityByDay: [],
   };
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/stats`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/stats`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -118,16 +122,16 @@ export default async function OverViewPage() {
             </div>
             <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
               <div className='col-span-4'>
-                <BarGraph />
+                <BarGraph data={stats.activityByDay} />
               </div>
               <Card className='col-span-4 md:col-span-3'>
-                <RecentSales />
+                <RecentSales data={stats.recentUsers} />
               </Card>
               <div className='col-span-4'>
-                <AreaGraph />
+                <AreaGraph data={stats.registrationsByMonth} />
               </div>
               <div className='col-span-4 md:col-span-3'>
-                <PieGraph />
+                <PieGraph data={stats.tripsByStatus} />
               </div>
             </div>
           </TabsContent>
