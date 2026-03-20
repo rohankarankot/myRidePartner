@@ -29,6 +29,46 @@ const formatDisplayDate = (dateStr: string) => {
   }
 };
 
+// City sheet header — defined outside the screen component so its reference is
+// stable across re-renders, preventing BottomSheetFlatList from remounting it
+// (which would dismiss the keyboard on every keystroke).
+const CitySheetHeader = React.memo(({ citySearch, setCitySearch, textColor, subtextColor }: {
+  citySearch: string;
+  setCitySearch: (v: string) => void;
+  textColor: string;
+  subtextColor: string;
+}) => (
+  <View style={{ padding: 24, paddingBottom: 16 }}>
+    <View style={{ marginBottom: 20 }}>
+      <Text style={{ fontSize: 22, fontWeight: '800', color: textColor, marginBottom: 4 }}>
+        Select City
+      </Text>
+      <Text style={{ fontSize: 14, color: subtextColor }}>
+        Choose your city to find nearby rides
+      </Text>
+    </View>
+    <View style={{
+      backgroundColor: `${subtextColor}10`,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      borderRadius: 12,
+      height: 48
+    }}>
+      <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
+      <BottomSheetTextInput
+        placeholder="Search your city..."
+        placeholderTextColor={subtextColor}
+        style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 15 }}
+        value={citySearch}
+        onChangeText={setCitySearch}
+        autoCorrect={false}
+        autoCapitalize="words"
+      />
+    </View>
+  </View>
+));
+
 // Reusable component matching the Activity screen card style
 const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, genderPreference, avatarUrl, captainName, onPress }: {
   documentId: string,
@@ -377,36 +417,14 @@ export default function FindRidesScreen() {
         <BottomSheetFlatList
           data={filteredCities}
           keyExtractor={(item: string) => item}
-          ListHeaderComponent={() => (
-            <View style={{ padding: 24, paddingBottom: 16 }}>
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 22, fontWeight: '800', color: textColor, marginBottom: 4 }}>
-                  Select City
-                </Text>
-                <Text style={{ fontSize: 14, color: subtextColor }}>
-                  Choose your city to find nearby rides
-                </Text>
-              </View>
-
-              <View style={{
-                backgroundColor: `${subtextColor}10`,
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: 16,
-                borderRadius: 12,
-                height: 48
-              }}>
-                <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
-                <BottomSheetTextInput
-                  placeholder="Search your city..."
-                  placeholderTextColor={subtextColor}
-                  style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 15 }}
-                  value={citySearch}
-                  onChangeText={setCitySearch}
-                />
-              </View>
-            </View>
-          )}
+          ListHeaderComponent={
+            <CitySheetHeader
+              citySearch={citySearch}
+              setCitySearch={setCitySearch}
+              textColor={textColor}
+              subtextColor={subtextColor}
+            />
+          }
           renderItem={({ item }: { item: string }) => {
             const isActive = item === selectedCity;
             return (
