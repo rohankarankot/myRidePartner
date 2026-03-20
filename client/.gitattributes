@@ -1,0 +1,5 @@
+google-services.json binary
+GoogleService-Info.plist binary
+*.jks binary
+*.p12 binary
+*.p8 binary
