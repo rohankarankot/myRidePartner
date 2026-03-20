@@ -79,38 +79,6 @@ export default function AboutScreen() {
                         </View>
                     ) : (
                         <>
-                            <View style={styles.socialLinks}>
-                                <TouchableOpacity
-                                    style={[styles.socialButton, { backgroundColor: '#24292e', width: screenWidth - 88, flexDirection: "column", alignItems: "flex-start" }]}
-                                    onPress={() => handleLink('https://github.com/rohankarankot')}
-                                >
-                                    <View style={styles.badgeHeader}>
-                                        <View style={styles.githubLogo}>
-                                            <IconSymbol name="github" size={14} color="#fff" />
-                                        </View>
-                                        <Text style={styles.badgeLabel}>GitHub</Text>
-                                    </View>
-                                    <View style={styles.creatorRow}>
-                                        <View style={{ display: "flex", flexDirection: "row" }}>
-                                            <Image
-                                                source={{ uri: creatorAvatar }}
-                                                style={[styles.avatar, { borderColor: primaryColor }]}
-                                            />
-                                            <View style={styles.creatorInfo}>
-                                                <Text style={[styles.creatorName, { color: textColor }]}>{creatorName}</Text>
-                                                <Text style={[styles.creatorRole, { color: subtextColor }]}>Senior Analyst @ Accenture</Text>
-                                            </View>
-                                        </View>
-
-                                        <View style={styles.badgeFooter}>
-                                            <Text style={styles.badgeButtonText}>View Profile</Text>
-                                        </View>
-                                    </View>
-
-
-                                </TouchableOpacity>
-                            </View>
-
                             {/* LinkedIn Badge */}
                             <TouchableOpacity
                                 style={[styles.linkedinBadge, { width: screenWidth - 88 }]}
