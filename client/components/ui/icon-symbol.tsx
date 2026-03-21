@@ -59,6 +59,8 @@ const MAPPING = {
   'person.2.slash.fill': 'group-off',
   'plus': 'add',
   'minus': 'remove',
+  'bubble.left.and.bubble.right.fill': 'forum',
+  'steeringwheel': 'drive-eta',
   'github': 'code',
 } as IconMapping;
 

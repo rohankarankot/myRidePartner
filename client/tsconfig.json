@@ -1,8 +1,13 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "baseUrl": ".",
     "strict": true,
+    "skipLibCheck": true,
     "paths": {
+      "react-native-gifted-chat": [
+        "./react-native-gifted-chat.d.ts"
+      ],
       "@/*": [
         "./*"
       ]

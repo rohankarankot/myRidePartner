@@ -1,74 +1,67 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { ActivityIndicator, Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import {
+    Bubble,
+    GiftedChat,
+    IMessage,
+    InputToolbar,
+    Send,
+} from 'react-native-gifted-chat';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripChatService } from '@/services/trip-chat-service';
 import { socketService } from '@/services/socket-service';
 import { TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 
-function MessageRow({
-    item,
-    isCurrentUser,
-    cardColor,
-    primaryColor,
-    textColor,
-    subtextColor,
-    borderColor,
-}: {
-    item: TripChatMessage;
-    isCurrentUser: boolean;
-    cardColor: string;
-    primaryColor: string;
-    textColor: string;
-    subtextColor: string;
-    borderColor: string;
-}) {
-    return (
-        <View style={[styles.messageRow, isCurrentUser ? styles.messageRowRight : styles.messageRowLeft]}>
-            <View
-                style={[
-                    styles.messageBubble,
-                    {
-                        backgroundColor: isCurrentUser ? primaryColor : cardColor,
-                        borderColor: isCurrentUser ? primaryColor : borderColor,
-                    },
-                ]}>
-                <Text
-                    style={[
-                        styles.messageSender,
-                        { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
-                    ]}>
-                    {item.sender.userProfile?.fullName || item.sender.username || 'Rider'}
-                </Text>
-                <Text style={[styles.messageText, { color: isCurrentUser ? '#FFFFFF' : textColor }]}>
-                    {item.message}
-                </Text>
-            </View>
-        </View>
-    );
-}
+const toGiftedMessage = (message: TripChatMessage): IMessage => ({
+    _id: message.documentId,
+    text: message.message,
+    createdAt: new Date(message.createdAt),
+    user: {
+        _id: String(message.sender.id),
+        name: message.sender.userProfile?.fullName || message.sender.username || 'Rider',
+        avatar: typeof message.sender.userProfile?.avatar === 'string'
+            ? message.sender.userProfile.avatar
+            : message.sender.userProfile?.avatar?.url,
+    },
+    sent: !message.documentId.startsWith('optimistic-'),
+    pending: message.documentId.startsWith('optimistic-'),
+});
+
+const fromGiftedMessage = (message: IMessage, fallbackUser: { id: number; username?: string; email?: string }) => ({
+    id: -1,
+    documentId: String(message._id),
+    message: message.text,
+    createdAt: new Date(message.createdAt).toISOString(),
+    sender: {
+        id: fallbackUser.id,
+        documentId: String(message._id),
+        username: fallbackUser.username || 'You',
+        email: fallbackUser.email || '',
+        provider: 'local',
+        confirmed: true,
+        blocked: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        publishedAt: new Date().toISOString(),
+        userProfile: undefined,
+    },
+});
 
 export default function TripChatScreen() {
     const { tripId } = useLocalSearchParams<{ tripId: string }>();
     const { user } = useAuth();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const [draftMessage, setDraftMessage] = useState('');
+    const insets = useSafeAreaInsets();
+    const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -141,49 +134,65 @@ export default function TripChatScreen() {
         };
     }, [tripId, queryClient, router]);
 
-    const sortedMessages = useMemo(
-        () => [...messages].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    useEffect(() => {
+        const updateKeyboardHeight = (event: any) => {
+            setKeyboardHeight(event?.endCoordinates?.height || 0);
+        };
+
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const frameEvent = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidChangeFrame';
+
+        const showSubscription = Keyboard.addListener(showEvent, updateKeyboardHeight);
+        const frameSubscription = Keyboard.addListener(frameEvent as any, updateKeyboardHeight);
+        const hideSubscription = Keyboard.addListener(hideEvent, () => {
+            setKeyboardHeight(0);
+        });
+
+        return () => {
+            showSubscription.remove();
+            frameSubscription.remove();
+            hideSubscription.remove();
+        };
+    }, []);
+
+    const giftedMessages = useMemo(
+        () =>
+            [...messages]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map(toGiftedMessage),
         [messages]
     );
 
-    const handleSend = async () => {
-        const trimmedMessage = draftMessage.trim();
-        if (!tripId || !trimmedMessage || isSending) return;
+    const handleSend = async (outgoingMessages: IMessage[] = []) => {
+        const outgoing = outgoingMessages[0];
+        const trimmedMessage = outgoing?.text?.trim();
 
-        const optimisticId = `optimistic-${Date.now()}`;
-        const optimisticMessage: TripChatMessage = {
-            id: -1,
-            documentId: optimisticId,
-            message: trimmedMessage,
-            createdAt: new Date().toISOString(),
-            sender: {
-                id: user?.id || 0,
-                documentId: optimisticId,
-                username: user?.username || 'You',
-                email: user?.email || '',
-                provider: 'local',
-                confirmed: true,
-                blocked: false,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                publishedAt: new Date().toISOString(),
-                userProfile: undefined,
+        if (!tripId || !user || !trimmedMessage || isSending) return;
+
+        const optimisticMessage = fromGiftedMessage(
+            {
+                ...outgoing,
+                _id: `optimistic-${Date.now()}`,
+                text: trimmedMessage,
+                createdAt: new Date(),
             },
-        };
+            user
+        );
 
         queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => [
-            ...(oldMessages || []),
             optimisticMessage,
+            ...(oldMessages || []),
         ]);
 
-        setDraftMessage('');
+        setComposerText('');
         setIsSending(true);
 
         try {
             const createdMessage = await tripChatService.sendMessage(tripId, trimmedMessage);
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => {
                 const reconciled = (oldMessages || []).map((item) =>
-                    item.documentId === optimisticId ? createdMessage : item
+                    item.documentId === optimisticMessage.documentId ? createdMessage : item
                 );
 
                 return reconciled.filter((item, index, items) =>
@@ -192,9 +201,10 @@ export default function TripChatScreen() {
             });
         } catch (error) {
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) =>
-                (oldMessages || []).filter((item) => item.documentId !== optimisticId)
+                (oldMessages || []).filter((item) => item.documentId !== optimisticMessage.documentId)
             );
 
+            setComposerText(trimmedMessage);
             Toast.show({
                 type: 'error',
                 text1: 'Message Failed',
@@ -206,9 +216,10 @@ export default function TripChatScreen() {
     };
 
     const isBlocked = !isLoadingAccess && (!chatAccess?.canAccess || chatAccess.tripStatus === 'COMPLETED' || chatAccess.tripStatus === 'CANCELLED');
+    const keyboardLift = Math.max(0, keyboardHeight - insets.bottom);
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
             <Stack.Screen
                 options={{
                     title: 'Ride Chat',
@@ -231,58 +242,100 @@ export default function TripChatScreen() {
                     </Text>
                 </View>
             ) : (
-                <KeyboardAvoidingView
-                    style={styles.safe}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
-                    <FlatList
-                        data={sortedMessages}
-                        keyExtractor={(item) => item.documentId}
-                        contentContainerStyle={[
-                            styles.listContent,
-                            sortedMessages.length === 0 && styles.listContentEmpty,
-                        ]}
-                        renderItem={({ item }) => (
-                            <MessageRow
-                                item={item}
-                                isCurrentUser={item.sender.id === user?.id}
-                                cardColor={cardColor}
-                                primaryColor={primaryColor}
-                                textColor={textColor}
-                                subtextColor={subtextColor}
-                                borderColor={borderColor}
+                <View style={[styles.chatWrapper, { marginBottom: keyboardLift + 15 }]}>
+                    <GiftedChat
+                        messages={giftedMessages}
+                        onSend={handleSend}
+                        user={{
+                            _id: String(user?.id || ''),
+                            name: user?.username || 'You',
+                        }}
+                        text={composerText}
+                        alwaysShowSend
+                        scrollToBottom
+                        bottomOffset={0}
+                        renderAvatarOnTop
+                        keyboardShouldPersistTaps="handled"
+                        minInputToolbarHeight={60}
+                        keyboardAvoidingViewProps={{ keyboardVerticalOffset: 0 }}
+                        timeTextStyle={{
+                            right: { color: 'rgba(255,255,255,0.75)' },
+                            left: { color: subtextColor },
+                        }}
+                        messagesContainerStyle={{ backgroundColor }}
+                        textInputProps={{
+                            onChangeText: setComposerText,
+                            placeholder: 'Message the group',
+                            placeholderTextColor: subtextColor,
+                            style: [
+                                styles.input,
+                                {
+                                    color: textColor,
+                                    backgroundColor: cardColor,
+                                    borderColor,
+                                },
+                            ],
+                        }}
+                        listViewProps={{
+                            contentContainerStyle: giftedMessages.length === 0 ? styles.emptyList : undefined,
+                        }}
+                        renderBubble={(props: any) => (
+                            <Bubble
+                                {...props}
+                                wrapperStyle={{
+                                    right: { backgroundColor: primaryColor },
+                                    left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
+                                }}
+                                textStyle={{
+                                    right: { color: '#FFFFFF' },
+                                    left: { color: textColor },
+                                }}
                             />
                         )}
-                        ListEmptyComponent={
+                        renderInputToolbar={(props: any) => (
+                            <InputToolbar
+                                {...props}
+                                containerStyle={[
+                                    styles.toolbar,
+                                    {
+                                        backgroundColor,
+                                    },
+                                ]}
+                                primaryStyle={styles.toolbarPrimary}
+                            />
+                        )}
+                        renderSend={(props: any) => (
+                            <Send
+                                {...props}
+                                disabled={!composerText.trim() || isSending}
+                                containerStyle={styles.sendContainer}
+                            >
+                                <View
+                                    style={[
+                                        styles.sendButton,
+                                        {
+                                            backgroundColor: composerText.trim() && !isSending ? primaryColor : '#E5E7EB',
+                                            borderRadius: "50%"
+                                        },
+                                    ]}>
+                                    <IconSymbol
+                                        name="paperplane.fill"
+                                        size={18}
+                                        color={composerText.trim() && !isSending ? '#FFFFFF' : '#9CA3AF'}
+                                    />
+                                </View>
+                            </Send>
+                        )}
+                        renderChatEmpty={() => (
                             <View style={styles.emptyState}>
                                 <Text style={[styles.emptyTitle, { color: textColor }]}>No messages yet</Text>
                                 <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
                                     Start the conversation with everyone on this ride.
                                 </Text>
                             </View>
-                        }
+                        )}
                     />
-
-                    <View style={[styles.composer, { backgroundColor, borderTopColor: borderColor }]}>
-                        <TextInput
-                            style={[styles.input, { backgroundColor: cardColor, color: textColor, borderColor }]}
-                            placeholder="Message the group"
-                            placeholderTextColor={subtextColor}
-                            value={draftMessage}
-                            onChangeText={setDraftMessage}
-                            multiline
-                        />
-                        <TouchableOpacity
-                            style={[
-                                styles.sendButton,
-                                { backgroundColor: draftMessage.trim() ? primaryColor : `${primaryColor}55` },
-                            ]}
-                            onPress={handleSend}
-                            disabled={!draftMessage.trim() || isSending}>
-                            <Text style={styles.sendButtonText}>{isSending ? '...' : 'Send'}</Text>
-                        </TouchableOpacity>
-                    </View>
-                </KeyboardAvoidingView>
+                </View>
             )}
         </SafeAreaView>
     );
@@ -292,16 +345,16 @@ const styles = StyleSheet.create({
     safe: {
         flex: 1,
     },
+    chatWrapper: {
+        flex: 1,
+    },
     center: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+
     },
-    listContent: {
-        padding: 16,
-        gap: 12,
-    },
-    listContentEmpty: {
+    emptyList: {
         flexGrow: 1,
         justifyContent: 'center',
     },
@@ -320,60 +373,35 @@ const styles = StyleSheet.create({
         lineHeight: 22,
         textAlign: 'center',
     },
-    messageRow: {
-        width: '100%',
+    toolbar: {
+        borderTopWidth: 0,
+        paddingTop: 6,
+        paddingHorizontal: 10,
+        paddingBottom: 6,
     },
-    messageRowLeft: {
-        alignItems: 'flex-start',
-    },
-    messageRowRight: {
+    toolbarPrimary: {
         alignItems: 'flex-end',
-    },
-    messageBubble: {
-        maxWidth: '84%',
-        borderRadius: 18,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderWidth: 1,
-    },
-    messageSender: {
-        fontSize: 12,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    messageText: {
-        fontSize: 15,
-        lineHeight: 21,
-    },
-    composer: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        gap: 10,
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 16,
-        borderTopWidth: 1,
     },
     input: {
-        flex: 1,
-        minHeight: 48,
-        maxHeight: 120,
-        borderRadius: 18,
         borderWidth: 1,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
+        borderRadius: 24,
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: 12,
+        marginRight: 8,
+        minHeight: 48,
         fontSize: 15,
+    },
+    sendContainer: {
+        justifyContent: 'flex-end',
+        marginBottom: 0,
+        marginRight: 0,
     },
     sendButton: {
-        minWidth: 72,
-        height: 48,
-        borderRadius: 16,
+        width: 46,
+        height: 46,
+        borderRadius: 23,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    sendButtonText: {
-        color: '#FFFFFF',
-        fontSize: 15,
-        fontWeight: '700',
     },
 });

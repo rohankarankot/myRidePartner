@@ -19,6 +19,7 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "package": "com.rohankarankot.myridepartner",
       "googleServicesFile": "./google-services.json",

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React, { useState } from 'react';
-import { View, StyleSheet, Linking, Platform, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Linking, Platform, TouchableOpacity, Image, Text } from 'react-native';
 import * as Location from 'expo-location';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -14,13 +14,22 @@ import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'expo-router';
 import { HeaderRight } from '@/components/ui/HeaderRight';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUserStore } from '@/store/user-store';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { user, isLoading } = useAuth();
+  const { profile } = useUserStore();
   const router = useRouter();
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
+  const currentColors = Colors[colorScheme ?? 'light'];
+
+  const profileAvatarUrl =
+    typeof profile?.avatar === 'string'
+      ? profile.avatar
+      : profile?.avatar?.url;
+  const profileInitial = (profile?.fullName || user?.username || 'U').charAt(0).toUpperCase();
 
   React.useEffect(() => {
     AsyncStorage.getItem('hasSeenOnboarding').then(value => {
@@ -99,12 +108,12 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: true,
         headerStyle: {
-          backgroundColor: Colors[colorScheme ?? 'light'].card,
+          backgroundColor: currentColors.card,
         },
         headerTitleStyle: {
           fontWeight: 'bold',
         },
-        headerTintColor: Colors[colorScheme ?? 'light'].text,
+        headerTintColor: currentColors.text,
         tabBarButton: HapticTab,
         headerTitleAlign: 'center',
         headerRight: () => <HeaderRight type="notifications" />,
@@ -115,6 +124,13 @@ export default function TabLayout() {
           headerTitle: 'My Ride Partner',
           title: 'Find',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="chats"
+        options={{
+          title: 'Chats',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bubble.left.and.bubble.right.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -131,12 +147,33 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           headerRight: () => <HeaderRight type="settings" />,
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.fill" color={color} />,
+          tabBarIcon: ({ focused }) => (
+            profileAvatarUrl ? (
+              <Image
+                source={{ uri: profileAvatarUrl }}
+                style={[
+                  styles.profileTabAvatar,
+
+                ]}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.profileTabFallback,
+                  {
+                    backgroundColor: focused ? currentColors.primary : `${currentColors.border}`,
+                  },
+                ]}>
+                <Text style={styles.profileTabFallbackText}>{profileInitial}</Text>
+              </View>
+            )
+          ),
         }}
       />
     </Tabs>
@@ -180,5 +217,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
     opacity: 0.6,
+  },
+  profileTabAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+  },
+  profileTabFallback: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileTabFallbackText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
