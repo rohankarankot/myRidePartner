@@ -5,16 +5,22 @@ import { TripChatsService } from './trip-chats.service';
 describe('TripChatsService', () => {
   const prisma = {
     trip: { findUnique: jest.fn() },
-    joinRequest: { findFirst: jest.fn() },
+    joinRequest: { findFirst: jest.fn(), findMany: jest.fn() },
     tripChat: { create: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
     tripChatMessage: { findMany: jest.fn(), create: jest.fn() },
   } as any;
 
   const eventsGateway = {
     emitToChatRoom: jest.fn(),
+    isUserActivelyViewingChat: jest.fn().mockReturnValue(false),
   } as any;
 
-  const service = new TripChatsService(prisma, eventsGateway);
+  const notificationsService = {
+    create: jest.fn(),
+    sendPushOnly: jest.fn(),
+  } as any;
+
+  const service = new TripChatsService(prisma, eventsGateway, notificationsService);
 
   const baseTrip = {
     id: 99,
@@ -28,6 +34,7 @@ describe('TripChatsService', () => {
     jest.clearAllMocks();
     prisma.trip.findUnique.mockResolvedValue(baseTrip);
     prisma.joinRequest.findFirst.mockResolvedValue(null);
+    prisma.joinRequest.findMany.mockResolvedValue([]);
     prisma.tripChat.findUnique.mockResolvedValue(null);
   });
 
@@ -79,6 +86,30 @@ describe('TripChatsService', () => {
 
     expect(result.message).toBe('Hello');
     expect(eventsGateway.emitToChatRoom).toHaveBeenCalledWith('trip-123', 'chat_message_created', result);
+  });
+
+  it('sends chat notifications only to recipients not actively viewing the trip chat', async () => {
+    prisma.tripChat.create.mockResolvedValueOnce({ id: 5, documentId: 'chat-1' });
+    prisma.tripChatMessage.create.mockResolvedValueOnce({
+      id: 7,
+      documentId: 'msg-1',
+      message: 'Hello there',
+      createdAt: new Date('2026-03-21T10:00:00.000Z'),
+      sender: { id: 10, username: 'captain', email: 'captain@example.com', userProfile: { fullName: 'Captain' } },
+    });
+    prisma.joinRequest.findMany.mockResolvedValueOnce([{ passengerId: 22 }, { passengerId: 33 }]);
+    eventsGateway.isUserActivelyViewingChat.mockImplementation((_tripId: string, userId: number) => userId === 22);
+
+    await service.createMessage('trip-123', 10, 'Hello there');
+
+    expect(notificationsService.sendPushOnly).toHaveBeenCalledTimes(1);
+    expect(notificationsService.sendPushOnly).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Captain',
+        message: 'Hello there',
+        userId: 33,
+      }),
+    );
   });
 
   it('deletes the chat when a trip is completed and emits chat_deleted', async () => {

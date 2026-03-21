@@ -120,6 +120,31 @@ export class NotificationsService {
     return notification;
   }
 
+  async sendPushOnly(data: {
+    title: string;
+    message: string;
+    userId: number;
+    data?: any;
+  }) {
+    try {
+      const userProfile = await this.prisma.userProfile.findUnique({
+        where: { userId: data.userId },
+        select: { pushToken: true },
+      });
+
+      if (userProfile?.pushToken) {
+        await this.expoPushService.sendNotification(
+          userProfile.pushToken,
+          data.title,
+          data.message,
+          data.data,
+        );
+      }
+    } catch (error) {
+      console.error('Failed to send push-only notification:', error);
+    }
+  }
+
   /**
    * Mark a single notification as read.
    */

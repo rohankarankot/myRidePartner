@@ -35,7 +35,12 @@ export const PushNotificationHandler = () => {
             const data = response.notification.request.content.data;
             console.log('Notification clicked with data:', data);
 
-            if (data?.tripId) {
+            if (data?.screen === 'trip-chat' && data?.tripId) {
+                router.push({
+                    pathname: '/trip-chat/[tripId]',
+                    params: { tripId: data.tripId }
+                } as any);
+            } else if (data?.tripId) {
                 router.push({
                     pathname: '/trip/[id]',
                     params: { id: data.tripId }

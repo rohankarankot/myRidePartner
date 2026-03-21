@@ -21,6 +21,10 @@ export function useSocketEvents() {
             queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count', user.id] });
 
+            if (notification?.data?.screen === 'trip-chat') {
+                return;
+            }
+
             // Show a toast
             Toast.show({
                 type: 'info',

@@ -75,6 +75,10 @@ class SocketService {
         this.emit('chat_typing', { tripDocumentId: tripId, isTyping });
     }
 
+    setChatScreenState(tripId: string, isActive: boolean) {
+        this.emit('chat_screen_state', { tripDocumentId: tripId, isActive });
+    }
+
     isConnected() {
         return this.socket?.connected || false;
     }

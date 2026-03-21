@@ -7,6 +7,7 @@ import {
 import { JoinRequestStatus, Prisma, TripStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type TripWithRelations = {
   id: number;
@@ -20,6 +21,7 @@ export class TripChatsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async getChatAccess(tripDocumentId: string, userId: number) {
@@ -112,6 +114,7 @@ export class TripChatsService {
     };
 
     this.eventsGateway.emitToChatRoom(trip.documentId, 'chat_message_created', payload);
+    await this.notifyTripChatRecipients(trip, payload);
 
     return payload;
   }
@@ -212,6 +215,70 @@ export class TripChatsService {
         },
       }),
     ))!;
+  }
+
+  private async notifyTripChatRecipients(
+    trip: TripWithRelations,
+    message: {
+      documentId: string;
+      message: string;
+      sender: {
+        id: number;
+        username: string | null;
+        userProfile?: {
+          fullName?: string | null;
+        } | null;
+      };
+    },
+  ) {
+    const approvedPassengers = await this.prisma.joinRequest.findMany({
+      where: {
+        tripId: trip.id,
+        status: JoinRequestStatus.APPROVED,
+      },
+      select: {
+        passengerId: true,
+      },
+    });
+
+    const recipientIds = Array.from(
+      new Set([trip.creatorId, ...approvedPassengers.map((request) => request.passengerId)]),
+    ).filter((recipientId) => recipientId !== message.sender.id);
+
+    if (recipientIds.length === 0) {
+      return;
+    }
+
+    const senderName =
+      message.sender.userProfile?.fullName || message.sender.username || 'Someone';
+    const messagePreview = this.buildChatNotificationPreview(message.message);
+
+    await Promise.all(
+      recipientIds.map(async (recipientId) => {
+        if (this.eventsGateway.isUserActivelyViewingChat(trip.documentId, recipientId)) {
+          return;
+        }
+
+        await this.notificationsService.sendPushOnly({
+          title: senderName,
+          message: messagePreview,
+          userId: recipientId,
+          data: {
+            tripId: trip.documentId,
+            screen: 'trip-chat',
+            messageDocumentId: message.documentId,
+          },
+        });
+      }),
+    );
+  }
+
+  private buildChatNotificationPreview(message: string) {
+    if (message.startsWith('__ride_location__::')) {
+      return 'Shared a location in your ride chat.';
+    }
+
+    return message.length > 120 ? `${message.slice(0, 117)}...` : message;
   }
 
   private async getTripOrThrow(tripDocumentId: string): Promise<TripWithRelations> {

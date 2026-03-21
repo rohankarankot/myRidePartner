@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, Keyboard, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -98,6 +98,7 @@ export default function TripChatScreen() {
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
     const isTypingRef = useRef(false);
     const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isChatScreenActiveRef = useRef(false);
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -188,6 +189,38 @@ export default function TripChatScreen() {
     }, [tripId, queryClient, router, user?.id]);
 
     useEffect(() => {
+        const chatUnavailable =
+            !chatAccess?.canAccess ||
+            chatAccess?.tripStatus === 'COMPLETED' ||
+            chatAccess?.tripStatus === 'CANCELLED';
+
+        if (!tripId || chatUnavailable) {
+            return;
+        }
+
+        const setActiveState = (nextState: boolean) => {
+            if (!socketService.isConnected() || isChatScreenActiveRef.current === nextState) {
+                return;
+            }
+
+            isChatScreenActiveRef.current = nextState;
+            socketService.setChatScreenState(tripId, nextState);
+        };
+
+        setActiveState(true);
+
+        const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
+            setActiveState(nextAppState === 'active');
+        });
+
+        return () => {
+            appStateSubscription.remove();
+            setActiveState(false);
+            isChatScreenActiveRef.current = false;
+        };
+    }, [chatAccess?.canAccess, chatAccess?.tripStatus, tripId]);
+
+    useEffect(() => {
         const updateKeyboardHeight = (event: any) => {
             setKeyboardHeight(event?.endCoordinates?.height || 0);
         };
@@ -251,6 +284,8 @@ export default function TripChatScreen() {
 
         return `${typingUsers[0].userName} and others are typing...`;
     }, [typingUsers]);
+
+    const isBlocked = !isLoadingAccess && (!chatAccess?.canAccess || chatAccess.tripStatus === 'COMPLETED' || chatAccess.tripStatus === 'CANCELLED');
 
     const emitTypingState = (nextTypingState: boolean) => {
         if (!tripId) {
@@ -443,7 +478,6 @@ export default function TripChatScreen() {
         ]);
     };
 
-    const isBlocked = !isLoadingAccess && (!chatAccess?.canAccess || chatAccess.tripStatus === 'COMPLETED' || chatAccess.tripStatus === 'CANCELLED');
     const keyboardLift = Math.max(0, keyboardHeight - insets.bottom);
 
     return (
