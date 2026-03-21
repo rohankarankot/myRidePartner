@@ -194,6 +194,7 @@ export interface TripChat {
     tripDocumentId: string;
     canAccess: boolean;
     tripStatus: TripStatus;
+    isCaptain: boolean;
 }
 
 export interface TripChatMessage {

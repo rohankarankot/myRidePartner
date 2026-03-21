@@ -511,7 +511,6 @@ export default function ProfileScreen() {
             <Modal
                 visible={showSignOutModal}
                 transparent={true}
-                statusBarTranslucent={true}
                 animationType="fade"
                 onRequestClose={() => setShowSignOutModal(false)}
             >

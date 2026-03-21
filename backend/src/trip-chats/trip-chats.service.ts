@@ -30,6 +30,7 @@ export class TripChatsService {
       tripDocumentId: trip.documentId,
       canAccess,
       tripStatus: trip.status,
+      isCaptain: trip.creatorId === userId,
     };
   }
 

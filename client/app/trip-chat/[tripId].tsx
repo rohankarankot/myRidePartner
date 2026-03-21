@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import * as Location from 'expo-location';
 import {
     Bubble,
     GiftedChat,
     IMessage,
     InputToolbar,
-    Send,
 } from 'react-native-gifted-chat';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -17,6 +17,38 @@ import { tripChatService } from '@/services/trip-chat-service';
 import { socketService } from '@/services/socket-service';
 import { TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
+
+const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
+
+type ParsedLocationMessage = {
+    latitude: number;
+    longitude: number;
+    label: string;
+};
+
+const parseLocationMessage = (value: string): ParsedLocationMessage | null => {
+    if (!value.startsWith(LOCATION_MESSAGE_PREFIX)) {
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(value.slice(LOCATION_MESSAGE_PREFIX.length));
+        if (typeof parsed.latitude !== 'number' || typeof parsed.longitude !== 'number') {
+            return null;
+        }
+
+        return {
+            latitude: parsed.latitude,
+            longitude: parsed.longitude,
+            label: typeof parsed.label === 'string' ? parsed.label : 'Shared current location',
+        };
+    } catch {
+        return null;
+    }
+};
+
+const buildLocationMessage = (payload: ParsedLocationMessage) =>
+    `${LOCATION_MESSAGE_PREFIX}${JSON.stringify(payload)}`;
 
 const toGiftedMessage = (message: TripChatMessage): IMessage => ({
     _id: message.documentId,
@@ -61,6 +93,7 @@ export default function TripChatScreen() {
     const insets = useSafeAreaInsets();
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [isSendingLocation, setIsSendingLocation] = useState(false);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
     const isTypingRef = useRef(false);
@@ -184,6 +217,25 @@ export default function TripChatScreen() {
         [messages]
     );
 
+    const openSharedLocation = async (payload: ParsedLocationMessage) => {
+        const latLng = `${payload.latitude},${payload.longitude}`;
+        const mapUrl = Platform.OS === 'ios'
+            ? `comgooglemaps://?daddr=${latLng}&directionsmode=driving`
+            : `google.navigation:q=${latLng}`;
+        const fallbackUrl = `https://www.google.com/maps/search/?api=1&query=${latLng}`;
+
+        try {
+            const supported = await Linking.canOpenURL(mapUrl);
+            await Linking.openURL(supported ? mapUrl : fallbackUrl);
+        } catch {
+            Toast.show({
+                type: 'error',
+                text1: 'Unable to open Maps',
+                text2: 'Please try again in a moment.',
+            });
+        }
+    };
+
     const typingText = useMemo(() => {
         if (typingUsers.length === 0) {
             return '';
@@ -297,6 +349,100 @@ export default function TripChatScreen() {
         }
     };
 
+    const handleShareCurrentLocation = async () => {
+        if (!tripId || !user || isSendingLocation || !chatAccess?.isCaptain) {
+            return;
+        }
+
+        setIsSendingLocation(true);
+
+        try {
+            const permission = await Location.requestForegroundPermissionsAsync();
+            if (permission.status !== 'granted') {
+                Toast.show({
+                    type: 'info',
+                    text1: 'Location Permission Needed',
+                    text2: 'Allow location access to share your current spot with riders.',
+                });
+                return;
+            }
+
+            const position = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.Balanced,
+            });
+
+            const label = `${user.username || 'Captain'}'s current location`;
+            const locationMessage = buildLocationMessage({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                label,
+            });
+
+            const optimisticMessage = fromGiftedMessage(
+                {
+                    _id: `optimistic-location-${Date.now()}`,
+                    text: locationMessage,
+                    createdAt: new Date(),
+                    user: {
+                        _id: String(user.id),
+                        name: user.username || 'You',
+                    },
+                },
+                user
+            );
+
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => [
+                optimisticMessage,
+                ...(oldMessages || []),
+            ]);
+
+            const createdMessage = await tripChatService.sendMessage(tripId, locationMessage);
+
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => {
+                const reconciled = (oldMessages || []).map((item) =>
+                    item.documentId === optimisticMessage.documentId ? createdMessage : item
+                );
+
+                return reconciled.filter((item, index, items) =>
+                    items.findIndex((candidate) => candidate.documentId === item.documentId) === index
+                );
+            });
+
+            Toast.show({
+                type: 'success',
+                text1: 'Location Shared',
+                text2: 'Riders can now open your location in Google Maps.',
+            });
+        } catch {
+            Toast.show({
+                type: 'error',
+                text1: 'Location Share Failed',
+                text2: 'Unable to share your current location right now.',
+            });
+        } finally {
+            setIsSendingLocation(false);
+        }
+    };
+
+    const handlePressSend = () => {
+        const trimmedMessage = composerText.trim();
+        if (!trimmedMessage || isSending) {
+            return;
+        }
+
+        void handleSend([
+            {
+                _id: `local-${Date.now()}`,
+                text: trimmedMessage,
+                createdAt: new Date(),
+                user: {
+                    _id: String(user?.id || ''),
+                    name: user?.username || 'You',
+                },
+            },
+        ]);
+    };
+
     const isBlocked = !isLoadingAccess && (!chatAccess?.canAccess || chatAccess.tripStatus === 'COMPLETED' || chatAccess.tripStatus === 'CANCELLED');
     const keyboardLift = Math.max(0, keyboardHeight - insets.bottom);
 
@@ -341,7 +487,6 @@ export default function TripChatScreen() {
                             name: user?.username || 'You',
                         }}
                         text={composerText}
-                        alwaysShowSend
                         scrollToBottom
                         bottomOffset={0}
                         renderAvatarOnTop
@@ -370,52 +515,116 @@ export default function TripChatScreen() {
                             contentContainerStyle: giftedMessages.length === 0 ? styles.emptyList : undefined,
                         }}
                         renderBubble={(props: any) => (
-                            <Bubble
-                                {...props}
-                                wrapperStyle={{
-                                    right: { backgroundColor: primaryColor },
-                                    left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
-                                }}
-                                textStyle={{
-                                    right: { color: '#FFFFFF' },
-                                    left: { color: textColor },
-                                }}
-                            />
+                            (() => {
+                                const locationPayload = parseLocationMessage(props.currentMessage?.text || '');
+
+                                if (locationPayload) {
+                                    const isCurrentUser = String(props.currentMessage?.user?._id) === String(user?.id);
+
+                                    return (
+                                        <TouchableOpacity
+                                            activeOpacity={0.85}
+                                            onPress={() => openSharedLocation(locationPayload)}
+                                            style={[
+                                                styles.locationBubble,
+                                                {
+                                                    alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                    backgroundColor: isCurrentUser ? primaryColor : cardColor,
+                                                    borderColor,
+                                                },
+                                            ]}
+                                        >
+                                            <View style={styles.locationBubbleHeader}>
+                                                <IconSymbol
+                                                    name="location.fill"
+                                                    size={18}
+                                                    color={isCurrentUser ? '#FFFFFF' : primaryColor}
+                                                />
+                                                <Text
+                                                    style={[
+                                                        styles.locationBubbleTitle,
+                                                        { color: isCurrentUser ? '#FFFFFF' : textColor },
+                                                    ]}
+                                                >
+                                                    {locationPayload.label}
+                                                </Text>
+                                            </View>
+                                            <Text
+                                                style={[
+                                                    styles.locationBubbleSubtitle,
+                                                    { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
+                                                ]}
+                                            >
+                                                Tap to open in Google Maps
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                }
+
+                                return (
+                                    <Bubble
+                                        {...props}
+                                        wrapperStyle={{
+                                            right: { backgroundColor: primaryColor },
+                                            left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
+                                        }}
+                                        textStyle={{
+                                            right: { color: '#FFFFFF' },
+                                            left: { color: textColor },
+                                        }}
+                                    />
+                                );
+                            })()
                         )}
                         renderInputToolbar={(props: any) => (
-                            <InputToolbar
-                                {...props}
-                                containerStyle={[
-                                    styles.toolbar,
-                                    {
-                                        backgroundColor,
-                                    },
-                                ]}
-                                primaryStyle={styles.toolbarPrimary}
-                            />
-                        )}
-                        renderSend={(props: any) => (
-                            <Send
-                                {...props}
-                                disabled={!composerText.trim() || isSending}
-                                containerStyle={styles.sendContainer}
-                            >
-                                <View
+                            <View style={[styles.toolbarRow, { backgroundColor }]}>
+                                {chatAccess?.isCaptain ? (
+                                    <TouchableOpacity
+                                        onPress={handleShareCurrentLocation}
+                                        disabled={isSendingLocation}
+                                        style={[
+                                            styles.locationActionButton,
+                                            {
+                                                backgroundColor: isSendingLocation ? `${subtextColor}22` : `${primaryColor}14`,
+                                            },
+                                        ]}
+                                    >
+                                        <IconSymbol
+                                            name="location.fill"
+                                            size={20}
+                                            color={isSendingLocation ? subtextColor : primaryColor}
+                                        />
+                                    </TouchableOpacity>
+                                ) : null}
+                                <InputToolbar
+                                    {...props}
+                                    containerStyle={[
+                                        styles.toolbar,
+                                        {
+                                            backgroundColor,
+                                        },
+                                    ]}
+                                    primaryStyle={styles.toolbarPrimary}
+                                />
+                                <TouchableOpacity
+                                    onPress={handlePressSend}
+                                    disabled={!composerText.trim() || isSending}
                                     style={[
                                         styles.sendButton,
                                         {
                                             backgroundColor: composerText.trim() && !isSending ? primaryColor : '#E5E7EB',
-                                            borderRadius: 23,
                                         },
-                                    ]}>
+                                    ]}
+                                >
                                     <IconSymbol
                                         name="paperplane.fill"
                                         size={18}
                                         color={composerText.trim() && !isSending ? '#FFFFFF' : '#9CA3AF'}
                                     />
-                                </View>
-                            </Send>
+                                </TouchableOpacity>
+                            </View>
                         )}
+                        renderSend={() => null}
                         renderChatEmpty={() => (
                             <View style={styles.emptyState}>
                                 <Text style={[styles.emptyTitle, { color: textColor }]}>No messages yet</Text>
@@ -468,6 +677,43 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         paddingBottom: 8,
     },
+    toolbarRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        paddingHorizontal: 8,
+        gap: 8,
+    },
+    locationActionButton: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    locationBubble: {
+        maxWidth: 270,
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        borderWidth: 1,
+        marginBottom: 4,
+    },
+    locationBubbleHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 6,
+    },
+    locationBubbleTitle: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    locationBubbleSubtitle: {
+        fontSize: 13,
+        lineHeight: 18,
+    },
     typingText: {
         fontSize: 13,
         fontStyle: 'italic',
@@ -486,8 +732,9 @@ const styles = StyleSheet.create({
     toolbar: {
         borderTopWidth: 0,
         paddingTop: 6,
-        paddingHorizontal: 10,
+        paddingHorizontal: 0,
         paddingBottom: 6,
+        flex: 1,
     },
     toolbarPrimary: {
         alignItems: 'flex-end',
@@ -498,14 +745,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingTop: 12,
         paddingBottom: 12,
-        marginRight: 8,
         minHeight: 48,
         fontSize: 15,
-    },
-    sendContainer: {
-        justifyContent: 'flex-end',
-        marginBottom: 0,
-        marginRight: 0,
     },
     sendButton: {
         width: 46,
@@ -513,5 +754,6 @@ const styles = StyleSheet.create({
         borderRadius: 23,
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: 6,
     },
 });

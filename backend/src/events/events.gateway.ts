@@ -29,6 +29,18 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     string,
     Map<number, { userId: number; userName: string; connectionCount: number }>
   >();
+  private readonly activeLiveLocations = new Map<
+    string,
+    {
+      userId: number;
+      userName: string;
+      latitude: number;
+      longitude: number;
+      heading: number | null;
+      speed: number | null;
+      updatedAt: string;
+    }
+  >();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -81,6 +93,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleDisconnect(client: Socket) {
     this.clearTypingForUser(client.data.userId as number | undefined);
     this.clearPresenceForClient(client);
+    this.clearLiveLocationForClient(client);
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
@@ -151,6 +164,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     joinedChatRooms.add(tripDocumentId);
     client.data.joinedChatRooms = joinedChatRooms;
     this.logger.log(`Client ${client.id} joined chat room ${room}`);
+    this.emitLiveLocationSnapshotToClient(client, tripDocumentId);
     return { status: 'joined', room };
   }
 
@@ -164,6 +178,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (tripDocumentId) {
       this.setTypingState(tripDocumentId, userId, client.data.userName as string | undefined, false);
       this.removeChatPresence(tripDocumentId, userId);
+      this.clearLiveLocationForTrip(tripDocumentId, userId);
       const joinedChatRooms = client.data.joinedChatRooms as Set<string> | undefined;
       joinedChatRooms?.delete(tripDocumentId);
       const room = `chat_${tripDocumentId}`;
@@ -192,6 +207,60 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     this.setTypingState(tripDocumentId, userId, userName, Boolean(data?.isTyping));
+    return { status: 'ok' };
+  }
+
+  @SubscribeMessage('chat_live_location')
+  async handleChatLiveLocation(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    data: {
+      tripDocumentId: string;
+      isSharing: boolean;
+      latitude?: number;
+      longitude?: number;
+      heading?: number | null;
+      speed?: number | null;
+    },
+  ) {
+    const userId = client.data.userId as number | undefined;
+    const userName = client.data.userName as string | undefined;
+    const tripDocumentId = data?.tripDocumentId;
+
+    if (!userId || !tripDocumentId) {
+      return { status: 'error', message: 'Missing live location context' };
+    }
+
+    const trip = await this.getAuthorizedChatTrip(tripDocumentId, userId);
+    if (!trip || trip.creatorId !== userId) {
+      return { status: 'error', message: 'Only the ride captain can share live location' };
+    }
+
+    if (!data.isSharing) {
+      this.clearLiveLocationForTrip(tripDocumentId, userId);
+      return { status: 'stopped' };
+    }
+
+    if (
+      typeof data.latitude !== 'number' ||
+      typeof data.longitude !== 'number' ||
+      Number.isNaN(data.latitude) ||
+      Number.isNaN(data.longitude)
+    ) {
+      return { status: 'error', message: 'Missing or invalid coordinates' };
+    }
+
+    this.activeLiveLocations.set(tripDocumentId, {
+      userId,
+      userName: userName || `User ${userId}`,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      heading: typeof data.heading === 'number' ? data.heading : null,
+      speed: typeof data.speed === 'number' ? data.speed : null,
+      updatedAt: new Date().toISOString(),
+    });
+
+    this.emitLiveLocationSnapshot(tripDocumentId);
     return { status: 'ok' };
   }
 
@@ -385,5 +454,46 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     joinedChatRooms.clear();
+  }
+
+  private emitLiveLocationSnapshotToClient(client: Socket, tripDocumentId: string) {
+    client.emit('chat_live_location_updated', {
+      tripDocumentId,
+      liveLocation: this.activeLiveLocations.get(tripDocumentId) ?? null,
+    });
+  }
+
+  private emitLiveLocationSnapshot(tripDocumentId: string) {
+    this.emitToChatRoom(tripDocumentId, 'chat_live_location_updated', {
+      tripDocumentId,
+      liveLocation: this.activeLiveLocations.get(tripDocumentId) ?? null,
+    });
+  }
+
+  private clearLiveLocationForTrip(tripDocumentId: string, userId?: number) {
+    if (!userId) {
+      return;
+    }
+
+    const liveLocation = this.activeLiveLocations.get(tripDocumentId);
+    if (!liveLocation || liveLocation.userId !== userId) {
+      return;
+    }
+
+    this.activeLiveLocations.delete(tripDocumentId);
+    this.emitLiveLocationSnapshot(tripDocumentId);
+  }
+
+  private clearLiveLocationForClient(client: Socket) {
+    const userId = client.data.userId as number | undefined;
+    const joinedChatRooms = client.data.joinedChatRooms as Set<string> | undefined;
+
+    if (!userId || !joinedChatRooms?.size) {
+      return;
+    }
+
+    for (const tripDocumentId of joinedChatRooms) {
+      this.clearLiveLocationForTrip(tripDocumentId, userId);
+    }
   }
 }

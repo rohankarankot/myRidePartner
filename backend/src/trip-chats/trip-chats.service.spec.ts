@@ -36,6 +36,7 @@ describe('TripChatsService', () => {
       tripDocumentId: 'trip-123',
       canAccess: true,
       tripStatus: TripStatus.PUBLISHED,
+      isCaptain: true,
     });
   });
 
@@ -46,6 +47,7 @@ describe('TripChatsService', () => {
       tripDocumentId: 'trip-123',
       canAccess: true,
       tripStatus: TripStatus.PUBLISHED,
+      isCaptain: false,
     });
   });
 

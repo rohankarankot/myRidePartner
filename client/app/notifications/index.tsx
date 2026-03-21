@@ -217,7 +217,6 @@ export default function NotificationsScreen() {
                 visible={!!pendingDeleteId}
                 transparent
                 animationType="fade"
-                statusBarTranslucent
                 onRequestClose={() => setPendingDeleteId(null)}
             >
                 <View style={styles.modalOverlay}>
@@ -255,7 +254,6 @@ export default function NotificationsScreen() {
                 visible={showClearAllModal}
                 transparent
                 animationType="fade"
-                statusBarTranslucent
                 onRequestClose={() => setShowClearAllModal(false)}
             >
                 <View style={styles.modalOverlay}>

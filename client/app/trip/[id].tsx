@@ -743,7 +743,6 @@ export default function TripDetailsScreen() {
             <Modal
                 visible={showCancelModal}
                 transparent={true}
-                statusBarTranslucent={true}
                 animationType="fade"
                 onRequestClose={() => setShowCancelModal(false)}
             >
@@ -808,7 +807,6 @@ export default function TripDetailsScreen() {
             <Modal
                 visible={showRatingModal}
                 transparent={true}
-                statusBarTranslucent={true}
                 animationType="slide"
             >
                 <KeyboardAvoidingView
