@@ -114,6 +114,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarShowLabel: false,
         headerShown: true,
         headerStyle: {
           backgroundColor: currentColors.card,
@@ -133,8 +134,8 @@ export default function TabLayout() {
           title: 'Find',
           tabBarIcon: ({ color, focused }) =>
             focused
-              ? <FindFilledIcon width={27} height={27} color={color} />
-              : <FindOutlineIcon width={27} height={27} color={color} />,
+              ? <FindFilledIcon width={30} height={30} color={color} />
+              : <FindOutlineIcon width={30} height={30} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -143,8 +144,8 @@ export default function TabLayout() {
           title: 'Chats',
           tabBarIcon: ({ color, focused }) =>
             focused
-              ? <ChatsFilledIcon width={27} height={27} color={color} />
-              : <ChatsOutlineIcon width={27} height={27} color={color} />,
+              ? <ChatsFilledIcon width={30} height={30} color={color} />
+              : <ChatsOutlineIcon width={30} height={30} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -153,8 +154,8 @@ export default function TabLayout() {
           title: 'Publish',
           tabBarIcon: ({ color, focused }) =>
             focused
-              ? <PublishFilledIcon width={27} height={27} color={color} />
-              : <PublishOutlineIcon width={27} height={27} color={color} />,
+              ? <PublishFilledIcon width={30} height={30} color={color} />
+              : <PublishOutlineIcon width={30} height={30} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -163,8 +164,8 @@ export default function TabLayout() {
           title: 'Activity',
           tabBarIcon: ({ color, focused }) =>
             focused
-              ? <ActivityFilledIcon width={27} height={27} color={color} />
-              : <ActivityOutlineIcon width={27} height={27} color={color} />,
+              ? <ActivityFilledIcon width={30} height={30} color={color} />
+              : <ActivityOutlineIcon width={30} height={30} color={color} />,
         }}
       />
 
