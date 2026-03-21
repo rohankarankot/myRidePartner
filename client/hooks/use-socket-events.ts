@@ -39,6 +39,7 @@ export function useSocketEvents() {
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count', user.id] });
             // For Captains, refresh the trip details to show new request
             queryClient.invalidateQueries({ queryKey: ['trip-details', data.tripId] });
+            queryClient.invalidateQueries({ queryKey: ['trip-chat-access', data.tripId] });
         };
 
         // 3. Join Request Updated (for Passengers)
@@ -48,6 +49,7 @@ export function useSocketEvents() {
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count', user.id] });
             queryClient.invalidateQueries({ queryKey: ['join-requests', user.id] }); // Activity Screen
             queryClient.invalidateQueries({ queryKey: ['trip-details', data.tripId] });
+            queryClient.invalidateQueries({ queryKey: ['trip-chat-access', data.tripId] });
         };
 
         // 4. Trip Updated (Generic status changes)
@@ -55,6 +57,14 @@ export function useSocketEvents() {
             console.log('[Socket] Received trip_updated:', data);
             queryClient.invalidateQueries({ queryKey: ['trip-details', data.documentId] });
             queryClient.invalidateQueries({ queryKey: ['trips', user.id] });
+            queryClient.invalidateQueries({ queryKey: ['trip-chat-access', data.documentId] });
+            queryClient.invalidateQueries({ queryKey: ['trip-chat-messages', data.documentId] });
+        };
+
+        const handleChatDeleted = (data: any) => {
+            console.log('[Socket] Received chat_deleted:', data);
+            queryClient.removeQueries({ queryKey: ['trip-chat-messages', data.tripDocumentId] });
+            queryClient.invalidateQueries({ queryKey: ['trip-chat-access', data.tripDocumentId] });
         };
 
         // Register listeners
@@ -62,6 +72,7 @@ export function useSocketEvents() {
         socketService.on('join_request_created', handleJoinRequestCreated);
         socketService.on('join_request_updated', handleJoinRequestUpdated);
         socketService.on('trip_updated', handleTripUpdated);
+        socketService.on('chat_deleted', handleChatDeleted);
 
         return () => {
             console.log('[Socket] Cleaning up event listeners');
@@ -69,6 +80,7 @@ export function useSocketEvents() {
             socketService.off('join_request_created', handleJoinRequestCreated);
             socketService.off('join_request_updated', handleJoinRequestUpdated);
             socketService.off('trip_updated', handleTripUpdated);
+            socketService.off('chat_deleted', handleChatDeleted);
         };
     }, [user?.id, queryClient]);
 }

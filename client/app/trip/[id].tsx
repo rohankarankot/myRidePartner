@@ -17,6 +17,7 @@ import { socketService } from '@/services/socket-service';
 import { useUserStore } from '@/store/user-store';
 import { CustomAlert } from '@/components/CustomAlert';
 import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
+import { tripChatService } from '@/services/trip-chat-service';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -31,7 +32,7 @@ export default function TripDetailsScreen() {
     useEffect(() => {
         if (documentId) {
             console.log(`[Socket] Joining trip room: ${documentId}`);
-            socketService.emit('join_trip', documentId);
+            socketService.joinTrip(documentId as string);
 
             const handleTripUpdate = (data: any) => {
                 console.log('[Socket] Trip updated:', data);
@@ -45,7 +46,7 @@ export default function TripDetailsScreen() {
             return () => {
                 console.log(`[Socket] Leaving trip room: ${documentId}`);
                 socketService.off('trip_updated', handleTripUpdate);
-                socketService.emit('leave_trip', documentId);
+                socketService.leaveTrip(documentId as string);
             };
         }
     }, [documentId, queryClient]);
@@ -124,6 +125,12 @@ export default function TripDetailsScreen() {
         enabled: !!documentId,
     });
 
+    const { data: chatAccess } = useQuery({
+        queryKey: ['trip-chat-access', documentId],
+        queryFn: () => tripChatService.getChatAccess(documentId as string),
+        enabled: !!documentId && !!user,
+    });
+
     // Check if user has already rated this trip
     const { data: userRating, refetch: refetchRating } = useQuery({
         queryKey: ['user-rating', documentId, user?.id],
@@ -152,6 +159,7 @@ export default function TripDetailsScreen() {
     const creatorProfile = tripDetails?.creatorProfile || null;
     const joinRequests = tripDetails?.requests || [];
     const userJoinRequest = user ? joinRequests.find(r => r.passenger.id === user.id) || null : null;
+    const canOpenChat = Boolean(user && trip && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED' && chatAccess?.canAccess);
 
     const getAvatarUrl = (profile: any) => {
         if (!profile?.avatar) return null;
@@ -329,6 +337,11 @@ export default function TripDetailsScreen() {
         }
     };
 
+    const handleOpenChat = () => {
+        if (!documentId || !canOpenChat) return;
+        router.push(`/trip-chat/${documentId}`);
+    };
+
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
             <CustomAlert
@@ -430,6 +443,16 @@ export default function TripDetailsScreen() {
                                         <InfoItem icon="person.fill" label="Gender Preference" value={trip.genderPreference === 'men' ? 'Only Men' : trip.genderPreference === 'women' ? 'Only Women' : 'Any'} textColor={textColor} subtextColor={subtextColor} />
                                     </View>
                                 </View>
+
+                                {canOpenChat && (
+                                    <TouchableOpacity
+                                        style={[styles.chatButton, { backgroundColor: primaryColor }]}
+                                        onPress={handleOpenChat}
+                                    >
+                                        <IconSymbol name="message.fill" size={18} color="#fff" />
+                                        <Text style={styles.chatButtonText}>Open Ride Chat</Text>
+                                    </TouchableOpacity>
+                                )}
 
                                 {/* Description / Captain's Note */}
                                 {trip.description && (
@@ -1096,6 +1119,21 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     lifecycleButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    chatButton: {
+        borderRadius: 16,
+        paddingVertical: 15,
+        paddingHorizontal: 18,
+        marginBottom: 16,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 10,
+    },
+    chatButtonText: {
         color: '#fff',
         fontSize: 16,
         fontWeight: '700',

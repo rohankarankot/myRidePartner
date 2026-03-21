@@ -190,3 +190,21 @@ export interface SingleRatingResponse {
     data: Rating;
 }
 
+export interface TripChat {
+    tripDocumentId: string;
+    canAccess: boolean;
+    tripStatus: TripStatus;
+}
+
+export interface TripChatMessage {
+    id: number;
+    documentId: string;
+    message: string;
+    sender: User & {
+        userProfile?: {
+            avatar?: string | { url: string; formats?: any };
+            fullName?: string;
+        } | null;
+    };
+    createdAt: string;
+}

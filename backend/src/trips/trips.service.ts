@@ -8,6 +8,7 @@ import {
   buildPaginationMeta,
   PaginatedMeta,
 } from '../common/utils/query.utils';
+import { TripChatsService } from '../trip-chats/trip-chats.service';
 
 export interface TripFilters {
   status?: TripStatus;
@@ -23,6 +24,7 @@ export class TripsService {
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
     private readonly notificationsService: NotificationsService,
+    private readonly tripChatsService: TripChatsService,
   ) {}
 
   /**
@@ -231,6 +233,7 @@ export class TripsService {
       // 5. Increment completed trips count if status is COMPLETED
       if (data.status === 'COMPLETED') {
         this.incrementCompletedTripsStats(trip);
+        await this.tripChatsService.deleteChatForCompletedTrip(documentId);
       }
     }
 

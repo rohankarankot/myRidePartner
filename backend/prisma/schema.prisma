@@ -68,6 +68,7 @@ model User {
   notifications      Notification[]
   ratingsGiven       Rating[]       @relation("Rater")
   ratingsReceived    Rating[]       @relation("Ratee")
+  sentChatMessages   TripChatMessage[]
 
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
@@ -115,6 +116,7 @@ model Trip {
   creator          User             @relation("TripCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   joinRequests     JoinRequest[]
   ratings          Rating[]
+  chat             TripChat?
 
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -186,3 +188,31 @@ model Rating {
   @@index([rateeId])
 }
 
+model TripChat {
+  id         Int               @id @default(autoincrement())
+  documentId String            @unique @default(uuid())
+
+  tripId     Int               @unique
+  trip       Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  messages   TripChatMessage[]
+
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+model TripChatMessage {
+  id         Int       @id @default(autoincrement())
+  documentId String    @unique @default(uuid())
+  message    String
+
+  chatId     Int
+  chat       TripChat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId   Int
+  sender     User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([chatId, createdAt])
+  @@index([senderId])
+}

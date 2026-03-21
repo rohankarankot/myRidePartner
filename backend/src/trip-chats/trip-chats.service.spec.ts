@@ -1,0 +1,96 @@
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { JoinRequestStatus, TripStatus } from '@prisma/client';
+import { TripChatsService } from './trip-chats.service';
+
+describe('TripChatsService', () => {
+  const prisma = {
+    trip: { findUnique: jest.fn() },
+    joinRequest: { findFirst: jest.fn() },
+    tripChat: { create: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
+    tripChatMessage: { findMany: jest.fn(), create: jest.fn() },
+  } as any;
+
+  const eventsGateway = {
+    emitToChatRoom: jest.fn(),
+  } as any;
+
+  const service = new TripChatsService(prisma, eventsGateway);
+
+  const baseTrip = {
+    id: 99,
+    documentId: 'trip-123',
+    status: TripStatus.PUBLISHED,
+    creatorId: 10,
+    chat: null,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.trip.findUnique.mockResolvedValue(baseTrip);
+    prisma.joinRequest.findFirst.mockResolvedValue(null);
+    prisma.tripChat.findUnique.mockResolvedValue(null);
+  });
+
+  it('allows the captain to access the trip chat', async () => {
+    await expect(service.getChatAccess('trip-123', 10)).resolves.toEqual({
+      tripDocumentId: 'trip-123',
+      canAccess: true,
+      tripStatus: TripStatus.PUBLISHED,
+    });
+  });
+
+  it('allows an approved passenger to access the trip chat', async () => {
+    prisma.joinRequest.findFirst.mockResolvedValueOnce({ id: 1, status: JoinRequestStatus.APPROVED });
+
+    await expect(service.getChatAccess('trip-123', 22)).resolves.toEqual({
+      tripDocumentId: 'trip-123',
+      canAccess: true,
+      tripStatus: TripStatus.PUBLISHED,
+    });
+  });
+
+  it('denies a pending or unrelated passenger from fetching messages', async () => {
+    await expect(service.getMessages('trip-123', 22)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('blocks access when the trip is completed', async () => {
+    prisma.trip.findUnique.mockResolvedValueOnce({
+      ...baseTrip,
+      status: TripStatus.COMPLETED,
+    });
+
+    await expect(service.getMessages('trip-123', 10)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('creates a message for an approved passenger and emits a realtime event', async () => {
+    prisma.joinRequest.findFirst.mockResolvedValueOnce({ id: 1, status: JoinRequestStatus.APPROVED });
+    prisma.tripChat.create.mockResolvedValueOnce({ id: 5, documentId: 'chat-1' });
+    prisma.tripChatMessage.create.mockResolvedValueOnce({
+      id: 7,
+      documentId: 'msg-1',
+      message: 'Hello',
+      createdAt: new Date('2026-03-21T10:00:00.000Z'),
+      sender: { id: 22, username: 'rider', email: 'rider@example.com', userProfile: null },
+    });
+
+    const result = await service.createMessage('trip-123', 22, ' Hello ');
+
+    expect(result.message).toBe('Hello');
+    expect(eventsGateway.emitToChatRoom).toHaveBeenCalledWith('trip-123', 'chat_message_created', result);
+  });
+
+  it('deletes the chat when a trip is completed and emits chat_deleted', async () => {
+    prisma.tripChat.findFirst.mockResolvedValueOnce({ id: 12 });
+
+    await service.deleteChatForCompletedTrip('trip-123');
+
+    expect(prisma.tripChat.delete).toHaveBeenCalledWith({ where: { id: 12 } });
+    expect(eventsGateway.emitToChatRoom).toHaveBeenCalledWith('trip-123', 'chat_deleted', { tripDocumentId: 'trip-123' });
+  });
+
+  it('throws when the trip does not exist', async () => {
+    prisma.trip.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.getChatAccess('missing-trip', 10)).rejects.toBeInstanceOf(NotFoundException);
+  });
+});

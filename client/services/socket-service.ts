@@ -56,11 +56,19 @@ class SocketService {
     }
 
     joinTrip(tripId: string) {
-        this.emit('join_trip', tripId);
+        this.emit('join_trip', { tripDocumentId: tripId });
     }
 
     leaveTrip(tripId: string) {
-        this.emit('leave_trip', tripId);
+        this.emit('leave_trip', { tripDocumentId: tripId });
+    }
+
+    joinChat(tripId: string) {
+        this.emit('join_chat', { tripDocumentId: tripId });
+    }
+
+    leaveChat(tripId: string) {
+        this.emit('leave_chat', { tripDocumentId: tripId });
     }
 
     isConnected() {

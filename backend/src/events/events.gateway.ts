@@ -10,6 +10,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma.service';
+import { JoinRequestStatus } from '@prisma/client';
 
 @WebSocketGateway({
   cors: {
@@ -22,7 +24,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private logger: Logger = new Logger('EventsGateway');
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   handleConnection(client: Socket) {
     try {
@@ -37,6 +42,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = payload.sub || payload.userId || payload.id;
 
       if (userId) {
+        client.data.userId = Number(userId);
         const room = `user_${userId}`;
         client.join(room);
         this.logger.log(`Client ${client.id} auto-authenticated as user ${userId}`);
@@ -63,9 +69,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('join_trip')
   handleJoinTrip(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { tripDocumentId: string },
+    @MessageBody() data: { tripDocumentId: string } | string,
   ) {
-    const { tripDocumentId } = data;
+    const tripDocumentId = typeof data === 'string' ? data : data?.tripDocumentId;
     if (tripDocumentId) {
       const room = `trip_${tripDocumentId}`;
       client.join(room);
@@ -77,13 +83,67 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('leave_trip')
   handleLeaveTrip(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { tripDocumentId: string },
+    @MessageBody() data: { tripDocumentId: string } | string,
   ) {
-    const { tripDocumentId } = data;
+    const tripDocumentId = typeof data === 'string' ? data : data?.tripDocumentId;
     if (tripDocumentId) {
       const room = `trip_${tripDocumentId}`;
       client.leave(room);
       this.logger.log(`Client ${client.id} left trip room ${room}`);
+      return { status: 'left', room };
+    }
+  }
+
+  @SubscribeMessage('join_chat')
+  async handleJoinChat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { tripDocumentId: string } | string,
+  ) {
+    const userId = client.data.userId as number | undefined;
+    const tripDocumentId = typeof data === 'string' ? data : data?.tripDocumentId;
+
+    if (!userId || !tripDocumentId) {
+      return { status: 'error', message: 'Missing user or trip context' };
+    }
+
+    const trip = await this.prisma.trip.findUnique({
+      where: { documentId: tripDocumentId },
+      select: { id: true, creatorId: true, status: true },
+    });
+
+    if (!trip || trip.status === 'COMPLETED' || trip.status === 'CANCELLED') {
+      return { status: 'error', message: 'Trip chat is unavailable' };
+    }
+
+    const isApprovedPassenger = await this.prisma.joinRequest.findFirst({
+      where: {
+        tripId: trip.id,
+        passengerId: userId,
+        status: JoinRequestStatus.APPROVED,
+      },
+      select: { id: true },
+    });
+
+    if (trip.creatorId !== userId && !isApprovedPassenger) {
+      return { status: 'error', message: 'Not authorized for trip chat' };
+    }
+
+    const room = `chat_${tripDocumentId}`;
+    client.join(room);
+    this.logger.log(`Client ${client.id} joined chat room ${room}`);
+    return { status: 'joined', room };
+  }
+
+  @SubscribeMessage('leave_chat')
+  handleLeaveChat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { tripDocumentId: string } | string,
+  ) {
+    const tripDocumentId = typeof data === 'string' ? data : data?.tripDocumentId;
+    if (tripDocumentId) {
+      const room = `chat_${tripDocumentId}`;
+      client.leave(room);
+      this.logger.log(`Client ${client.id} left chat room ${room}`);
       return { status: 'left', room };
     }
   }
@@ -98,5 +158,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = `trip_${tripDocumentId}`;
     this.server.to(room).emit(event, data);
     this.logger.log(`Emitting ${event} to trip room ${room}`);
+  }
+
+  emitToChatRoom(tripDocumentId: string, event: string, data: any) {
+    const room = `chat_${tripDocumentId}`;
+    this.server.to(room).emit(event, data);
+    this.logger.log(`Emitting ${event} to chat room ${room}`);
   }
 }
