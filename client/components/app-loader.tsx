@@ -1,20 +1,20 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { DotLottie } from '@lottiefiles/dotlottie-react-native';
+import LottieView from 'lottie-react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 type AppLoaderProps = {
     message?: string;
 };
 
-export function AppLoader({ message = 'Loading your ride...' }: AppLoaderProps) {
+export function AppLoader({ message = '' }: AppLoaderProps) {
     const textColor = useThemeColor({}, 'text');
 
     return (
         <View style={styles.container}>
-            <DotLottie
-                source={require('@/assets/lotties/car-loading.lottie')}
-                autoplay
+            <LottieView
+                source={require('@/assets/lotties/car-loading.json')}
+                autoPlay
                 loop
                 style={styles.animation}
             />
