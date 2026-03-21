@@ -8,6 +8,12 @@
     "scheme": "myridepartner",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/1d2748c6-b89b-46e8-bc81-798e8807cb48"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rohankarankot.myridepartner",
