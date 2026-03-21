@@ -15,6 +15,14 @@ import { useRouter } from 'expo-router';
 import { HeaderRight } from '@/components/ui/HeaderRight';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUserStore } from '@/store/user-store';
+import FindOutlineIcon from '@/assets/tab-icons/find-outline.svg';
+import FindFilledIcon from '@/assets/tab-icons/find-filled.svg';
+import ChatsOutlineIcon from '@/assets/tab-icons/chats-outline.svg';
+import ChatsFilledIcon from '@/assets/tab-icons/chats-filled.svg';
+import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
+import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
+import ActivityOutlineIcon from '@/assets/tab-icons/activity-outline.svg';
+import ActivityFilledIcon from '@/assets/tab-icons/activity-filled.svg';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -123,28 +131,40 @@ export default function TabLayout() {
         options={{
           headerTitle: 'My Ride Partner',
           title: 'Find',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+          tabBarIcon: ({ color, focused }) =>
+            focused
+              ? <FindFilledIcon width={27} height={27} color={color} />
+              : <FindOutlineIcon width={27} height={27} color={color} />,
         }}
       />
       <Tabs.Screen
         name="chats"
         options={{
           title: 'Chats',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bubble.left.and.bubble.right.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) =>
+            focused
+              ? <ChatsFilledIcon width={27} height={27} color={color} />
+              : <ChatsOutlineIcon width={27} height={27} color={color} />,
         }}
       />
       <Tabs.Screen
         name="create"
         options={{
           title: 'Publish',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) =>
+            focused
+              ? <PublishFilledIcon width={27} height={27} color={color} />
+              : <PublishOutlineIcon width={27} height={27} color={color} />,
         }}
       />
       <Tabs.Screen
         name="activity"
         options={{
           title: 'Activity',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet" color={color} />,
+          tabBarIcon: ({ color, focused }) =>
+            focused
+              ? <ActivityFilledIcon width={27} height={27} color={color} />
+              : <ActivityOutlineIcon width={27} height={27} color={color} />,
         }}
       />
 
