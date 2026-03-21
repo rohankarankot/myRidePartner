@@ -209,3 +209,9 @@ export interface TripChatMessage {
     };
     createdAt: string;
 }
+
+export interface PaginatedTripChatMessages {
+    messages: TripChatMessage[];
+    hasMore: boolean;
+    nextCursor: string | null;
+}

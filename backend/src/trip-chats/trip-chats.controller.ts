@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -16,7 +17,7 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TripChatsService } from './trip-chats.service';
-import { CreateTripChatMessageDto } from './dto/trip-chats.dto';
+import { CreateTripChatMessageDto, GetTripChatMessagesQueryDto } from './dto/trip-chats.dto';
 
 @ApiTags('Trip Chats')
 @ApiBearerAuth()
@@ -35,8 +36,12 @@ export class TripChatsController {
   @Get('messages')
   @ApiOperation({ summary: 'Get trip chat messages' })
   @ApiParam({ name: 'documentId', description: 'Trip document ID' })
-  getMessages(@Param('documentId') documentId: string, @Req() req: any) {
-    return this.tripChatsService.getMessages(documentId, req.user.id);
+  getMessages(
+    @Param('documentId') documentId: string,
+    @Req() req: any,
+    @Query() query: GetTripChatMessagesQueryDto,
+  ) {
+    return this.tripChatsService.getMessages(documentId, req.user.id, query);
   }
 
   @Post('messages')

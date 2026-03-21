@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Keyboard, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import * as Location from 'expo-location';
 import {
@@ -15,7 +15,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripChatService } from '@/services/trip-chat-service';
 import { socketService } from '@/services/socket-service';
-import { TripChatMessage } from '@/types/api';
+import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 
 const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
@@ -85,6 +85,45 @@ const fromGiftedMessage = (message: IMessage, fallbackUser: { id: number; userna
     },
 });
 
+const MESSAGE_PAGE_SIZE = 40;
+
+const mergeUniqueMessages = (messages: TripChatMessage[]) =>
+    messages.filter((item, index, items) =>
+        items.findIndex((candidate) => candidate.documentId === item.documentId) === index
+    );
+
+const updatePaginatedMessages = (
+    existing: InfiniteData<PaginatedTripChatMessages, string | null> | undefined,
+    updater: (messages: TripChatMessage[]) => TripChatMessage[]
+): InfiniteData<PaginatedTripChatMessages, string | null> | undefined => {
+    if (!existing) {
+        return existing;
+    }
+
+    const flattenedMessages = existing.pages.flatMap((page) => page.messages);
+    const nextMessages = mergeUniqueMessages(updater(flattenedMessages));
+    const rebuiltPages = existing.pages.map((page, index) => {
+        if (index === 0) {
+            return {
+                ...page,
+                messages: nextMessages,
+                hasMore: page.hasMore,
+                nextCursor: nextMessages[0]?.documentId ?? page.nextCursor,
+            };
+        }
+
+        return {
+            ...page,
+            messages: [],
+        };
+    });
+
+    return {
+        ...existing,
+        pages: rebuiltPages,
+    };
+};
+
 export default function TripChatScreen() {
     const { tripId } = useLocalSearchParams<{ tripId: string }>();
     const { user } = useAuth();
@@ -113,38 +152,49 @@ export default function TripChatScreen() {
         enabled: !!tripId,
     });
 
-    const { data: messages = [], isLoading: isLoadingMessages } = useQuery({
+    const {
+        data: paginatedMessages,
+        isLoading: isLoadingMessages,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useInfiniteQuery({
         queryKey: ['trip-chat-messages', tripId],
-        queryFn: () => tripChatService.getMessages(tripId!),
+        queryFn: ({ pageParam }) => tripChatService.getMessages(tripId!, { cursor: pageParam, limit: MESSAGE_PAGE_SIZE }),
+        initialPageParam: null as string | null,
+        getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
         enabled: !!tripId && !!chatAccess?.canAccess,
     });
+
+    const messages = useMemo(
+        () => mergeUniqueMessages(paginatedMessages?.pages.flatMap((page) => page.messages) ?? []),
+        [paginatedMessages]
+    );
 
     useEffect(() => {
         if (!tripId) return;
 
         const handleCreated = (message: TripChatMessage) => {
-            queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => {
-                if (!oldMessages) {
-                    return [message];
-                }
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+                updatePaginatedMessages(oldPages, (oldMessages) => {
+                    if (oldMessages.some((item) => item.documentId === message.documentId)) {
+                        return oldMessages;
+                    }
 
-                if (oldMessages.some((item) => item.documentId === message.documentId)) {
-                    return oldMessages;
-                }
+                    const optimisticIndex = oldMessages.findIndex(
+                        (item) =>
+                            item.documentId.startsWith('optimistic-') &&
+                            item.sender.id === message.sender.id &&
+                            item.message === message.message
+                    );
 
-                const optimisticIndex = oldMessages.findIndex(
-                    (item) =>
-                        item.documentId.startsWith('optimistic-') &&
-                        item.sender.id === message.sender.id &&
-                        item.message === message.message
-                );
+                    if (optimisticIndex >= 0) {
+                        return oldMessages.map((item, index) => index === optimisticIndex ? message : item);
+                    }
 
-                if (optimisticIndex >= 0) {
-                    return oldMessages.map((item, index) => index === optimisticIndex ? message : item);
-                }
-
-                return [...oldMessages, message];
-            });
+                    return [...oldMessages, message];
+                })
+            );
         };
 
         const handleDeleted = (data: { tripDocumentId: string }) => {
@@ -349,28 +399,30 @@ export default function TripChatScreen() {
             user
         );
 
-        queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => [
-            optimisticMessage,
-            ...(oldMessages || []),
-        ]);
+        queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+            updatePaginatedMessages(oldPages, (oldMessages) => [
+                optimisticMessage,
+                ...oldMessages,
+            ])
+        );
 
         setComposerText('');
         setIsSending(true);
 
         try {
             const createdMessage = await tripChatService.sendMessage(tripId, trimmedMessage);
-            queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => {
-                const reconciled = (oldMessages || []).map((item) =>
-                    item.documentId === optimisticMessage.documentId ? createdMessage : item
-                );
-
-                return reconciled.filter((item, index, items) =>
-                    items.findIndex((candidate) => candidate.documentId === item.documentId) === index
-                );
-            });
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+                updatePaginatedMessages(oldPages, (oldMessages) =>
+                    oldMessages.map((item) =>
+                        item.documentId === optimisticMessage.documentId ? createdMessage : item
+                    )
+                )
+            );
         } catch (error) {
-            queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) =>
-                (oldMessages || []).filter((item) => item.documentId !== optimisticMessage.documentId)
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+                updatePaginatedMessages(oldPages, (oldMessages) =>
+                    oldMessages.filter((item) => item.documentId !== optimisticMessage.documentId)
+                )
             );
 
             setComposerText(trimmedMessage);
@@ -426,22 +478,22 @@ export default function TripChatScreen() {
                 user
             );
 
-            queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => [
-                optimisticMessage,
-                ...(oldMessages || []),
-            ]);
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+                updatePaginatedMessages(oldPages, (oldMessages) => [
+                    optimisticMessage,
+                    ...oldMessages,
+                ])
+            );
 
             const createdMessage = await tripChatService.sendMessage(tripId, locationMessage);
 
-            queryClient.setQueryData(['trip-chat-messages', tripId], (oldMessages: TripChatMessage[] | undefined) => {
-                const reconciled = (oldMessages || []).map((item) =>
-                    item.documentId === optimisticMessage.documentId ? createdMessage : item
-                );
-
-                return reconciled.filter((item, index, items) =>
-                    items.findIndex((candidate) => candidate.documentId === item.documentId) === index
-                );
-            });
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+                updatePaginatedMessages(oldPages, (oldMessages) =>
+                    oldMessages.map((item) =>
+                        item.documentId === optimisticMessage.documentId ? createdMessage : item
+                    )
+                )
+            );
 
             Toast.show({
                 type: 'success',
@@ -526,6 +578,13 @@ export default function TripChatScreen() {
                         renderAvatarOnTop
                         keyboardShouldPersistTaps="handled"
                         minInputToolbarHeight={60}
+                        loadEarlier={Boolean(hasNextPage)}
+                        onLoadEarlier={() => {
+                            if (!isFetchingNextPage) {
+                                void fetchNextPage();
+                            }
+                        }}
+                        isLoadingEarlier={isFetchingNextPage}
                         keyboardAvoidingViewProps={{ keyboardVerticalOffset: 0 }}
                         timeTextStyle={{
                             right: { color: 'rgba(255,255,255,0.75)' },

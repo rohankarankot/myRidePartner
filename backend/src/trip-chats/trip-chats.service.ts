@@ -8,6 +8,7 @@ import { JoinRequestStatus, Prisma, TripStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { GetTripChatMessagesQueryDto } from './dto/trip-chats.dto';
 
 type TripWithRelations = {
   id: number;
@@ -36,14 +37,42 @@ export class TripChatsService {
     };
   }
 
-  async getMessages(tripDocumentId: string, userId: number) {
+  async getMessages(
+    tripDocumentId: string,
+    userId: number,
+    query?: GetTripChatMessagesQueryDto,
+  ) {
     const trip = await this.assertChatAccess(tripDocumentId, userId);
     const chat = await this.findOrCreateChat(trip);
+    const limit = Math.min(Math.max(Number(query?.limit ?? 40), 1), 100);
+    const cursor = query?.cursor;
+    const cursorMessage = cursor
+      ? await this.runWithChatTableGuard(() =>
+          this.prisma.tripChatMessage.findUnique({
+            where: { documentId: cursor },
+            select: { id: true, createdAt: true, chatId: true },
+          }),
+        )
+      : null;
 
     const messages = await this.runWithChatTableGuard(() =>
       this.prisma.tripChatMessage.findMany({
-        where: { chatId: chat.id },
-        orderBy: { createdAt: 'asc' },
+        where: {
+          chatId: chat.id,
+          ...(cursorMessage && cursorMessage.chatId === chat.id
+            ? {
+                OR: [
+                  { createdAt: { lt: cursorMessage.createdAt } },
+                  {
+                    createdAt: cursorMessage.createdAt,
+                    id: { lt: cursorMessage.id },
+                  },
+                ],
+              }
+            : {}),
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limit + 1,
         include: {
           sender: {
             select: {
@@ -62,13 +91,21 @@ export class TripChatsService {
       }),
     );
 
-    return messages!.map((message) => ({
-      id: message.id,
-      documentId: message.documentId,
-      message: message.message,
-      createdAt: message.createdAt,
-      sender: message.sender,
-    }));
+    const fetchedMessages = messages ?? [];
+    const hasMore = fetchedMessages.length > limit;
+    const selectedMessages = (hasMore ? fetchedMessages.slice(0, limit) : fetchedMessages).reverse();
+
+    return {
+      messages: selectedMessages.map((message) => ({
+        id: message.id,
+        documentId: message.documentId,
+        message: message.message,
+        createdAt: message.createdAt,
+        sender: message.sender,
+      })),
+      hasMore,
+      nextCursor: selectedMessages[0]?.documentId ?? null,
+    };
   }
 
   async createMessage(tripDocumentId: string, userId: number, body: string) {
