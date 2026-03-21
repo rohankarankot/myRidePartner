@@ -9,6 +9,7 @@ import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import { AppLoader } from '@/components/app-loader';
 
 export default function RequestDetailsScreen() {
     const { documentId } = useLocalSearchParams();
@@ -74,7 +75,7 @@ export default function RequestDetailsScreen() {
     if (isLoading) {
         return (
             <View style={[styles.center, { backgroundColor }]}>
-                <ActivityIndicator size="large" color={primaryColor} />
+                <AppLoader />
             </View>
         );
     }

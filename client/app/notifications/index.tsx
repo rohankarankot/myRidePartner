@@ -21,6 +21,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Notification } from '@/types/api';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import Toast from 'react-native-toast-message';
+import { AppLoader } from '@/components/app-loader';
 
 export default function NotificationsScreen() {
     const { user } = useAuth();
@@ -189,7 +190,7 @@ export default function NotificationsScreen() {
 
             {isLoading && !isRefetching ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color={primaryColor} />
+                    <AppLoader />
                 </View>
             ) : (
                 <FlatList

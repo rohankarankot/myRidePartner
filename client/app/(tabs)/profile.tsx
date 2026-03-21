@@ -32,6 +32,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { Colors } from '@/constants/theme';
 import { CITIES } from '@/constants/cities';
+import { AppLoader } from '@/components/app-loader';
 
 const DUMMY_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 
@@ -231,7 +232,7 @@ export default function ProfileScreen() {
     if (isLoading) {
         return (
             <View style={[styles.loadingContainer, { backgroundColor }]}>
-                <ActivityIndicator size="large" color={primaryColor} />
+                <AppLoader />
             </View>
         );
     }

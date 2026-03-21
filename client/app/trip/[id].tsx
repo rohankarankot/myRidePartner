@@ -16,6 +16,7 @@ import { ratingService } from '@/services/rating-service';
 import { socketService } from '@/services/socket-service';
 import { useUserStore } from '@/store/user-store';
 import { CustomAlert } from '@/components/CustomAlert';
+import { AppLoader } from '@/components/app-loader';
 import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
 import { tripChatService } from '@/services/trip-chat-service';
 
@@ -383,7 +384,7 @@ export default function TripDetailsScreen() {
 
             {loading ? (
                 <View style={[styles.center, { backgroundColor }]}>
-                    <ActivityIndicator size="large" color={primaryColor} />
+                    <AppLoader />
                 </View>
             ) : !trip ? (
                 <View style={[styles.center, { backgroundColor }]}>

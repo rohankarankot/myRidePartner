@@ -4,6 +4,7 @@ import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AppLoader } from '@/components/app-loader';
 import { useQuery } from '@tanstack/react-query';
 import { userService } from '@/services/user-service';
 
@@ -46,7 +47,7 @@ export default function UserProfileScreen() {
             <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
                 <Stack.Screen options={{ title: 'Profile', headerShown: true, headerStyle: { backgroundColor }, headerTintColor: textColor, headerShadowVisible: false, headerBackTitle: 'Back' }} />
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color={primaryColor} />
+                    <AppLoader />
                 </View>
             </SafeAreaView>
         );

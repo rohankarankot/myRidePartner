@@ -9,6 +9,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 import { useQuery } from '@tanstack/react-query';
 import { useScrollToTop, useFocusEffect } from '@react-navigation/native';
+import { AppLoader } from '@/components/app-loader';
 
 const TripCard = (props: {
     documentId: string,
@@ -211,7 +212,7 @@ export default function ActivityScreen() {
     if (isLoading && !isRefetching) {
         return (
             <View style={[styles.center, { backgroundColor }]}>
-                <ActivityIndicator size="large" color={primaryColor} />
+                <AppLoader />
             </View>
         );
     }

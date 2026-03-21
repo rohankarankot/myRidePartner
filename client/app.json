@@ -68,7 +68,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow My Ride Partner to use your location to help you find your starting point and destination.",
           "locationWhenInUsePermission": "Allow My Ride Partner to use your location to help you select pickup and drop-off locations."
         }
-      ]
+      ],
+      "@lottiefiles/dotlottie-react-native/plugin"
     ],
     "experiments": {
       "typedRoutes": true,

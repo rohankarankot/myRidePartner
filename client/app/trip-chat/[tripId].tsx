@@ -13,6 +13,7 @@ import {
 } from 'react-native-gifted-chat';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AppLoader } from '@/components/app-loader';
 import { tripChatService } from '@/services/trip-chat-service';
 import { socketService } from '@/services/socket-service';
 import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
@@ -554,7 +555,7 @@ export default function TripChatScreen() {
 
             {isLoadingAccess || isLoadingMessages ? (
                 <View style={[styles.center, { backgroundColor }]}>
-                    <ActivityIndicator size="large" color={primaryColor} />
+                    <AppLoader />
                 </View>
             ) : isBlocked ? (
                 <View style={[styles.center, { backgroundColor, paddingHorizontal: 24 }]}>

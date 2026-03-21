@@ -15,6 +15,7 @@ import { ratingService } from '@/services/rating-service';
 import { useAuth } from '@/context/auth-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AppLoader } from '@/components/app-loader';
 
 const DUMMY_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 const PAGE_SIZE = 10;
@@ -95,7 +96,7 @@ export default function RatingsScreen() {
 
             {isLoading ? (
                 <View style={styles.centered}>
-                    <ActivityIndicator size="large" color={primaryColor} />
+                    <AppLoader />
                 </View>
             ) : error ? (
                 <View style={styles.centered}>

@@ -9,6 +9,7 @@ import { JoinRequest } from '@/types/api';
 import { useRouter, Stack } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AppLoader } from '@/components/app-loader';
 
 export default function RequestsScreen() {
     const { user } = useAuth();
@@ -86,7 +87,7 @@ export default function RequestsScreen() {
                 ListEmptyComponent={
                     <View style={styles.emptyContainer}>
                         {isLoading ? (
-                            <ActivityIndicator size="large" color={primaryColor} />
+                            <AppLoader />
                         ) : (
                             <>
                                 <IconSymbol name="checkmark.circle" size={60} color={subtextColor} />

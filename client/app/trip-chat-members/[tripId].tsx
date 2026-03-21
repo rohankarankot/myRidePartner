@@ -16,6 +16,7 @@ import { tripService } from '@/services/trip-service';
 import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AppLoader } from '@/components/app-loader';
 
 type MemberRow = {
     id: number;
@@ -160,7 +161,7 @@ export default function TripChatMembersScreen() {
 
             {isLoading ? (
                 <View style={[styles.center, { backgroundColor }]}>
-                    <ActivityIndicator size="large" color={primaryColor} />
+                    <AppLoader />
                 </View>
             ) : (
                 <FlatList

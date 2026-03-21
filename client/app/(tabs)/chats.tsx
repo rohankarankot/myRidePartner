@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AppLoader } from '@/components/app-loader';
 import { useAuth } from '@/context/auth-context';
 import { tripService } from '@/services/trip-service';
 import { joinRequestService } from '@/services/join-request-service';
@@ -112,7 +113,7 @@ export default function ChatsTabScreen() {
     if (isLoading && !isRefetching) {
         return (
             <View style={[styles.center, { backgroundColor }]}>
-                <ActivityIndicator size="large" color={primaryColor} />
+                <AppLoader />
             </View>
         );
     }
