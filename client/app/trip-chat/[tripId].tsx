@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Keyboard, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -62,6 +62,9 @@ export default function TripChatScreen() {
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
+    const isTypingRef = useRef(false);
+    const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -123,16 +126,33 @@ export default function TripChatScreen() {
             router.replace(`/trip/${tripId}`);
         };
 
+        const handleTypingUpdated = (data: { tripDocumentId: string; typingUsers: Array<{ userId: number; userName: string }> }) => {
+            if (data.tripDocumentId !== tripId) return;
+
+            setTypingUsers(
+                data.typingUsers.filter((typingUser) => typingUser.userId !== user?.id)
+            );
+        };
+
         socketService.joinChat(tripId);
         socketService.on('chat_message_created', handleCreated);
         socketService.on('chat_deleted', handleDeleted);
+        socketService.on('chat_typing_updated', handleTypingUpdated);
 
         return () => {
+            if (stopTypingTimeoutRef.current) {
+                clearTimeout(stopTypingTimeoutRef.current);
+            }
+            if (isTypingRef.current) {
+                socketService.setChatTyping(tripId, false);
+                isTypingRef.current = false;
+            }
             socketService.off('chat_message_created', handleCreated);
             socketService.off('chat_deleted', handleDeleted);
+            socketService.off('chat_typing_updated', handleTypingUpdated);
             socketService.leaveChat(tripId);
         };
-    }, [tripId, queryClient, router]);
+    }, [tripId, queryClient, router, user?.id]);
 
     useEffect(() => {
         const updateKeyboardHeight = (event: any) => {
@@ -164,11 +184,73 @@ export default function TripChatScreen() {
         [messages]
     );
 
+    const typingText = useMemo(() => {
+        if (typingUsers.length === 0) {
+            return '';
+        }
+
+        if (typingUsers.length === 1) {
+            return `${typingUsers[0].userName} is typing...`;
+        }
+
+        if (typingUsers.length === 2) {
+            return `${typingUsers[0].userName} and ${typingUsers[1].userName} are typing...`;
+        }
+
+        return `${typingUsers[0].userName} and others are typing...`;
+    }, [typingUsers]);
+
+    const emitTypingState = (nextTypingState: boolean) => {
+        if (!tripId) {
+            return;
+        }
+
+        if (isTypingRef.current === nextTypingState) {
+            return;
+        }
+
+        isTypingRef.current = nextTypingState;
+        socketService.setChatTyping(tripId, nextTypingState);
+    };
+
+    const scheduleStopTyping = () => {
+        if (stopTypingTimeoutRef.current) {
+            clearTimeout(stopTypingTimeoutRef.current);
+        }
+
+        stopTypingTimeoutRef.current = setTimeout(() => {
+            emitTypingState(false);
+        }, 1800);
+    };
+
+    const handleComposerChange = (value: string) => {
+        setComposerText(value);
+
+        if (!tripId || !socketService.isConnected()) {
+            return;
+        }
+
+        if (value.trim()) {
+            emitTypingState(true);
+            scheduleStopTyping();
+        } else {
+            if (stopTypingTimeoutRef.current) {
+                clearTimeout(stopTypingTimeoutRef.current);
+            }
+            emitTypingState(false);
+        }
+    };
+
     const handleSend = async (outgoingMessages: IMessage[] = []) => {
         const outgoing = outgoingMessages[0];
         const trimmedMessage = outgoing?.text?.trim();
 
         if (!tripId || !user || !trimmedMessage || isSending) return;
+
+        if (stopTypingTimeoutRef.current) {
+            clearTimeout(stopTypingTimeoutRef.current);
+        }
+        emitTypingState(false);
 
         const optimisticMessage = fromGiftedMessage(
             {
@@ -227,6 +309,14 @@ export default function TripChatScreen() {
                     headerStyle: { backgroundColor },
                     headerTintColor: textColor,
                     headerShadowVisible: false,
+                    headerRight: () => (
+                        <TouchableOpacity
+                            onPress={() => router.push(`/trip-chat-members/${tripId}`)}
+                            style={styles.headerInfoButton}
+                        >
+                            <IconSymbol name="info.circle.fill" size={22} color={textColor} />
+                        </TouchableOpacity>
+                    ),
                 }}
             />
 
@@ -264,7 +354,7 @@ export default function TripChatScreen() {
                         }}
                         messagesContainerStyle={{ backgroundColor }}
                         textInputProps={{
-                            onChangeText: setComposerText,
+                            onChangeText: handleComposerChange,
                             placeholder: 'Message the group',
                             placeholderTextColor: subtextColor,
                             style: [
@@ -315,7 +405,7 @@ export default function TripChatScreen() {
                                         styles.sendButton,
                                         {
                                             backgroundColor: composerText.trim() && !isSending ? primaryColor : '#E5E7EB',
-                                            borderRadius: "50%"
+                                            borderRadius: 23,
                                         },
                                     ]}>
                                     <IconSymbol
@@ -334,6 +424,13 @@ export default function TripChatScreen() {
                                 </Text>
                             </View>
                         )}
+                        renderChatFooter={() => typingText ? (
+                            <View style={styles.typingFooter}>
+                                <Text style={[styles.typingText, { color: subtextColor }]}>
+                                    {typingText}
+                                </Text>
+                            </View>
+                        ) : null}
                     />
                 </View>
             )}
@@ -348,6 +445,10 @@ const styles = StyleSheet.create({
     chatWrapper: {
         flex: 1,
     },
+    headerInfoButton: {
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+    },
     center: {
         flex: 1,
         justifyContent: 'center',
@@ -361,6 +462,15 @@ const styles = StyleSheet.create({
     emptyState: {
         alignItems: 'center',
         paddingHorizontal: 24,
+        transform: [{ rotate: '180deg' }],
+    },
+    typingFooter: {
+        paddingHorizontal: 18,
+        paddingBottom: 8,
+    },
+    typingText: {
+        fontSize: 13,
+        fontStyle: 'italic',
     },
     emptyTitle: {
         fontSize: 20,

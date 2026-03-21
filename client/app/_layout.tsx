@@ -43,6 +43,7 @@ export default function RootLayout() {
                 <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />
                 <Stack.Screen name="terms" options={{ title: 'Terms & Privacy', headerBackTitle: 'Back', headerShown: true }} />
                 <Stack.Screen name="trip-chat/[tripId]" options={{ title: 'Ride Chat', headerBackTitle: 'Trip' }} />
+                <Stack.Screen name="trip-chat-members/[tripId]" options={{ title: 'Ride Members', headerBackTitle: 'Chat' }} />
                 <Stack.Screen name="requests/index" options={{ title: 'Join Requests', headerBackTitle: 'Back' }} />
                 <Stack.Screen name="requests/[documentId]" options={{ title: 'Request Details', headerBackTitle: 'Back' }} />
                 <Stack.Screen name="ratings" options={{ title: 'My Ratings', headerBackTitle: 'Profile' }} />

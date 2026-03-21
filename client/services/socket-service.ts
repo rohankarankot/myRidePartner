@@ -71,6 +71,10 @@ class SocketService {
         this.emit('leave_chat', { tripDocumentId: tripId });
     }
 
+    setChatTyping(tripId: string, isTyping: boolean) {
+        this.emit('chat_typing', { tripDocumentId: tripId, isTyping });
+    }
+
     isConnected() {
         return this.socket?.connected || false;
     }

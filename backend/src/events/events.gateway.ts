@@ -23,13 +23,19 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private logger: Logger = new Logger('EventsGateway');
+  private readonly typingTimeouts = new Map<string, NodeJS.Timeout>();
+  private readonly activeTypers = new Map<string, Map<number, { userId: number; userName: string }>>();
+  private readonly chatPresence = new Map<
+    string,
+    Map<number, { userId: number; userName: string; connectionCount: number }>
+  >();
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
   ) {}
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     try {
       const token = client.handshake.auth.token || client.handshake.headers['authorization']?.split(' ')[1];
       
@@ -42,7 +48,27 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const userId = payload.sub || payload.userId || payload.id;
 
       if (userId) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: Number(userId) },
+          select: {
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        });
+
         client.data.userId = Number(userId);
+        client.data.userName =
+          user?.userProfile?.fullName ||
+          user?.username ||
+          payload.username ||
+          payload.email ||
+          `User ${userId}`;
+        client.data.joinedChatRooms = new Set<string>();
         const room = `user_${userId}`;
         client.join(room);
         this.logger.log(`Client ${client.id} auto-authenticated as user ${userId}`);
@@ -53,6 +79,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
+    this.clearTypingForUser(client.data.userId as number | undefined);
+    this.clearPresenceForClient(client);
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
@@ -106,30 +134,22 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: 'error', message: 'Missing user or trip context' };
     }
 
-    const trip = await this.prisma.trip.findUnique({
-      where: { documentId: tripDocumentId },
-      select: { id: true, creatorId: true, status: true },
-    });
+    const trip = await this.getAuthorizedChatTrip(tripDocumentId, userId);
 
-    if (!trip || trip.status === 'COMPLETED' || trip.status === 'CANCELLED') {
+    if (!trip) {
       return { status: 'error', message: 'Trip chat is unavailable' };
-    }
-
-    const isApprovedPassenger = await this.prisma.joinRequest.findFirst({
-      where: {
-        tripId: trip.id,
-        passengerId: userId,
-        status: JoinRequestStatus.APPROVED,
-      },
-      select: { id: true },
-    });
-
-    if (trip.creatorId !== userId && !isApprovedPassenger) {
-      return { status: 'error', message: 'Not authorized for trip chat' };
     }
 
     const room = `chat_${tripDocumentId}`;
     client.join(room);
+    this.addChatPresence(
+      tripDocumentId,
+      userId,
+      (client.data.userName as string | undefined) || `User ${userId}`,
+    );
+    const joinedChatRooms = (client.data.joinedChatRooms as Set<string> | undefined) ?? new Set<string>();
+    joinedChatRooms.add(tripDocumentId);
+    client.data.joinedChatRooms = joinedChatRooms;
     this.logger.log(`Client ${client.id} joined chat room ${room}`);
     return { status: 'joined', room };
   }
@@ -139,13 +159,40 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { tripDocumentId: string } | string,
   ) {
+    const userId = client.data.userId as number | undefined;
     const tripDocumentId = typeof data === 'string' ? data : data?.tripDocumentId;
     if (tripDocumentId) {
+      this.setTypingState(tripDocumentId, userId, client.data.userName as string | undefined, false);
+      this.removeChatPresence(tripDocumentId, userId);
+      const joinedChatRooms = client.data.joinedChatRooms as Set<string> | undefined;
+      joinedChatRooms?.delete(tripDocumentId);
       const room = `chat_${tripDocumentId}`;
       client.leave(room);
       this.logger.log(`Client ${client.id} left chat room ${room}`);
       return { status: 'left', room };
     }
+  }
+
+  @SubscribeMessage('chat_typing')
+  async handleChatTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { tripDocumentId: string; isTyping: boolean },
+  ) {
+    const userId = client.data.userId as number | undefined;
+    const userName = client.data.userName as string | undefined;
+    const tripDocumentId = data?.tripDocumentId;
+
+    if (!userId || !tripDocumentId) {
+      return { status: 'error', message: 'Missing typing context' };
+    }
+
+    const trip = await this.getAuthorizedChatTrip(tripDocumentId, userId);
+    if (!trip) {
+      return { status: 'error', message: 'Trip chat is unavailable' };
+    }
+
+    this.setTypingState(tripDocumentId, userId, userName, Boolean(data?.isTyping));
+    return { status: 'ok' };
   }
 
   emitToUser(userId: number, event: string, data: any) {
@@ -164,5 +211,179 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = `chat_${tripDocumentId}`;
     this.server.to(room).emit(event, data);
     this.logger.log(`Emitting ${event} to chat room ${room}`);
+  }
+
+  private async getAuthorizedChatTrip(tripDocumentId: string, userId: number) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { documentId: tripDocumentId },
+      select: { id: true, creatorId: true, status: true },
+    });
+
+    if (!trip || trip.status === 'COMPLETED' || trip.status === 'CANCELLED') {
+      return null;
+    }
+
+    if (trip.creatorId === userId) {
+      return trip;
+    }
+
+    const isApprovedPassenger = await this.prisma.joinRequest.findFirst({
+      where: {
+        tripId: trip.id,
+        passengerId: userId,
+        status: JoinRequestStatus.APPROVED,
+      },
+      select: { id: true },
+    });
+
+    if (!isApprovedPassenger) {
+      return null;
+    }
+
+    return trip;
+  }
+
+  private setTypingState(
+    tripDocumentId: string,
+    userId: number | undefined,
+    userName: string | undefined,
+    isTyping: boolean,
+  ) {
+    if (!userId) {
+      return;
+    }
+
+    const timeoutKey = `${tripDocumentId}:${userId}`;
+    const existingTimeout = this.typingTimeouts.get(timeoutKey);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      this.typingTimeouts.delete(timeoutKey);
+    }
+
+    if (isTyping) {
+      const roomTypers = this.activeTypers.get(tripDocumentId) ?? new Map();
+      roomTypers.set(userId, {
+        userId,
+        userName: userName || `User ${userId}`,
+      });
+      this.activeTypers.set(tripDocumentId, roomTypers);
+
+      const timeout = setTimeout(() => {
+        this.setTypingState(tripDocumentId, userId, userName, false);
+      }, 2500);
+      this.typingTimeouts.set(timeoutKey, timeout);
+    } else {
+      const roomTypers = this.activeTypers.get(tripDocumentId);
+      roomTypers?.delete(userId);
+
+      if (roomTypers && roomTypers.size === 0) {
+        this.activeTypers.delete(tripDocumentId);
+      }
+    }
+
+    this.emitTypingSnapshot(tripDocumentId);
+  }
+
+  private emitTypingSnapshot(tripDocumentId: string) {
+    const typingUsers = Array.from(this.activeTypers.get(tripDocumentId)?.values() ?? []);
+    this.emitToChatRoom(tripDocumentId, 'chat_typing_updated', {
+      tripDocumentId,
+      typingUsers,
+    });
+  }
+
+  private clearTypingForUser(userId?: number) {
+    if (!userId) {
+      return;
+    }
+
+    const keysToClear = Array.from(this.typingTimeouts.keys()).filter((key) => key.endsWith(`:${userId}`));
+    for (const key of keysToClear) {
+      clearTimeout(this.typingTimeouts.get(key)!);
+      this.typingTimeouts.delete(key);
+
+      const [tripDocumentId] = key.split(':');
+      const roomTypers = this.activeTypers.get(tripDocumentId);
+      roomTypers?.delete(userId);
+
+      if (roomTypers && roomTypers.size === 0) {
+        this.activeTypers.delete(tripDocumentId);
+      } else {
+        this.emitTypingSnapshot(tripDocumentId);
+      }
+    }
+  }
+
+  private addChatPresence(tripDocumentId: string, userId: number, userName: string) {
+    const roomPresence = this.chatPresence.get(tripDocumentId) ?? new Map();
+    const existingPresence = roomPresence.get(userId);
+
+    roomPresence.set(userId, {
+      userId,
+      userName,
+      connectionCount: (existingPresence?.connectionCount ?? 0) + 1,
+    });
+
+    this.chatPresence.set(tripDocumentId, roomPresence);
+    this.emitPresenceSnapshot(tripDocumentId);
+  }
+
+  private removeChatPresence(tripDocumentId: string, userId?: number) {
+    if (!userId) {
+      return;
+    }
+
+    const roomPresence = this.chatPresence.get(tripDocumentId);
+    const existingPresence = roomPresence?.get(userId);
+
+    if (!roomPresence || !existingPresence) {
+      return;
+    }
+
+    if (existingPresence.connectionCount > 1) {
+      roomPresence.set(userId, {
+        ...existingPresence,
+        connectionCount: existingPresence.connectionCount - 1,
+      });
+    } else {
+      roomPresence.delete(userId);
+    }
+
+    if (roomPresence.size === 0) {
+      this.chatPresence.delete(tripDocumentId);
+    } else {
+      this.chatPresence.set(tripDocumentId, roomPresence);
+    }
+
+    this.emitPresenceSnapshot(tripDocumentId);
+  }
+
+  private emitPresenceSnapshot(tripDocumentId: string) {
+    const onlineUsers = Array.from(this.chatPresence.get(tripDocumentId)?.values() ?? []).map(
+      ({ userId, userName }) => ({
+        userId,
+        userName,
+      }),
+    );
+
+    this.emitToChatRoom(tripDocumentId, 'chat_presence_updated', {
+      tripDocumentId,
+      onlineUsers,
+    });
+  }
+
+  private clearPresenceForClient(client: Socket) {
+    const userId = client.data.userId as number | undefined;
+    const joinedChatRooms = client.data.joinedChatRooms as Set<string> | undefined;
+
+    if (!userId || !joinedChatRooms?.size) {
+      return;
+    }
+
+    for (const tripDocumentId of joinedChatRooms) {
+      this.removeChatPresence(tripDocumentId, userId);
+    }
+
+    joinedChatRooms.clear();
   }
 }
