@@ -15,6 +15,8 @@ import { FilterBottomSheet } from '@/components/FilterBottomSheet';
 import { Tabs } from 'expo-router';
 import { notificationService } from '@/services/notification-service';
 import { useScrollToTop } from '@react-navigation/native';
+import { DiscoveryBannerAd } from '@/features/ads/components/discovery-banner-ad';
+import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 
 const formatDisplayDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -154,6 +156,7 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
 export default function FindRidesScreen() {
 
   const { user } = useAuth();
+  const { blockedUserIds } = useBlockedUsers();
   const { profile } = useUserStore();
   const router = useRouter();
   const navigation = useNavigation();
@@ -235,12 +238,13 @@ export default function FindRidesScreen() {
         .filter(trip => {
           // Exclude own trips
           const isOwnTrip = user && trip.creator?.id === user.id;
+          const isBlockedCreator = trip.creator?.id ? blockedUserIds.includes(trip.creator.id) : false;
           // Filter for upcoming trips (only if no specific date filter is applied)
           const isUpcoming = date ? true : trip.date >= todayString;
           // Only show published trips
           const isPublished = trip.status === 'PUBLISHED';
 
-          return !isOwnTrip && isUpcoming && isPublished;
+          return !isOwnTrip && !isBlockedCreator && isUpcoming && isPublished;
         })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }
@@ -271,7 +275,6 @@ export default function FindRidesScreen() {
 
   const renderHeader = () => (
     <View style={{ paddingTop: 10, paddingBottom: 8 }}>
-
       <View style={[styles.searchContainer, { backgroundColor: cardColor, borderColor, height: 54, borderRadius: 16 }]}>
         <IconSymbol name="magnifyingglass" size={20} color={subtextColor} />
         <TextInput
@@ -284,6 +287,7 @@ export default function FindRidesScreen() {
       <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24, fontSize: 18, fontWeight: '700' }]}>
         {date ? `Rides for ${format(date, 'MMM d, yyyy')}` : 'Upcoming Rides'}
       </Text>
+      <DiscoveryBannerAd />
     </View>
   );
 

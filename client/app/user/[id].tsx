@@ -7,11 +7,18 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppLoader } from '@/components/app-loader';
 import { useQuery } from '@tanstack/react-query';
 import { userService } from '@/services/user-service';
+import { useAuth } from '@/context/auth-context';
+import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
+import { saveReport } from '@/features/safety/report-service';
+import Toast from 'react-native-toast-message';
+import { CustomAlert } from '@/components/CustomAlert';
+import { ReportModal, ReportPayload } from '@/components/ReportModal';
 
 export default function UserProfileScreen() {
     const { id } = useLocalSearchParams();
     const userId = Number(id);
     const router = useRouter();
+    const { user } = useAuth();
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -19,8 +26,12 @@ export default function UserProfileScreen() {
     const cardColor = useThemeColor({}, 'card');
     const primaryColor = useThemeColor({}, 'primary');
     const borderColor = useThemeColor({}, 'border');
+    const dangerColor = useThemeColor({}, 'danger');
 
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [showBlockAlert, setShowBlockAlert] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const { isBlocked, blockUser, unblockUser, isBlocking, isUnblocking } = useBlockedUsers();
 
     const { data: profile, isLoading, error, refetch } = useQuery({
         queryKey: ['user-profile', userId],
@@ -41,6 +52,45 @@ export default function UserProfileScreen() {
     };
 
     const avatarUrl = getAvatarUrl();
+    const blocked = isBlocked(userId);
+    const isOwnProfile = user?.id === userId;
+
+    const handleReportSubmit = async (payload: ReportPayload) => {
+        await saveReport(payload);
+        Toast.show({
+            type: 'success',
+            text1: 'Report submitted',
+            text2: 'We will review this and take action if needed.',
+        });
+    };
+
+    const handleConfirmBlock = async () => {
+        try {
+            if (blocked) {
+                await unblockUser(userId);
+                Toast.show({
+                    type: 'success',
+                    text1: 'User unblocked',
+                    text2: 'Their rides can appear again in discovery.',
+                });
+            } else {
+                await blockUser(userId);
+                Toast.show({
+                    type: 'success',
+                    text1: 'User blocked',
+                    text2: 'You will no longer see their rides in discovery on this device.',
+                });
+            }
+        } catch {
+            Toast.show({
+                type: 'error',
+                text1: 'Action failed',
+                text2: 'Please try again.',
+            });
+        } finally {
+            setShowBlockAlert(false);
+        }
+    };
 
     if (isLoading && !isRefreshing) {
         return (
@@ -67,6 +117,34 @@ export default function UserProfileScreen() {
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+            <ReportModal
+                visible={showReportModal}
+                onClose={() => setShowReportModal(false)}
+                onSubmit={handleReportSubmit}
+                reportedUserId={userId}
+                reportedUserName={profile?.fullName}
+                reporterUserId={user?.id}
+                source="profile"
+            />
+            <CustomAlert
+                visible={showBlockAlert}
+                title={blocked ? 'Unblock user?' : 'Block user?'}
+                message={
+                    blocked
+                        ? 'This will allow their rides to appear in discovery again on this device.'
+                        : 'You will hide this user’s rides from discovery on this device. You can undo this later.'
+                }
+                primaryButton={{
+                    text: blocked ? 'Unblock' : 'Block',
+                    onPress: handleConfirmBlock,
+                }}
+                secondaryButton={{
+                    text: 'Cancel',
+                    onPress: () => setShowBlockAlert(false),
+                }}
+                onClose={() => setShowBlockAlert(false)}
+                icon={blocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
+            />
             <Stack.Screen
                 options={{
                     title: profile.fullName || 'User Profile',
@@ -106,6 +184,44 @@ export default function UserProfileScreen() {
 
                     <Text style={[styles.userName, { color: textColor }]}>{profile.fullName || 'Unknown User'}</Text>
                     <Text style={[styles.userHandle, { color: subtextColor }]}>Ride Leader</Text>
+
+                    {!isOwnProfile && (
+                        <>
+                            <View style={styles.safetyActions}>
+                                <TouchableOpacity
+                                    style={[styles.safetyButton, { borderColor, backgroundColor: blocked ? `${dangerColor}10` : cardColor }]}
+                                    onPress={() => setShowBlockAlert(true)}
+                                    disabled={isBlocking || isUnblocking}
+                                >
+                                    <IconSymbol
+                                        name={blocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
+                                        size={16}
+                                        color={blocked ? dangerColor : textColor}
+                                    />
+                                    <Text style={[styles.safetyButtonText, { color: blocked ? dangerColor : textColor }]}>
+                                        {blocked ? 'Unblock User' : 'Block User'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.safetyButton, { borderColor, backgroundColor: cardColor }]}
+                                    onPress={() => setShowReportModal(true)}
+                                >
+                                    <IconSymbol name="flag.fill" size={16} color="#F59E0B" />
+                                    <Text style={[styles.safetyButtonText, { color: textColor }]}>Report User</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {blocked && (
+                                <View style={[styles.blockedBanner, { backgroundColor: `${dangerColor}10` }]}>
+                                    <IconSymbol name="hand.raised.fill" size={16} color={dangerColor} />
+                                    <Text style={[styles.blockedBannerText, { color: dangerColor }]}>
+                                        This user is blocked on this device.
+                                    </Text>
+                                </View>
+                            )}
+                        </>
+                    )}
 
                     {/* Quick Stats */}
                     <View style={styles.statsRow}>
@@ -261,6 +377,39 @@ const styles = StyleSheet.create({
     userHandle: {
         fontSize: 15,
         marginBottom: 24,
+    },
+    safetyActions: {
+        width: '100%',
+        gap: 12,
+        marginBottom: 20,
+    },
+    safetyButton: {
+        borderWidth: 1,
+        borderRadius: 14,
+        minHeight: 46,
+        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    safetyButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    blockedBanner: {
+        width: '100%',
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        marginBottom: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    blockedBannerText: {
+        fontSize: 13,
+        fontWeight: '600',
     },
     statsRow: {
         flexDirection: 'row',

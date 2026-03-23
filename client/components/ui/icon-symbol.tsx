@@ -63,6 +63,18 @@ const MAPPING = {
   'bubble.left.and.bubble.right.fill': 'forum',
   'steeringwheel': 'drive-eta',
   'github': 'code',
+  // Safety / block / report icons
+  'hand.raised.fill': 'front-hand',
+  'person.crop.circle.badge.checkmark': 'how-to-reg',
+  'flag.fill': 'flag',
+  'exclamationmark.bubble.fill': 'report',
+  'person.fill.questionmark': 'person-search',
+  'shield.fill': 'security',
+  'ellipsis.circle.fill': 'more-horiz',
+  'checkmark.shield.fill': 'verified-user',
+  'person.crop.circle.badge.xmark': 'person-remove',
+  'chevron.down': 'expand-more',
+  'message.fill': 'message',
 } as IconMapping;
 
 /**

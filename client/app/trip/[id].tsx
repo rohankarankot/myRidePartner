@@ -20,6 +20,9 @@ import { AppLoader } from '@/components/app-loader';
 import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
 import { tripChatService } from '@/services/trip-chat-service';
 import { maskPhoneNumber } from '@/utils/phone';
+import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
+import { saveReport } from '@/features/safety/report-service';
+import { ReportModal, ReportPayload } from '@/components/ReportModal';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -27,6 +30,7 @@ export default function TripDetailsScreen() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const { profile } = useUserStore();
+    const { isBlocked, blockUser, unblockUser, isBlocking, isUnblocking } = useBlockedUsers();
 
     const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender || !profile.city;
 
@@ -56,6 +60,8 @@ export default function TripDetailsScreen() {
 
 
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showBlockAlert, setShowBlockAlert] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
     const [agreeToCancel, setAgreeToCancel] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
@@ -162,7 +168,8 @@ export default function TripDetailsScreen() {
     const creatorProfile = tripDetails?.creatorProfile || null;
     const joinRequests = tripDetails?.requests || [];
     const userJoinRequest = user ? joinRequests.find(r => r.passenger.id === user.id) || null : null;
-    const canOpenChat = Boolean(user && trip && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED' && chatAccess?.canAccess);
+    const isCreatorBlocked = isBlocked(trip?.creator?.id);
+    const canOpenChat = Boolean(user && trip && !isCreatorBlocked && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED' && chatAccess?.canAccess);
 
     const getAvatarUrl = (profile: any) => {
         if (!profile?.avatar) return null;
@@ -172,6 +179,15 @@ export default function TripDetailsScreen() {
 
     const handleInitiateJoin = () => {
         if (!user || !documentId || !trip) return;
+
+        if (isCreatorBlocked) {
+            Toast.show({
+                type: 'error',
+                text1: 'Captain blocked',
+                text2: 'Unblock this captain to request joining the ride.',
+            });
+            return;
+        }
 
         if (isProfileIncomplete) {
             setShowProfileAlert(true);
@@ -347,8 +363,61 @@ export default function TripDetailsScreen() {
         router.push(`/trip-chat/${documentId}`);
     };
 
+    const handleReportSubmit = async (payload: ReportPayload) => {
+        await saveReport(payload);
+        Toast.show({
+            type: 'success',
+            text1: 'Report submitted',
+            text2: 'We will review this and take action if needed.',
+        });
+    };
+
+    const handleConfirmBlock = async () => {
+        const creatorId = trip?.creator?.id;
+        if (!creatorId) return;
+
+        try {
+            if (isCreatorBlocked) {
+                await unblockUser(creatorId);
+                Toast.show({
+                    type: 'success',
+                    text1: 'Captain unblocked',
+                    text2: 'You can see and join their rides again.',
+                });
+            } else {
+                await blockUser(creatorId);
+                Toast.show({
+                    type: 'success',
+                    text1: 'Captain blocked',
+                    text2: 'Their rides will be hidden from discovery on this device.',
+                });
+                router.back();
+            }
+        } catch {
+            Toast.show({
+                type: 'error',
+                text1: 'Action failed',
+                text2: 'Please try again.',
+            });
+        } finally {
+            setShowBlockAlert(false);
+        }
+    };
+
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+            {trip?.creator?.id && (
+                <ReportModal
+                    visible={showReportModal}
+                    onClose={() => setShowReportModal(false)}
+                    onSubmit={handleReportSubmit}
+                    reportedUserId={trip.creator.id}
+                    reportedUserName={creatorProfile?.fullName || trip.creator.username}
+                    reporterUserId={user?.id}
+                    tripDocumentId={trip.documentId}
+                    source="trip"
+                />
+            )}
             <CustomAlert
                 visible={showProfileAlert}
                 title="Complete Your Profile"
@@ -373,6 +442,25 @@ export default function TripDetailsScreen() {
                 }}
                 onClose={() => setShowGenderAlert(false)}
                 icon="person.2.slash.fill"
+            />
+            <CustomAlert
+                visible={showBlockAlert}
+                title={isCreatorBlocked ? 'Unblock captain?' : 'Block captain?'}
+                message={
+                    isCreatorBlocked
+                        ? 'This will allow this captain’s rides to appear again in discovery.'
+                        : 'You will hide this captain’s rides from discovery on this device and stop joining this ride until unblocked.'
+                }
+                primaryButton={{
+                    text: isCreatorBlocked ? 'Unblock' : 'Block',
+                    onPress: handleConfirmBlock,
+                }}
+                secondaryButton={{
+                    text: 'Cancel',
+                    onPress: () => setShowBlockAlert(false),
+                }}
+                onClose={() => setShowBlockAlert(false)}
+                icon={isCreatorBlocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
             />
             <Stack.Screen
                 options={{
@@ -499,6 +587,44 @@ export default function TripDetailsScreen() {
                                         </View>
                                     </View>
                                 </TouchableOpacity>
+
+                                {user?.id !== trip.creator?.id && (
+                                    <View style={[styles.card, { backgroundColor: cardColor }]}>
+                                        <Text style={[styles.sectionTitle, { color: textColor }]}>Safety</Text>
+                                        {isCreatorBlocked && (
+                                            <View style={[styles.safetyBanner, { backgroundColor: `${dangerColor}10` }]}>
+                                                <IconSymbol name="hand.raised.fill" size={18} color={dangerColor} />
+                                                <Text style={[styles.safetyBannerText, { color: dangerColor }]}>
+                                                    This captain is blocked on this device.
+                                                </Text>
+                                            </View>
+                                        )}
+                                        <View style={styles.safetyActions}>
+                                            <TouchableOpacity
+                                                style={[styles.safetyButton, { borderColor: isCreatorBlocked ? dangerColor : borderColor }]}
+                                                onPress={() => setShowBlockAlert(true)}
+                                                disabled={isBlocking || isUnblocking}
+                                            >
+                                                <IconSymbol
+                                                    name={isCreatorBlocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
+                                                    size={16}
+                                                    color={isCreatorBlocked ? dangerColor : textColor}
+                                                />
+                                                <Text style={[styles.safetyButtonText, { color: isCreatorBlocked ? dangerColor : textColor }]}>
+                                                    {isCreatorBlocked ? 'Unblock Captain' : 'Block Captain'}
+                                                </Text>
+                                            </TouchableOpacity>
+
+                                            <TouchableOpacity
+                                                style={[styles.safetyButton, { borderColor }]}
+                                                onPress={() => setShowReportModal(true)}
+                                            >
+                                                <IconSymbol name="flag.fill" size={16} color="#F59E0B" />
+                                                <Text style={[styles.safetyButtonText, { color: textColor }]}>Report Captain</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                )}
 
                                 {/* Actions */}
                                 {isCreator ? (
@@ -651,17 +777,18 @@ export default function TripDetailsScreen() {
                                                     styles.joinButton,
                                                     {
                                                         backgroundColor: primaryColor,
-                                                        opacity: (trip.availableSeats === 0 || trip.status !== 'PUBLISHED') ? 0.6 : 1
+                                                        opacity: (trip.availableSeats === 0 || trip.status !== 'PUBLISHED' || isCreatorBlocked) ? 0.6 : 1
                                                     }
                                                 ]}
                                                 onPress={handleInitiateJoin}
-                                                disabled={isJoining || trip.availableSeats === 0 || trip.status !== 'PUBLISHED'}
+                                                disabled={isJoining || trip.availableSeats === 0 || trip.status !== 'PUBLISHED' || isCreatorBlocked}
                                             >
                                                 {isJoining ? (
                                                     <ActivityIndicator color="#fff" />
                                                 ) : (
                                                     <Text style={styles.joinButtonText}>
-                                                        {trip.status !== 'PUBLISHED' ? 'Ride Unavailable' :
+                                                        {isCreatorBlocked ? 'Captain Blocked' :
+                                                            trip.status !== 'PUBLISHED' ? 'Ride Unavailable' :
                                                             trip.availableSeats === 0 ? 'Fully Booked' : 'Request to Join'}
                                                     </Text>
                                                 )}
@@ -1097,6 +1224,37 @@ const styles = StyleSheet.create({
     },
     creatorActions: {
         marginTop: 8,
+    },
+    safetyBanner: {
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 14,
+    },
+    safetyBannerText: {
+        fontSize: 13,
+        fontWeight: '600',
+        flex: 1,
+    },
+    safetyActions: {
+        gap: 12,
+    },
+    safetyButton: {
+        minHeight: 48,
+        borderRadius: 14,
+        borderWidth: 1,
+        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    safetyButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     requestCard: {
         padding: 16,

@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking } from 'r
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Stack } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { CONFIG } from '@/constants/config';
 
 export default function HelpSupportScreen() {
     const backgroundColor = useThemeColor({}, 'background');
@@ -13,7 +14,7 @@ export default function HelpSupportScreen() {
     const borderColor = useThemeColor({}, 'border');
 
     const handleEmailSupport = () => {
-        Linking.openURL('mailto:rohan.alwayscodes@gmail.com');
+        Linking.openURL(`mailto:${CONFIG.SUPPORT_EMAIL}`);
     };
 
     const FaqItem = ({ question, answer }: { question: string, answer: string }) => (
@@ -36,7 +37,7 @@ export default function HelpSupportScreen() {
                         </View>
                         <View style={styles.contactTextWrap}>
                             <Text style={[styles.contactTitle, { color: textColor }]}>Email Support</Text>
-                            <Text style={[styles.contactSubtitle, { color: subtextColor }]}>rohan.alwayscodes@gmail.com</Text>
+                            <Text style={[styles.contactSubtitle, { color: subtextColor }]}>{CONFIG.SUPPORT_EMAIL}</Text>
                         </View>
                         <IconSymbol name="chevron.right" size={20} color={subtextColor} />
                     </TouchableOpacity>
