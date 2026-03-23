@@ -1,59 +1,31 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { Stack } from 'expo-router';
 import 'react-native-reanimated';
-import { AuthProvider } from '@/context/auth-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Toast from 'react-native-toast-message';
-
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { HeaderRight } from '@/components/ui/HeaderRight';
+import { AppProviders } from '@/providers/app-providers';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-const queryClient = new QueryClient();
-
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { PushNotificationHandler } from '@/components/push-notification-handler';
-import { SocketHandler } from '@/components/socket-handler';
-
-import { HeaderRight } from '@/components/ui/HeaderRight';
-
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <PushNotificationHandler />
-          <SocketHandler />
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <BottomSheetModalProvider>
-              <Stack
-                screenOptions={{
-                  headerTitleAlign: 'center',
-                  headerRight: () => <HeaderRight type="notifications" />,
-                }}>
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />
-                <Stack.Screen name="terms" options={{ title: 'Terms & Privacy', headerBackTitle: 'Back', headerShown: true }} />
-                <Stack.Screen name="trip-chat/[tripId]" options={{ title: 'Ride Chat', headerBackTitle: 'Trip' }} />
-                <Stack.Screen name="trip-chat-members/[tripId]" options={{ title: 'Ride Members', headerBackTitle: 'Chat' }} />
-                <Stack.Screen name="requests/index" options={{ title: 'Join Requests', headerBackTitle: 'Back' }} />
-                <Stack.Screen name="requests/[documentId]" options={{ title: 'Request Details', headerBackTitle: 'Back' }} />
-                <Stack.Screen name="ratings" options={{ title: 'My Ratings', headerBackTitle: 'Profile' }} />
-              </Stack>
-              <StatusBar style="auto" />
-              <Toast position="bottom" bottomOffset={80} />
-            </BottomSheetModalProvider>
-          </ThemeProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    <AppProviders>
+      <Stack
+        screenOptions={{
+          headerTitleAlign: 'center',
+          headerRight: () => <HeaderRight type="notifications" />,
+        }}>
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="terms" options={{ title: 'Terms & Privacy', headerBackTitle: 'Back', headerShown: true }} />
+        <Stack.Screen name="trip-chat/[tripId]" options={{ title: 'Ride Chat', headerBackTitle: 'Trip' }} />
+        <Stack.Screen name="trip-chat-members/[tripId]" options={{ title: 'Ride Members', headerBackTitle: 'Chat' }} />
+        <Stack.Screen name="requests/index" options={{ title: 'Join Requests', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="requests/[documentId]" options={{ title: 'Request Details', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="ratings" options={{ title: 'My Ratings', headerBackTitle: 'Profile' }} />
+      </Stack>
+    </AppProviders>
   );
 }
