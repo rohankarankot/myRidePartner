@@ -546,7 +546,7 @@ export default function ProfileScreen() {
                     </View>
 
                     {profile?.city && (
-                        <View style={[styles.row, { marginBottom: 0 }]}>
+                        <View style={styles.row}>
                             <View style={styles.labelRow}>
                                 <IconSymbol name="mappin.circle.fill" size={14} color="#F59E0B" />
                                 <Text style={[styles.label, { color: subtextColor }]}>City</Text>
@@ -556,7 +556,7 @@ export default function ProfileScreen() {
                     )}
 
                     {aadhaarNumber && (
-                        <View style={[styles.row, { marginBottom: 0 }]}>
+                        <View style={styles.row}>
                             <View style={styles.labelRow}>
                                 <IconSymbol name="checkmark.shield.fill" size={14} color={successColor} />
                                 <Text style={[styles.label, { color: subtextColor }]}>Aadhaar</Text>
