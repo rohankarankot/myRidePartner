@@ -22,6 +22,10 @@ interface CustomAlertProps {
         text: string;
         onPress: () => void;
     };
+    tertiaryButton?: {
+        text: string;
+        onPress: () => void;
+    };
     onClose: () => void;
     icon?: any;
     dismissible?: boolean;
@@ -33,6 +37,7 @@ export function CustomAlert({
     message,
     primaryButton,
     secondaryButton,
+    tertiaryButton,
     onClose,
     icon = 'info.circle.fill',
     dismissible = true
@@ -65,6 +70,16 @@ export function CustomAlert({
                     <Text style={[styles.message, { color: subtextColor }]}>{message}</Text>
 
                     <View style={styles.buttonContainer}>
+                        {tertiaryButton && (
+                            <TouchableOpacity
+                                style={[styles.button, styles.secondaryButton, { borderColor }]}
+                                onPress={tertiaryButton.onPress}
+                            >
+                                <Text style={[styles.buttonText, { color: textColor }]}>
+                                    {tertiaryButton.text}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                         {secondaryButton && (
                             <TouchableOpacity
                                 style={[styles.button, styles.secondaryButton, { borderColor }]}
@@ -155,5 +170,6 @@ const styles = StyleSheet.create({
     buttonText: {
         fontSize: 15,
         fontWeight: '600',
+        textAlign: 'center',
     },
 });
