@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
@@ -17,6 +18,8 @@ import { notificationService } from '@/services/notification-service';
 import { useScrollToTop } from '@react-navigation/native';
 import { DiscoveryBannerAd } from '@/features/ads/components/discovery-banner-ad';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
+
+const LAST_SELECTED_CITY_KEY = 'find_rides_last_selected_city';
 
 const formatDisplayDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -185,15 +188,47 @@ export default function FindRidesScreen() {
   const bottomSheetModalRef = React.useRef<BottomSheetModal>(null);
 
   // City selection state (static for now)
-  const [selectedCity, setSelectedCity] = useState(profile?.city || '');
+  const [selectedCity, setSelectedCity] = useState('');
   const [citySearch, setCitySearch] = useState('');
   const citySheetRef = useRef<BottomSheetModal>(null);
+  const [hasLoadedInitialCity, setHasLoadedInitialCity] = useState(false);
 
   useEffect(() => {
-    if (profile?.city && !selectedCity) {
-      setSelectedCity(profile.city);
+    let isMounted = true;
+
+    const loadInitialCity = async () => {
+      try {
+        const storedCity = await AsyncStorage.getItem(LAST_SELECTED_CITY_KEY);
+        if (!isMounted) return;
+
+        if (storedCity) {
+          setSelectedCity(storedCity);
+        } else if (profile?.city) {
+          setSelectedCity(profile.city);
+        }
+      } finally {
+        if (isMounted) {
+          setHasLoadedInitialCity(true);
+        }
+      }
+    };
+
+    loadInitialCity();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profile?.city]);
+
+  useEffect(() => {
+    if (!hasLoadedInitialCity || !selectedCity) {
+      return;
     }
-  }, [profile?.city, selectedCity]);
+
+    AsyncStorage.setItem(LAST_SELECTED_CITY_KEY, selectedCity).catch(() => {
+      // Non-blocking preference persistence for the browse city.
+    });
+  }, [hasLoadedInitialCity, selectedCity]);
 
   const filteredCities = CITIES.filter(city =>
     city.toLowerCase().includes(citySearch.toLowerCase())
@@ -231,7 +266,7 @@ export default function FindRidesScreen() {
         city: selectedCity
       }
     ),
-    enabled: Boolean(selectedCity),
+    enabled: hasLoadedInitialCity && Boolean(selectedCity),
     getNextPageParam: (lastPage) => {
       const { page, pageCount } = lastPage.meta.pagination;
       return page < pageCount ? page + 1 : undefined;
