@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventsGateway } from '../events/events.gateway';
 import { PrismaService } from '../prisma.service';
 import { JoinRequestStatus, NotificationType } from '@prisma/client';
@@ -190,11 +190,31 @@ export class JoinRequestsService {
   }) {
     const trip = await this.prisma.trip.findUnique({
       where: { documentId: data.trip },
-      select: { id: true },
+      select: { id: true, creatorId: true },
     });
 
     if (!trip) {
       throw new NotFoundException('Trip not found');
+    }
+
+    const isBlocked = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          {
+            blockerId: data.passenger,
+            blockedUserId: trip.creatorId,
+          },
+          {
+            blockerId: trip.creatorId,
+            blockedUserId: data.passenger,
+          },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (isBlocked) {
+      throw new ForbiddenException('You cannot interact with this trip because one of the users is blocked');
     }
 
     const request = await this.prisma.joinRequest.create({

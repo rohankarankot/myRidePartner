@@ -16,6 +16,7 @@ export interface TripFilters {
   date?: string;
   creatorId?: number;
   city?: string;
+  viewerId?: number;
 }
 
 @Injectable()
@@ -50,6 +51,20 @@ export class TripsService {
     }
     if (filters.city) {
       where.city = filters.city;
+    }
+    if (filters.viewerId) {
+      where.creator = {
+        blockedUsers: {
+          none: {
+            blockedUserId: filters.viewerId,
+          },
+        },
+        blockedByUsers: {
+          none: {
+            blockerId: filters.viewerId,
+          },
+        },
+      };
     }
 
     const [trips, total] = await Promise.all([
@@ -126,12 +141,86 @@ export class TripsService {
     return { data: trip };
   }
 
+  async findAccessibleByDocumentId(documentId: string, viewerId: number) {
+    const trip = await this.prisma.trip.findFirst({
+      where: {
+        documentId,
+        creator: {
+          blockedUsers: {
+            none: {
+              blockedUserId: viewerId,
+            },
+          },
+          blockedByUsers: {
+            none: {
+              blockerId: viewerId,
+            },
+          },
+        },
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
+        },
+        joinRequests: {
+          include: {
+            passenger: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: {
+                  select: {
+                    fullName: true,
+                    phoneNumber: true,
+                    avatar: true,
+                    city: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!trip) {
+      throw new NotFoundException(`Trip not found`);
+    }
+
+    return { data: trip };
+  }
+
   /**
    * Get all trips created by a specific user.
    */
-  async findByCreatorId(userId: number) {
+  async findByCreatorId(userId: number, viewerId?: number) {
+    const where: Prisma.TripWhereInput = { creatorId: userId };
+
+    if (viewerId && viewerId !== userId) {
+      where.creator = {
+        blockedUsers: {
+          none: {
+            blockedUserId: viewerId,
+          },
+        },
+        blockedByUsers: {
+          none: {
+            blockerId: viewerId,
+          },
+        },
+      };
+    }
+
     const trips = await this.prisma.trip.findMany({
-      where: { creatorId: userId },
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         creator: {

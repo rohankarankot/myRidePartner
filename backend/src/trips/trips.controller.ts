@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
@@ -33,6 +34,7 @@ export class TripsController {
   @ApiQuery({ name: 'creatorId', required: false, example: 1 })
   @ApiQuery({ name: 'city', required: false, example: 'Pune' })
   findAll(
+    @Req() req: any,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
     @Query('status') status?: TripStatus,
@@ -49,6 +51,7 @@ export class TripsController {
     if (date) filters.date = date;
     if (creatorId) filters.creatorId = parseInt(creatorId, 10);
     if (city) filters.city = city;
+    if (req?.user?.id) filters.viewerId = req.user.id;
 
     return this.tripsService.findAll(pagination, filters);
   }
@@ -56,15 +59,15 @@ export class TripsController {
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get trips by user', description: 'Get all trips created by a specific user' })
   @ApiParam({ name: 'userId', example: 1 })
-  findByUser(@Param('userId') userId: string) {
-    return this.tripsService.findByCreatorId(parseInt(userId, 10));
+  findByUser(@Req() req: any, @Param('userId') userId: string) {
+    return this.tripsService.findByCreatorId(parseInt(userId, 10), req.user.id);
   }
 
   @Get(':documentId')
   @ApiOperation({ summary: 'Get trip by document ID' })
   @ApiParam({ name: 'documentId', description: 'UUID document ID of the trip' })
-  findOne(@Param('documentId') documentId: string) {
-    return this.tripsService.findByDocumentId(documentId);
+  findOne(@Req() req: any, @Param('documentId') documentId: string) {
+    return this.tripsService.findAccessibleByDocumentId(documentId, req.user.id);
   }
 
   @Post()

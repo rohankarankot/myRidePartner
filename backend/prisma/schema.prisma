@@ -54,6 +54,15 @@ enum UserAccountStatus {
   PAUSED
 }
 
+enum ReportReason {
+  harassment
+  fake_profile
+  scam
+  inappropriate
+  safety
+  other
+}
+
 model User {
   id                 Int            @id @default(autoincrement())
   username           String?
@@ -76,11 +85,29 @@ model User {
   ratingsGiven       Rating[]       @relation("Rater")
   ratingsReceived    Rating[]       @relation("Ratee")
   sentChatMessages   TripChatMessage[]
+  reportsGiven       UserReport[]   @relation("Reporter")
+  reportsReceived    UserReport[]   @relation("ReportedUser")
+  blockedUsers       UserBlock[]    @relation("Blocker")
+  blockedByUsers     UserBlock[]    @relation("BlockedUser")
 
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   @@index([accountStatus])
+}
+
+model UserBlock {
+  id            Int      @id @default(autoincrement())
+  blockerId     Int
+  blockedUserId Int
+  createdAt     DateTime @default(now())
+
+  blocker       User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser   User     @relation("BlockedUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockerId])
+  @@index([blockedUserId])
 }
 
 model UserProfile {
@@ -225,4 +252,23 @@ model TripChatMessage {
 
   @@index([chatId, createdAt])
   @@index([senderId])
+}
+
+model UserReport {
+  id               Int          @id @default(autoincrement())
+  documentId       String       @unique @default(uuid())
+  reason           ReportReason
+  details          String?
+  source           String       // "trip" | "profile"
+  tripDocumentId   String?      // optional trip context
+
+  reportedUserId   Int
+  reportedUser     User         @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reporterId       Int
+  reporter         User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime     @default(now())
+
+  @@index([reportedUserId])
+  @@index([reporterId])
 }

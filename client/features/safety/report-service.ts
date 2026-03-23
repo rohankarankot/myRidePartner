@@ -1,34 +1,44 @@
+import apiClient from '@/api/api-client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '@/shared/lib/logger';
 
-const REPORTS_KEY = 'userReports';
+const PENDING_REPORTS_KEY = 'pending_user_reports';
 
-export interface StoredReport {
-  id: string;
+export interface ReportPayload {
+  reasonId: string;
+  reasonLabel: string;
+  details: string;
   reportedUserId: number;
   reportedUserName?: string | null;
   reporterUserId?: number | null;
   tripDocumentId?: string | null;
   source: 'trip' | 'profile';
-  reasonId: string;
-  reasonLabel: string;
-  details: string;
-  createdAt: string;
 }
 
-export async function saveReport(report: Omit<StoredReport, 'id' | 'createdAt'>): Promise<void> {
-  const raw = await AsyncStorage.getItem(REPORTS_KEY);
-  const existing: StoredReport[] = raw ? JSON.parse(raw) : [];
-
-  const newReport: StoredReport = {
-    ...report,
-    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    createdAt: new Date().toISOString(),
-  };
-
-  await AsyncStorage.setItem(REPORTS_KEY, JSON.stringify([...existing, newReport]));
-}
-
-export async function getReports(): Promise<StoredReport[]> {
-  const raw = await AsyncStorage.getItem(REPORTS_KEY);
-  return raw ? JSON.parse(raw) : [];
+/**
+ * Saves a user report to the backend.
+ * Falls back to local storage if the API call fails.
+ */
+export async function saveReport(payload: ReportPayload): Promise<void> {
+  try {
+    await apiClient.post('/reports', {
+      reason: payload.reasonId,
+      details: payload.details,
+      source: payload.source,
+      reportedUserId: payload.reportedUserId,
+      tripDocumentId: payload.tripDocumentId,
+    });
+  } catch (error) {
+    logger.warn('Failed to send report to backend, saving locally', { error });
+    try {
+      const raw = await AsyncStorage.getItem(PENDING_REPORTS_KEY);
+      const existing = raw ? JSON.parse(raw) : [];
+      await AsyncStorage.setItem(
+        PENDING_REPORTS_KEY,
+        JSON.stringify([...existing, { ...payload, timestamp: new Date().toISOString() }])
+      );
+    } catch (storageError) {
+      logger.error('Critical failure: Could not save report even to local storage', { storageError });
+    }
+  }
 }

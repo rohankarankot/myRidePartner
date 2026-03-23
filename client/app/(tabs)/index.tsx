@@ -185,9 +185,15 @@ export default function FindRidesScreen() {
   const bottomSheetModalRef = React.useRef<BottomSheetModal>(null);
 
   // City selection state (static for now)
-  const [selectedCity, setSelectedCity] = useState(profile?.city || 'Pune');
+  const [selectedCity, setSelectedCity] = useState(profile?.city || '');
   const [citySearch, setCitySearch] = useState('');
   const citySheetRef = useRef<BottomSheetModal>(null);
+
+  useEffect(() => {
+    if (profile?.city && !selectedCity) {
+      setSelectedCity(profile.city);
+    }
+  }, [profile?.city, selectedCity]);
 
   const filteredCities = CITIES.filter(city =>
     city.toLowerCase().includes(citySearch.toLowerCase())
@@ -225,6 +231,7 @@ export default function FindRidesScreen() {
         city: selectedCity
       }
     ),
+    enabled: Boolean(selectedCity),
     getNextPageParam: (lastPage) => {
       const { page, pageCount } = lastPage.meta.pagination;
       return page < pageCount ? page + 1 : undefined;
@@ -285,7 +292,7 @@ export default function FindRidesScreen() {
         />
       </View>
       <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24, fontSize: 18, fontWeight: '700' }]}>
-        {date ? `Rides for ${format(date, 'MMM d, yyyy')}` : 'Upcoming Rides'}
+        {date ? `Rides in ${selectedCity} for ${format(date, 'MMM d, yyyy')}` : `Upcoming Rides in ${selectedCity || 'your city'}`}
       </Text>
       <DiscoveryBannerAd />
     </View>
@@ -305,7 +312,9 @@ export default function FindRidesScreen() {
     return (
       <View style={styles.emptyContainer}>
         <IconSymbol name="list.bullet" size={48} color={subtextColor} />
-        <Text style={[styles.emptyText, { color: subtextColor }]}>No upcoming rides found.</Text>
+        <Text style={[styles.emptyText, { color: subtextColor }]}>
+          {selectedCity ? `No rides found in ${selectedCity}.` : 'Select a city to view rides.'}
+        </Text>
         {(gender !== 'both' || date !== undefined) && (
           <TouchableOpacity onPress={handleResetFilters}>
             <Text style={{ color: primaryColor, fontWeight: '600' }}>Clear Filters</Text>
@@ -339,7 +348,7 @@ export default function FindRidesScreen() {
               <View>
                 <Text style={{ fontSize: 10, fontWeight: '700', color: subtextColor, textTransform: 'uppercase', letterSpacing: 0.5 }}>City</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '800', color: textColor }}>{selectedCity}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: textColor }}>{selectedCity || 'Select'}</Text>
                   <IconSymbol name="chevron.down" size={10} color={primaryColor} />
                 </View>
               </View>

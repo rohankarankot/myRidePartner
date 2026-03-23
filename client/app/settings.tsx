@@ -124,6 +124,7 @@ export default function SettingsScreen() {
 
                 <SettingItem icon="bell.fill" label="Notifications" onPress={() => router.push('/notifications')} />
                 <SettingItem icon="plus.circle.fill" label="Privacy & Security" onPress={() => router.push('/settings/privacy')} />
+                <SettingItem icon="hand.raised.fill" label="Blocked Users" onPress={() => router.push('/settings/blocked-users')} />
                 <SettingItem icon="magnifyingglass" label="Help & Support" onPress={() => router.push('/settings/support')} />
                 <SettingItem icon="list.bullet" label="About My Ride Partner" onPress={() => router.push('/settings/about')} />
             </View>

@@ -17,6 +17,21 @@ class UserService {
     return data;
   }
 
+  async getBlockedUserIds(): Promise<number[]> {
+    const { data } = await apiClient.get<{ data: number[] }>('/users/me/blocks');
+    return data.data;
+  }
+
+  async blockUser(userId: number): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>(`/users/me/blocks/${userId}`);
+    return data;
+  }
+
+  async unblockUser(userId: number): Promise<{ message: string }> {
+    const { data } = await apiClient.delete<{ message: string }>(`/users/me/blocks/${userId}`);
+    return data;
+  }
+
   async getUserProfile(userId: number): Promise<UserProfile | null> {
     try {
       const { data } = await apiClient.get<UserProfile>(`/user-profiles/user/${userId}`);

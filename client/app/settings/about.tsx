@@ -82,7 +82,7 @@ export default function AboutScreen() {
                             {/* LinkedIn Badge */}
                             <TouchableOpacity
                                 style={[styles.linkedinBadge, { width: screenWidth - 88 }]}
-                                onPress={() => handleLink('https://linkedin.com/in/rohankarankot')}
+                                onPress={() => handleLink('https://linkedin.com/in/rohan-karankot/')}
                                 activeOpacity={0.9}
                             >
                                 <View style={styles.badgeHeader}>

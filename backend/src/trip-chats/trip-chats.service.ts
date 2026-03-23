@@ -210,6 +210,26 @@ export class TripChatsService {
       return false;
     }
 
+    const isBlocked = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          {
+            blockerId: userId,
+            blockedUserId: trip.creatorId,
+          },
+          {
+            blockerId: trip.creatorId,
+            blockedUserId: userId,
+          },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (isBlocked) {
+      return false;
+    }
+
     if (trip.creatorId === userId) {
       return true;
     }

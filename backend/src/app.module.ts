@@ -15,6 +15,7 @@ import { EventsModule } from './events/events.module';
 import { PrismaModule } from './prisma.module';
 import { AdminModule } from './admin/admin.module';
 import { TripChatsModule } from './trip-chats/trip-chats.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TripChatsModule } from './trip-chats/trip-chats.module';
     PrismaModule,
     AdminModule,
     TripChatsModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

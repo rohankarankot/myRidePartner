@@ -1,4 +1,10 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 import { PrismaService } from '../prisma.service';
 import { Prisma, User, UserAccountStatus } from '@prisma/client';
@@ -93,6 +99,54 @@ export class UsersService {
   async deleteAccount(id: number): Promise<void> {
     await this.prisma.user.delete({
       where: { id },
+    });
+  }
+
+  async getBlockedUserIds(userId: number): Promise<number[]> {
+    const blocks = await this.prisma.userBlock.findMany({
+      where: { blockerId: userId },
+      select: { blockedUserId: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return blocks.map((block) => block.blockedUserId);
+  }
+
+  async blockUser(blockerId: number, blockedUserId: number): Promise<void> {
+    if (blockerId === blockedUserId) {
+      throw new BadRequestException('You cannot block yourself');
+    }
+
+    const blockedUser = await this.findById(blockedUserId);
+    if (!blockedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    try {
+      await this.prisma.userBlock.create({
+        data: {
+          blocker: { connect: { id: blockerId } },
+          blockedUser: { connect: { id: blockedUserId } },
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('User is already blocked');
+      }
+
+      throw error;
+    }
+  }
+
+  async unblockUser(blockerId: number, blockedUserId: number): Promise<void> {
+    await this.prisma.userBlock.deleteMany({
+      where: {
+        blockerId,
+        blockedUserId,
+      },
     });
   }
 

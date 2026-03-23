@@ -212,20 +212,12 @@ export default function UserProfileScreen() {
                                 </TouchableOpacity>
                             </View>
 
-                            {blocked && (
-                                <View style={[styles.blockedBanner, { backgroundColor: `${dangerColor}10` }]}>
-                                    <IconSymbol name="hand.raised.fill" size={16} color={dangerColor} />
-                                    <Text style={[styles.blockedBannerText, { color: dangerColor }]}>
-                                        This user is blocked on this device.
-                                    </Text>
-                                </View>
-                            )}
                         </>
                     )}
 
                     {/* Quick Stats */}
                     <View style={styles.statsRow}>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.statItem}
                             onPress={() => router.push(`/ratings?userId=${userId}`)}
                         >
@@ -237,9 +229,9 @@ export default function UserProfileScreen() {
                             </Text>
                             <Text style={[styles.statLabel, { color: subtextColor }]}>Rating</Text>
                         </TouchableOpacity>
-                        
+
                         <View style={styles.statDivider} />
-                        
+
                         <View style={styles.statItem}>
                             <View style={[styles.statIconContainer, { backgroundColor: `${primaryColor}15` }]}>
                                 <IconSymbol name="car.fill" size={20} color={primaryColor} />
@@ -251,8 +243,8 @@ export default function UserProfileScreen() {
                         </View>
 
                         <View style={styles.statDivider} />
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={styles.statItem}
                             onPress={() => router.push(`/ratings?userId=${userId}`)}
                         >
@@ -272,10 +264,10 @@ export default function UserProfileScreen() {
                 <View style={[styles.infoCard, { backgroundColor: cardColor }]}>
                     <View style={styles.infoRow}>
                         <View style={[styles.infoIcon, { backgroundColor: profile.gender === 'men' ? '#3B82F615' : profile.gender === 'women' ? '#EC489915' : '#94A3B815' }]}>
-                            <IconSymbol 
-                                name="person.fill" 
-                                size={20} 
-                                color={profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' : '#94A3B8'} 
+                            <IconSymbol
+                                name="person.fill"
+                                size={20}
+                                color={profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' : '#94A3B8'}
                             />
                         </View>
                         <View style={styles.infoContent}>
