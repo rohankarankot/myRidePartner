@@ -1,5 +1,5 @@
 import apiClient from '@/api/api-client';
-import { User, UserProfile } from '@/types/api';
+import { User, UserAnalytics, UserProfile } from '@/types/api';
 
 class UserService {
   async getCurrentUser(): Promise<User> {
@@ -15,6 +15,11 @@ class UserService {
   async deleteMyAccount(): Promise<{ message: string }> {
     const { data } = await apiClient.delete<{ message: string }>('/users/me');
     return data;
+  }
+
+  async getMyAnalytics(): Promise<UserAnalytics> {
+    const { data } = await apiClient.get<{ data: UserAnalytics }>('/users/me/analytics');
+    return data.data;
   }
 
   async getBlockedUserIds(): Promise<number[]> {
@@ -63,6 +68,9 @@ class UserService {
       gender?: 'men' | 'women';
       city?: string;
       avatar?: number | string;
+      governmentIdDocument?: string;
+      governmentIdVerified?: boolean;
+      isVerified?: boolean;
       pushToken?: string;
     }
   ): Promise<UserProfile> {

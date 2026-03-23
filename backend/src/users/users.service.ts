@@ -102,6 +102,72 @@ export class UsersService {
     });
   }
 
+  async getUserAnalytics(userId: number) {
+    const [postedTrips, approvedRequestsForMyTrips, completedPassengerTrips] = await Promise.all([
+      this.prisma.trip.findMany({
+        where: { creatorId: userId },
+        select: {
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.joinRequest.findMany({
+        where: {
+          status: 'APPROVED',
+          trip: { creatorId: userId },
+        },
+        select: {
+          updatedAt: true,
+        },
+      }),
+      this.prisma.joinRequest.findMany({
+        where: {
+          passengerId: userId,
+          status: 'APPROVED',
+          trip: {
+            status: 'COMPLETED',
+          },
+        },
+        select: {
+          trip: {
+            select: {
+              pricePerSeat: true,
+              updatedAt: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const ridesPosted = postedTrips.length;
+    const ridesCompleted = postedTrips.filter((trip) => trip.status === 'COMPLETED').length;
+    const requestsApproved = approvedRequestsForMyTrips.length;
+    const completionRate = ridesPosted === 0 ? 0 : Math.round((ridesCompleted / ridesPosted) * 100);
+    const estimatedMoneySaved = completedPassengerTrips.reduce((sum, request) => {
+      return sum + Number(request.trip.pricePerSeat ?? 0);
+    }, 0);
+
+    const monthlyActivity = this.buildMonthlyAnalytics(
+      postedTrips,
+      approvedRequestsForMyTrips,
+      completedPassengerTrips,
+    );
+
+    return {
+      data: {
+        summary: {
+          ridesPosted,
+          requestsApproved,
+          ridesCompleted,
+          completionRate,
+          estimatedMoneySaved: Math.round(estimatedMoneySaved),
+        },
+        monthlyActivity,
+      },
+    };
+  }
+
   async getBlockedUserIds(userId: number): Promise<number[]> {
     const blocks = await this.prisma.userBlock.findMany({
       where: { blockerId: userId },
@@ -148,6 +214,71 @@ export class UsersService {
         blockedUserId,
       },
     });
+  }
+
+  private buildMonthlyAnalytics(
+    postedTrips: Array<{ createdAt: Date; updatedAt: Date; status: string }>,
+    approvedRequestsForMyTrips: Array<{ updatedAt: Date }>,
+    completedPassengerTrips: Array<{ trip: { pricePerSeat: Prisma.Decimal | null; updatedAt: Date } }>,
+  ) {
+    const formatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
+    const months: Array<{
+      key: string;
+      label: string;
+      ridesPosted: number;
+      requestsApproved: number;
+      ridesCompleted: number;
+      moneySaved: number;
+    }> = [];
+
+    for (let offset = 5; offset >= 0; offset -= 1) {
+      const date = new Date();
+      date.setDate(1);
+      date.setMonth(date.getMonth() - offset);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      months.push({
+        key,
+        label: formatter.format(date),
+        ridesPosted: 0,
+        requestsApproved: 0,
+        ridesCompleted: 0,
+        moneySaved: 0,
+      });
+    }
+
+    const monthMap = new Map(months.map((month) => [month.key, month]));
+    const getMonthKey = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+    postedTrips.forEach((trip) => {
+      const createdMonth = monthMap.get(getMonthKey(trip.createdAt));
+      if (createdMonth) {
+        createdMonth.ridesPosted += 1;
+      }
+
+      if (trip.status === 'COMPLETED') {
+        const completedMonth = monthMap.get(getMonthKey(trip.updatedAt));
+        if (completedMonth) {
+          completedMonth.ridesCompleted += 1;
+        }
+      }
+    });
+
+    approvedRequestsForMyTrips.forEach((request) => {
+      const month = monthMap.get(getMonthKey(request.updatedAt));
+      if (month) {
+        month.requestsApproved += 1;
+      }
+    });
+
+    completedPassengerTrips.forEach((request) => {
+      const month = monthMap.get(getMonthKey(request.trip.updatedAt));
+      if (month) {
+        month.moneySaved += Math.round(Number(request.trip.pricePerSeat ?? 0));
+      }
+    });
+
+    return months;
   }
 
   async createWithGoogle(email: string, name: string, picture: string): Promise<User> {

@@ -44,6 +44,8 @@ export interface UserProfile {
     completedTripsCount?: number;
     ratingsCount?: number;
     isVerified?: boolean;
+    governmentIdVerified?: boolean;
+    governmentIdDocument?: string;
     userId: number;
     user?: User;
     avatar?: Media | string;
@@ -62,6 +64,28 @@ export interface UserProfileResponse {
             total: number;
         };
     };
+}
+
+export interface UserAnalyticsSummary {
+    ridesPosted: number;
+    requestsApproved: number;
+    ridesCompleted: number;
+    completionRate: number;
+    estimatedMoneySaved: number;
+}
+
+export interface UserAnalyticsMonth {
+    key: string;
+    label: string;
+    ridesPosted: number;
+    requestsApproved: number;
+    ridesCompleted: number;
+    moneySaved: number;
+}
+
+export interface UserAnalytics {
+    summary: UserAnalyticsSummary;
+    monthlyActivity: UserAnalyticsMonth[];
 }
 
 export type GenderPreference = 'men' | 'women' | 'both';

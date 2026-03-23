@@ -30,6 +30,12 @@ export class UsersController {
     return { message: 'Account deleted successfully' };
   }
 
+  @Get('me/analytics')
+  @ApiOperation({ summary: 'Get analytics for the current authenticated user' })
+  async getMyAnalytics(@Req() req: any) {
+    return this.usersService.getUserAnalytics(req.user.id);
+  }
+
   @Get('me/blocks')
   @ApiOperation({ summary: 'List blocked users for the current authenticated user' })
   async getMyBlockedUsers(@Req() req: any) {

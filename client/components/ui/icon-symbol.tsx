@@ -38,6 +38,7 @@ const MAPPING = {
   'info.circle.fill': 'info',
   'location.slash.fill': 'location-off',
   'slider.horizontal.3': 'tune',
+  'chart.bar.fill': 'bar-chart',
   'bell.fill': 'notifications',
   'car': 'directions-car',
   'car.fill': 'directions-car',

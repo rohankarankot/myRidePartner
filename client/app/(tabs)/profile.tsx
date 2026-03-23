@@ -478,6 +478,22 @@ export default function ProfileScreen() {
 
                     <TouchableOpacity
                         style={styles.actionRow}
+                        onPress={() => router.push('/profile-analytics')}
+                        activeOpacity={0.6}
+                    >
+                        <View style={styles.actionLeft}>
+                            <View style={[styles.actionIcon, { backgroundColor: `${primaryColor}15` }]}>
+                                <IconSymbol name="chart.bar.fill" size={16} color={primaryColor} />
+                            </View>
+                            <Text style={[styles.actionLabel, { color: textColor }]}>Show Analytics</Text>
+                        </View>
+                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+                    <TouchableOpacity
+                        style={styles.actionRow}
                         onPress={() => router.push('/notifications')}
                         activeOpacity={0.6}
                     >

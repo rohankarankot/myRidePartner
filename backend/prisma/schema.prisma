@@ -115,6 +115,7 @@ model UserProfile {
   fullName             String?
   phoneNumber          String?
   avatar               String?   // URL or media reference
+  governmentIdDocument String?   // Uploaded government ID image URL
   rating               Decimal?  @db.Decimal(3, 2)
   completedTripsCount  Int       @default(0)
   ratingsCount         Int       @default(0)

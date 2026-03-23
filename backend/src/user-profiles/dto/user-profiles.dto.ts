@@ -25,9 +25,18 @@ export class UpdateUserProfileDto {
   @ApiPropertyOptional({ description: 'Avatar URL' })
   avatar?: string;
 
+  @ApiPropertyOptional({ description: 'Uploaded government ID document URL' })
+  governmentIdDocument?: string;
+
   @ApiPropertyOptional({ enum: Gender })
   gender?: Gender;
 
   @ApiPropertyOptional({ description: 'Push notification token' })
   pushToken?: string;
+
+  @ApiPropertyOptional({ description: 'Whether the government ID has been verified' })
+  governmentIdVerified?: boolean;
+
+  @ApiPropertyOptional({ description: 'Whether the overall profile is verified' })
+  isVerified?: boolean;
 }
