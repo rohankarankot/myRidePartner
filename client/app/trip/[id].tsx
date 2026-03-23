@@ -141,7 +141,7 @@ export default function TripDetailsScreen() {
     });
 
     // Check if user has already rated this trip
-    const { data: userRating, refetch: refetchRating } = useQuery({
+    const { data: userRating, refetch: refetchRating, isLoading: isUserRatingLoading } = useQuery({
         queryKey: ['user-rating', documentId, user?.id],
         queryFn: () => ratingService.getRatingForTripByUser(documentId as string, user!.id),
         enabled: !!documentId && !!user && tripDetails?.trip?.status === 'COMPLETED',
@@ -158,10 +158,17 @@ export default function TripDetailsScreen() {
 
     // Show rating modal if trip is completed and user is a passenger and hasn't rated yet
     useEffect(() => {
-        if (tripDetails?.trip?.status === 'COMPLETED' && isPassenger && !userRating && !loading) {
+        if (
+            tripDetails?.trip?.status === 'COMPLETED' &&
+            isPassenger &&
+            !userRating &&
+            !loading &&
+            !isUserRatingLoading &&
+            !isSubmittingRating
+        ) {
             setShowRatingModal(true);
         }
-    }, [tripDetails?.trip?.status, isPassenger, userRating, loading]);
+    }, [tripDetails?.trip?.status, isPassenger, userRating, loading, isUserRatingLoading, isSubmittingRating]);
 
     const trip = tripDetails?.trip || null;
     console.log(trip);
@@ -340,7 +347,7 @@ export default function TripDetailsScreen() {
                 ratee: trip.creator!.id
             });
             setShowRatingModal(false);
-            refetchRating();
+            await refetchRating();
             Toast.show({
                 type: 'success',
                 text1: 'Rating Submitted',
