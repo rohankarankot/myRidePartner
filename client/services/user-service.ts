@@ -7,6 +7,16 @@ class UserService {
         return data;
     }
 
+    async pauseMyAccount(): Promise<{ message: string }> {
+        const { data } = await apiClient.post<{ message: string }>('/users/me/account/pause');
+        return data;
+    }
+
+    async deleteMyAccount(): Promise<{ message: string }> {
+        const { data } = await apiClient.delete<{ message: string }>('/users/me');
+        return data;
+    }
+
     async getUserProfile(userId: number): Promise<UserProfile | null> {
         try {
             const { data } = await apiClient.get<UserProfile>(`/user-profiles/user/${userId}`);

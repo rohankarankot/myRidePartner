@@ -2,6 +2,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../../users/users.service';
+import { UserAccountStatus } from '@prisma/client';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -20,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: any) {
     const user = await this.usersService.findByEmail(payload.email);
-    if (!user) {
+    if (!user || user.accountStatus === UserAccountStatus.PAUSED) {
       throw new UnauthorizedException();
     }
     return user;

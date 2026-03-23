@@ -6,6 +6,7 @@ export interface User {
     provider: string;
     confirmed: boolean;
     blocked: boolean;
+    accountStatus?: 'ACTIVE' | 'PAUSED';
     createdAt: string;
     updatedAt: string;
     publishedAt: string;

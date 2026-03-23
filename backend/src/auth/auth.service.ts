@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { OAuth2Client } from 'google-auth-library';
 import * as bcrypt from 'bcrypt';
+import { UserAccountStatus } from '@prisma/client';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -34,6 +35,8 @@ export class AuthService {
 
       if (!user) {
         user = await this.usersService.createWithGoogle(email, name || '', picture || '');
+      } else if (user.accountStatus === UserAccountStatus.PAUSED) {
+        user = await this.usersService.reactivateAccount(user.id);
       }
 
       return {
@@ -47,8 +50,12 @@ export class AuthService {
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
-    const user = await this.usersService.findByEmail(email);
+    let user = await this.usersService.findByEmail(email);
     if (user && user.password && await bcrypt.compare(pass, user.password)) {
+      if (user.accountStatus === UserAccountStatus.PAUSED) {
+        user = await this.usersService.reactivateAccount(user.id);
+      }
+
       const { password, ...result } = user;
       return result;
     }
@@ -63,4 +70,3 @@ export class AuthService {
     };
   }
 }
-

@@ -132,6 +132,44 @@ export default function ProfileScreen() {
         }
     });
 
+    const pauseAccountMutation = useMutation({
+        mutationFn: () => userService.pauseMyAccount(),
+        onSuccess: async () => {
+            Toast.show({
+                type: 'success',
+                text1: 'Account Paused',
+                text2: 'Your account is paused. Sign in again anytime to reactivate it.'
+            });
+            await signOut();
+        },
+        onError: () => {
+            Toast.show({
+                type: 'error',
+                text1: 'Pause Failed',
+                text2: 'We could not pause your account right now.'
+            });
+        }
+    });
+
+    const deleteAccountMutation = useMutation({
+        mutationFn: () => userService.deleteMyAccount(),
+        onSuccess: async () => {
+            Toast.show({
+                type: 'success',
+                text1: 'Account Deleted',
+                text2: 'Your account has been permanently removed.'
+            });
+            await signOut();
+        },
+        onError: () => {
+            Toast.show({
+                type: 'error',
+                text1: 'Delete Failed',
+                text2: 'We could not delete your account right now.'
+            });
+        }
+    });
+
     const handlePickImage = async () => {
         if (!profile) {
             Toast.show({
@@ -227,6 +265,51 @@ export default function ProfileScreen() {
                 userId: authUser.id,
             });
         }
+    };
+
+    const handleAccountAction = () => {
+        Alert.alert(
+            'Leave your account?',
+            'You can pause your account and come back later, or permanently delete everything now.',
+            [
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+                {
+                    text: 'Pause Account',
+                    onPress: () =>
+                        Alert.alert(
+                            'Pause account?',
+                            'Your account will be hidden and you will be signed out. Logging in again will reactivate it.',
+                            [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Pause',
+                                    onPress: () => pauseAccountMutation.mutate(),
+                                },
+                            ]
+                        ),
+                },
+                {
+                    text: 'Delete Permanently',
+                    style: 'destructive',
+                    onPress: () =>
+                        Alert.alert(
+                            'Delete account permanently?',
+                            'This will permanently remove your account and related data. This action cannot be undone.',
+                            [
+                                { text: 'Cancel', style: 'cancel' },
+                                {
+                                    text: 'Delete',
+                                    style: 'destructive',
+                                    onPress: () => deleteAccountMutation.mutate(),
+                                },
+                            ]
+                        ),
+                },
+            ]
+        );
     };
 
     if (isLoading) {
@@ -486,6 +569,29 @@ export default function ProfileScreen() {
                                 <IconSymbol name="bell.fill" size={16} color="#F87171" />
                             </View>
                             <Text style={[styles.actionLabel, { color: textColor }]}>Notifications</Text>
+                        </View>
+                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+                    <TouchableOpacity
+                        style={styles.actionRow}
+                        onPress={handleAccountAction}
+                        activeOpacity={0.6}
+                        disabled={pauseAccountMutation.isPending || deleteAccountMutation.isPending}
+                    >
+                        <View style={styles.actionLeft}>
+                            <View style={[styles.actionIcon, { backgroundColor: `${dangerColor}15` }]}>
+                                <IconSymbol name="trash.fill" size={16} color={dangerColor} />
+                            </View>
+                            <Text style={[styles.actionLabel, { color: dangerColor }]}>
+                                {pauseAccountMutation.isPending
+                                    ? 'Pausing Account...'
+                                    : deleteAccountMutation.isPending
+                                        ? 'Deleting Account...'
+                                        : 'Pause or Delete Account'}
+                            </Text>
                         </View>
                         <IconSymbol name="chevron.right" size={16} color={subtextColor} />
                     </TouchableOpacity>
