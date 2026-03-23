@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { JoinRequestStatus, TripStatus } from '@prisma/client';
 import { TripChatsService } from './trip-chats.service';
 
@@ -86,6 +86,11 @@ describe('TripChatsService', () => {
 
     expect(result.message).toBe('Hello');
     expect(eventsGateway.emitToChatRoom).toHaveBeenCalledWith('trip-123', 'chat_message_created', result);
+  });
+
+  it('rejects missing or empty messages with a bad request error', async () => {
+    await expect(service.createMessage('trip-123', 10, undefined as unknown as string)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createMessage('trip-123', 10, '   ')).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('sends chat notifications only to recipients not actively viewing the trip chat', async () => {

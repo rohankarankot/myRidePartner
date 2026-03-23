@@ -16,7 +16,7 @@ const TripCard = (props: {
     from: string,
     to: string,
     date: string,
-    price: string,
+    price?: number | null,
     status: TripStatus | JoinRequestStatus,
     isPriceCalculated: boolean | null,
     genderPreference: GenderPreference,
@@ -109,7 +109,7 @@ const TripCard = (props: {
                 <View>
 
                     <Text style={[styles.price, { color: primaryColor }]}>
-                        {price ? price : isPriceCalculated ? 'Calculated on departure' : 'Price not set'}
+                        {typeof price === 'number' ? `₹${price}` : isPriceCalculated ? 'Calculated on departure' : 'Price not set'}
                     </Text>
                 </View>
                 <IconSymbol name="chevron.right" size={18} color={subtextColor} />
@@ -279,7 +279,7 @@ export default function ActivityScreen() {
                                         from={trip.startingPoint}
                                         to={trip.destination}
                                         date={`${trip.date} • ${trip.time}`}
-                                        price={`₹${trip.pricePerSeat}`}
+                                        price={trip.pricePerSeat}
                                         status={trip.status}
                                         genderPreference={trip.genderPreference}
                                         avatarUrl={
@@ -306,7 +306,7 @@ export default function ActivityScreen() {
                                         from={request.trip?.startingPoint}
                                         to={request.trip?.destination}
                                         date={`${request.trip?.date} • ${request.trip?.time}`}
-                                        price={`₹${request.trip?.pricePerSeat}`}
+                                        price={request.trip?.pricePerSeat}
                                         status={request.status}
                                         genderPreference={request.trip?.genderPreference || 'both'}
                                         avatarUrl={

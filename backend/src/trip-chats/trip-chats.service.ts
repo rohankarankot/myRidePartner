@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -110,10 +111,15 @@ export class TripChatsService {
 
   async createMessage(tripDocumentId: string, userId: number, body: string) {
     const trip = await this.assertChatAccess(tripDocumentId, userId);
+
+    if (typeof body !== 'string') {
+      throw new BadRequestException('Message is required');
+    }
+
     const trimmedMessage = body.trim();
 
     if (!trimmedMessage) {
-      throw new ForbiddenException('Message cannot be empty');
+      throw new BadRequestException('Message cannot be empty');
     }
 
     const chat = await this.findOrCreateChat(trip);
