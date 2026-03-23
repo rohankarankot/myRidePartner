@@ -141,6 +141,7 @@ model JoinRequest {
   status         JoinRequestStatus @default(PENDING)
   requestedSeats Int               @default(1)
   message        String?
+  sharePhoneNumber Boolean         @default(false)
 
   // Relations
   tripId         Int

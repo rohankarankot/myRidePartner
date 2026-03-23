@@ -10,6 +10,7 @@ import { useRouter, Stack } from 'expo-router';
 import { useAuth } from '@/context/auth-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppLoader } from '@/components/app-loader';
+import { maskPhoneNumber } from '@/utils/phone';
 
 export default function RequestsScreen() {
     const { user } = useAuth();
@@ -52,6 +53,11 @@ export default function RequestsScreen() {
                     <Text style={[styles.userName, { color: textColor }]}>{item.passenger.username}</Text>
                     <Text style={[styles.tripInfo, { color: subtextColor }]} numberOfLines={1}>
                         Requested {item.requestedSeats} {item.requestedSeats === 1 ? 'seat' : 'seats'}
+                    </Text>
+                    <Text style={[styles.tripInfo, { color: subtextColor }]} numberOfLines={1}>
+                        {item.sharePhoneNumber
+                            ? (item.passenger.userProfile?.phoneNumber || 'Phone unavailable')
+                            : maskPhoneNumber(item.passenger.userProfile?.phoneNumber)}
                     </Text>
                 </View>
                 <IconSymbol name="chevron.right" size={20} color={subtextColor} />

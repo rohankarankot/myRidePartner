@@ -100,7 +100,19 @@ export class TripsService {
         joinRequests: {
           include: {
             passenger: {
-              select: { id: true, username: true, email: true },
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: {
+                  select: {
+                    fullName: true,
+                    phoneNumber: true,
+                    avatar: true,
+                    city: true,
+                  },
+                },
+              },
             },
           },
         },

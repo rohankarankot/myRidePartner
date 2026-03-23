@@ -17,6 +17,7 @@ import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppLoader } from '@/components/app-loader';
+import { maskPhoneNumber } from '@/utils/phone';
 
 type MemberRow = {
     id: number;
@@ -98,7 +99,9 @@ export default function TripChatMembersScreen() {
                         request.passenger.username ||
                         'Rider',
                     subtitle:
-                        passengerProfile?.phoneNumber ||
+                        (request.sharePhoneNumber
+                            ? passengerProfile?.phoneNumber
+                            : maskPhoneNumber(passengerProfile?.phoneNumber)) ||
                         passengerProfile?.city ||
                         `${request.requestedSeats} seat${request.requestedSeats > 1 ? 's' : ''} booked`,
                     role: 'Rider',

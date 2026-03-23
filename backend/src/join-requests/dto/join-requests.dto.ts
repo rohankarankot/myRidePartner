@@ -12,6 +12,12 @@ export class CreateJoinRequestDto {
 
   @ApiPropertyOptional({ description: 'Optional message to the captain' })
   message?: string;
+
+  @ApiProperty({
+    example: false,
+    description: 'Whether the passenger allows their phone number to be shown to the captain and other approved riders in this trip',
+  })
+  sharePhoneNumber: boolean;
 }
 
 export class UpdateJoinRequestStatusDto {

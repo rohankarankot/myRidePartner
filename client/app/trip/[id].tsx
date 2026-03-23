@@ -19,6 +19,7 @@ import { CustomAlert } from '@/components/CustomAlert';
 import { AppLoader } from '@/components/app-loader';
 import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
 import { tripChatService } from '@/services/trip-chat-service';
+import { maskPhoneNumber } from '@/utils/phone';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -63,7 +64,7 @@ export default function TripDetailsScreen() {
 
     // Join Request State
     const joinSheetRef = useRef<BottomSheetModal>(null);
-    const joinSnapPoints = useMemo(() => ['55%'], []);
+    const joinSnapPoints = useMemo(() => ['70%'], []);
     const [sheetIndex, setSheetIndex] = useState(-1);
     const handleSheetChanges = useCallback((index: number) => {
         setSheetIndex(index);
@@ -89,6 +90,7 @@ export default function TripDetailsScreen() {
     );
     const [selectedSeats, setSelectedSeats] = useState(1);
     const [requestMessage, setRequestMessage] = useState('');
+    const [sharePhoneNumber, setSharePhoneNumber] = useState(false);
 
     // Rating State
     const [showRatingModal, setShowRatingModal] = useState(false);
@@ -190,6 +192,7 @@ export default function TripDetailsScreen() {
         // Reset and show modal to select seats
         setSelectedSeats(1);
         setRequestMessage('');
+        setSharePhoneNumber(false);
         joinSheetRef.current?.present();
     };
 
@@ -204,7 +207,8 @@ export default function TripDetailsScreen() {
                 trip: documentId as string,
                 passenger: user.id,
                 requestedSeats: selectedSeats,
-                message: requestMessage.trim()
+                message: requestMessage.trim(),
+                sharePhoneNumber,
             });
             refetch();
             Toast.show({
@@ -521,6 +525,11 @@ export default function TripDetailsScreen() {
                                                             <Text style={[styles.requestSub, { color: subtextColor }]}>
                                                                 {request.requestedSeats} {request.requestedSeats === 1 ? 'seat' : 'seats'} requested
                                                             </Text>
+                                                            <Text style={[styles.requestMeta, { color: subtextColor }]}>
+                                                                {request.sharePhoneNumber
+                                                                    ? (request.passenger.userProfile?.phoneNumber || 'Phone unavailable')
+                                                                    : maskPhoneNumber(request.passenger.userProfile?.phoneNumber)}
+                                                            </Text>
                                                         </View>
                                                         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status, successColor, dangerColor, subtextColor) }]}>
                                                             <Text style={styles.statusText}>{request.status}</Text>
@@ -721,6 +730,54 @@ export default function TripDetailsScreen() {
                             value={requestMessage}
                             onChangeText={setRequestMessage}
                         />
+                    </View>
+
+                    <View style={[styles.privacyCard, { backgroundColor: `${primaryColor}08`, borderColor: `${primaryColor}20` }]}>
+                        <View style={styles.privacyHeader}>
+                            <View style={[styles.privacyIcon, { backgroundColor: `${primaryColor}16` }]}>
+                                <IconSymbol name="phone.fill" size={16} color={primaryColor} />
+                            </View>
+                            <View style={styles.privacyCopy}>
+                                <Text style={[styles.privacyTitle, { color: textColor }]}>
+                                    Show your phone number in this ride?
+                                </Text>
+                                <Text style={[styles.privacyDescription, { color: subtextColor }]}>
+                                    The captain and approved riders can use it to coordinate pickup. If you choose no, we will show a masked version instead.
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.privacyActions}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.privacyChoice,
+                                    {
+                                        backgroundColor: sharePhoneNumber ? primaryColor : 'transparent',
+                                        borderColor: sharePhoneNumber ? primaryColor : borderColor,
+                                    },
+                                ]}
+                                onPress={() => setSharePhoneNumber(true)}
+                            >
+                                <Text style={[styles.privacyChoiceText, { color: sharePhoneNumber ? '#fff' : textColor }]}>
+                                    Yes, show it
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.privacyChoice,
+                                    {
+                                        backgroundColor: !sharePhoneNumber ? cardColor : 'transparent',
+                                        borderColor: !sharePhoneNumber ? primaryColor : borderColor,
+                                    },
+                                ]}
+                                onPress={() => setSharePhoneNumber(false)}
+                            >
+                                <Text style={[styles.privacyChoiceText, { color: !sharePhoneNumber ? primaryColor : textColor }]}>
+                                    No, mask it
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <View style={styles.modalActions}>
@@ -1076,6 +1133,11 @@ const styles = StyleSheet.create({
         fontSize: 13,
         marginTop: 2,
     },
+    requestMeta: {
+        fontSize: 12,
+        marginTop: 4,
+        fontWeight: '500',
+    },
     requestMessageContainer: {
         padding: 12,
         borderRadius: 8,
@@ -1328,6 +1390,55 @@ const styles = StyleSheet.create({
         fontSize: 15,
         height: 80,
         textAlignVertical: 'top',
+    },
+    privacyCard: {
+        width: '100%',
+        borderRadius: 16,
+        borderWidth: 1,
+        padding: 14,
+        marginBottom: 20,
+    },
+    privacyHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+    },
+    privacyIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    privacyCopy: {
+        flex: 1,
+    },
+    privacyTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        marginBottom: 4,
+    },
+    privacyDescription: {
+        fontSize: 12,
+        lineHeight: 18,
+    },
+    privacyActions: {
+        flexDirection: 'row',
+        gap: 10,
+        marginTop: 14,
+    },
+    privacyChoice: {
+        flex: 1,
+        borderWidth: 1,
+        borderRadius: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+        alignItems: 'center',
+    },
+    privacyChoiceText: {
+        fontSize: 13,
+        fontWeight: '700',
+        textAlign: 'center',
     },
     rateInlineButton: {
         marginTop: 12,

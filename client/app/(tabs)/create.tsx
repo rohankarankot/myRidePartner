@@ -13,7 +13,9 @@ import { useUserStore } from '@/store/user-store';
 import { useFocusEffect } from 'expo-router';
 import { CustomAlert } from '@/components/CustomAlert';
 
-const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType = 'default', editable = true, onPress, multiline = false, numberOfLines = 1 }: {
+type FormErrors = Partial<Record<'from' | 'to' | 'date' | 'time' | 'seats' | 'price' | 'description', string>>;
+
+const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType = 'default', editable = true, onPress, multiline = false, numberOfLines = 1, error }: {
     label: string,
     placeholder: string,
     icon: any,
@@ -23,11 +25,13 @@ const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType
     editable?: boolean,
     onPress?: () => void,
     multiline?: boolean,
-    numberOfLines?: number
+    numberOfLines?: number,
+    error?: string,
 }) => {
     const textColor = useThemeColor({}, 'text');
     const subtextColor = useThemeColor({}, 'subtext');
     const borderColor = useThemeColor({}, 'border');
+    const dangerColor = useThemeColor({}, 'danger');
 
     return (
         <View style={styles.fieldContainer}>
@@ -35,7 +39,7 @@ const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType
             <TouchableOpacity
                 activeOpacity={onPress ? 0.7 : 1}
                 onPress={onPress}
-                style={[styles.inputContainer, { borderColor }]}
+                style={[styles.inputContainer, { borderColor: error ? dangerColor : borderColor }]}
             >
                 <IconSymbol name={icon} size={18} color={subtextColor} />
                 <TextInput
@@ -52,6 +56,7 @@ const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType
                     textAlignVertical={multiline ? 'top' : 'auto'}
                 />
             </TouchableOpacity>
+            {error ? <Text style={[styles.errorText, { color: dangerColor }]}>{error}</Text> : null}
         </View>
     );
 };
@@ -73,17 +78,20 @@ export default function CreateScreen() {
     const [showFromPicker, setShowFromPicker] = useState(false);
     const [showToPicker, setShowToPicker] = useState(false);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
+    const [errors, setErrors] = useState<FormErrors>({});
 
     const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
         const currentDate = selectedDate || date;
         setShowDatePicker(Platform.OS === 'ios');
         setDate(currentDate);
+        setErrors((current) => ({ ...current, date: undefined }));
     };
 
     const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
         const currentTime = selectedTime || time;
         setShowTimePicker(Platform.OS === 'ios');
         setTime(currentTime);
+        setErrors((current) => ({ ...current, time: undefined }));
     };
 
     const formatDate = (date: Date) => {
@@ -92,6 +100,66 @@ export default function CreateScreen() {
 
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    };
+
+    const validateForm = () => {
+        const nextErrors: FormErrors = {};
+        const trimmedFrom = from.trim();
+        const trimmedTo = to.trim();
+        const trimmedDescription = description.trim();
+        const numericSeats = Number(seats);
+        const numericPrice = Number(price);
+        const selectedDateString = formatDate(date);
+        const selectedDateTime = new Date(date);
+        selectedDateTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
+        const now = new Date();
+
+        if (!trimmedFrom) {
+            nextErrors.from = 'Starting point is required.';
+        } else if (trimmedFrom.length > 20) {
+            nextErrors.from = 'Starting point must be 20 characters or less.';
+        }
+
+        if (!trimmedTo) {
+            nextErrors.to = 'Destination is required.';
+        } else if (trimmedTo.length > 20) {
+            nextErrors.to = 'Destination must be 20 characters or less.';
+        }
+
+        if (selectedDateString !== formatDate(new Date())) {
+            nextErrors.date = 'Ride date must be today.';
+        }
+
+        if (selectedDateTime.getTime() <= now.getTime()) {
+            nextErrors.time = 'Ride time must be in the future.';
+        }
+
+        if (!seats.trim()) {
+            nextErrors.seats = 'Available seats is required.';
+        } else if (!Number.isInteger(numericSeats) || numericSeats < 1) {
+            nextErrors.seats = 'Available seats must be at least 1.';
+        } else if (numericSeats > 4) {
+            nextErrors.seats = 'You can only publish a ride with up to 4 seats.';
+        }
+
+        if (!isPriceCalculated) {
+            if (!price.trim()) {
+                nextErrors.price = 'Price per seat is required when auto-calculate is off.';
+            } else if (Number.isNaN(numericPrice)) {
+                nextErrors.price = 'Price per seat must be a valid number.';
+            } else if (numericPrice > 1000) {
+                nextErrors.price = 'Price per seat must be 1000 or less.';
+            } else if (numericPrice < 0) {
+                nextErrors.price = 'Price per seat cannot be negative.';
+            }
+        }
+
+        if (trimmedDescription.length > 200) {
+            nextErrors.description = 'Trip description must be 200 characters or less.';
+        }
+
+        setErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
     };
 
     const { user } = useAuth();
@@ -134,33 +202,22 @@ export default function CreateScreen() {
         },
         onError: (error) => {
             console.error('Publish error:', error);
+            const apiMessage =
+                (error as any)?.response?.data?.message;
+            const fallbackMessage = Array.isArray(apiMessage)
+                ? apiMessage[0]
+                : typeof apiMessage === 'string'
+                    ? apiMessage
+                    : 'Failed to publish ride. Please try again.';
             Toast.show({
                 type: 'error',
                 text1: 'Error',
-                text2: 'Failed to publish ride. Please try again.'
+                text2: fallbackMessage
             });
         }
     });
 
     const handlePublish = async () => {
-        if (!from || !to || !seats || (!isPriceCalculated && !price)) {
-            Toast.show({
-                type: 'error',
-                text1: 'Missing Fields',
-                text2: 'Please fill in all the details to publish your ride.'
-            });
-            return;
-        }
-
-        if (Number(seats) > 4) {
-            Toast.show({
-                type: 'error',
-                text1: 'Too many seats',
-                text2: 'You can only publish a ride with up to 4 seats.'
-            });
-            return;
-        }
-
         if (isProfileIncomplete) {
             Toast.show({
                 type: 'error',
@@ -180,9 +237,18 @@ export default function CreateScreen() {
             return;
         }
 
+        if (!validateForm()) {
+            Toast.show({
+                type: 'error',
+                text1: 'Please fix the highlighted fields',
+                text2: 'Your ride details need a few corrections before publishing.'
+            });
+            return;
+        }
+
         publishMutation.mutate({
-            startingPoint: from,
-            destination: to,
+            startingPoint: from.trim(),
+            destination: to.trim(),
             date: formatDate(date),
             time: formatTime(time),
             description: description.trim() || undefined,
@@ -205,6 +271,7 @@ export default function CreateScreen() {
         setDescription('');
         setIsPriceCalculated(false);
         setGenderPreference('both');
+        setErrors({});
     };
 
     return (
@@ -212,13 +279,19 @@ export default function CreateScreen() {
             <LocationSearchModal
                 visible={showFromPicker}
                 onClose={() => setShowFromPicker(false)}
-                onSelectLocation={(address: string) => setFrom(address)}
+                onSelectLocation={(address: string) => {
+                    setFrom(address);
+                    setErrors((current) => ({ ...current, from: undefined }));
+                }}
                 title="Select Starting Point"
             />
             <LocationSearchModal
                 visible={showToPicker}
                 onClose={() => setShowToPicker(false)}
-                onSelectLocation={(address: string) => setTo(address)}
+                onSelectLocation={(address: string) => {
+                    setTo(address);
+                    setErrors((current) => ({ ...current, to: undefined }));
+                }}
                 title="Select Destination"
             />
             <CustomAlert
@@ -250,6 +323,7 @@ export default function CreateScreen() {
                             placeholder="Search pickup location..."
                             icon="house.fill"
                             value={from}
+                            error={errors.from}
                             onPress={() => setShowFromPicker(true)}
                         />
                         <FormField
@@ -257,6 +331,7 @@ export default function CreateScreen() {
                             placeholder="Search drop location..."
                             icon="location.fill"
                             value={to}
+                            error={errors.to}
                             onPress={() => setShowToPicker(true)}
                         />
 
@@ -267,6 +342,7 @@ export default function CreateScreen() {
                                     placeholder="Select Date"
                                     icon="calendar"
                                     value={formatDate(date)}
+                                    error={errors.date}
                                     onPress={() => setShowDatePicker(true)}
                                 />
                             </View>
@@ -276,6 +352,7 @@ export default function CreateScreen() {
                                     placeholder="Select Time"
                                     icon="clock.fill"
                                     value={formatTime(time)}
+                                    error={errors.time}
                                     onPress={() => setShowTimePicker(true)}
                                 />
                             </View>
@@ -288,6 +365,7 @@ export default function CreateScreen() {
                                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                 onChange={onDateChange}
                                 minimumDate={new Date()}
+                                maximumDate={new Date()}
                             />
                         )}
 
@@ -305,7 +383,11 @@ export default function CreateScreen() {
                             placeholder="Max 4"
                             icon="person.fill"
                             value={seats}
-                            onChangeText={setSeats}
+                            error={errors.seats}
+                            onChangeText={(text) => {
+                                setSeats(text.replace(/[^0-9]/g, ''));
+                                setErrors((current) => ({ ...current, seats: undefined }));
+                            }}
                             keyboardType="numeric"
                         />
 
@@ -327,7 +409,11 @@ export default function CreateScreen() {
                                         placeholder="e.g. 200"
                                         icon="indianrupeesign.circle.fill"
                                         value={price}
-                                        onChangeText={setPrice}
+                                        error={errors.price}
+                                        onChangeText={(text) => {
+                                            setPrice(text.replace(/[^0-9.]/g, ''));
+                                            setErrors((current) => ({ ...current, price: undefined }));
+                                        }}
                                         keyboardType="numeric"
                                     />
                                 </View>
@@ -340,7 +426,11 @@ export default function CreateScreen() {
                                 placeholder="E.g. max 1 medium bag per person, etc."
                                 icon="doc.text.fill"
                                 value={description}
-                                onChangeText={setDescription}
+                                error={errors.description}
+                                onChangeText={(text) => {
+                                    setDescription(text);
+                                    setErrors((current) => ({ ...current, description: undefined }));
+                                }}
                                 multiline={true}
                                 numberOfLines={5}
                             />
@@ -427,6 +517,12 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 8,
         marginLeft: 4,
+    },
+    errorText: {
+        fontSize: 12,
+        marginTop: 6,
+        marginLeft: 4,
+        fontWeight: '500',
     },
     inputContainer: {
         flexDirection: 'row',

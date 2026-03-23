@@ -30,7 +30,19 @@ export class JoinRequestsService {
       orderBy: { createdAt: 'desc' },
       include: {
         passenger: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
         },
         trip: {
           include: {
@@ -57,7 +69,19 @@ export class JoinRequestsService {
       orderBy: { createdAt: 'desc' },
       include: {
         passenger: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
         },
         trip: {
           include: {
@@ -80,7 +104,19 @@ export class JoinRequestsService {
       orderBy: { createdAt: 'desc' },
       include: {
         passenger: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
         },
         trip: {
           include: {
@@ -111,7 +147,19 @@ export class JoinRequestsService {
       where: { documentId },
       include: {
         passenger: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
         },
         trip: {
           include: {
@@ -138,6 +186,7 @@ export class JoinRequestsService {
     passenger: number; // passenger userId
     requestedSeats: number;
     message?: string;
+    sharePhoneNumber: boolean;
   }) {
     const trip = await this.prisma.trip.findUnique({
       where: { documentId: data.trip },
@@ -152,12 +201,25 @@ export class JoinRequestsService {
       data: {
         requestedSeats: data.requestedSeats,
         message: data.message,
+        sharePhoneNumber: data.sharePhoneNumber,
         trip: { connect: { id: trip.id } },
         passenger: { connect: { id: data.passenger } },
       },
       include: {
         passenger: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
         },
         trip: {
           include: {
@@ -214,7 +276,19 @@ export class JoinRequestsService {
       data: { status },
       include: {
         passenger: {
-          select: { id: true, username: true, email: true },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
         },
         trip: {
           include: {

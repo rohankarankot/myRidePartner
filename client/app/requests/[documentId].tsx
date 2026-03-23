@@ -10,6 +10,7 @@ import { useAuth } from '@/context/auth-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { AppLoader } from '@/components/app-loader';
+import { maskPhoneNumber } from '@/utils/phone';
 
 export default function RequestDetailsScreen() {
     const { documentId } = useLocalSearchParams();
@@ -112,6 +113,11 @@ export default function RequestDetailsScreen() {
                         <View style={styles.passengerInfo}>
                             <Text style={[styles.userNameLarge, { color: textColor }]}>{request.passenger.username}</Text>
                             <Text style={[styles.userEmail, { color: subtextColor }]}>{request.passenger.email}</Text>
+                            <Text style={[styles.userEmail, { color: subtextColor, marginTop: 4 }]}>
+                                {request.sharePhoneNumber
+                                    ? (request.passenger.userProfile?.phoneNumber || 'Phone unavailable')
+                                    : maskPhoneNumber(request.passenger.userProfile?.phoneNumber)}
+                            </Text>
                         </View>
                     </View>
                 </View>
@@ -138,6 +144,13 @@ export default function RequestDetailsScreen() {
                             <Text style={[styles.messageText, { color: textColor }]}>"{request.message}"</Text>
                         </View>
                     ) : null}
+
+                    <View style={styles.messageContainer}>
+                        <Text style={[styles.detailLabel, { color: subtextColor }]}>Phone visibility</Text>
+                        <Text style={[styles.messageText, { color: textColor }]}>
+                            {request.sharePhoneNumber ? 'Shared with captain and riders' : 'Masked for captain and riders'}
+                        </Text>
+                    </View>
                 </View>
 
                 {/* Trip Info Section */}

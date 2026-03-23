@@ -50,7 +50,16 @@ export class JoinRequestsController {
   @Post()
   @ApiOperation({ summary: 'Create a join request' })
   @ApiBody({ type: CreateJoinRequestDto })
-  create(@Body() body: { trip: string; passenger: number; requestedSeats: number; message?: string }) {
+  create(
+    @Body()
+    body: {
+      trip: string;
+      passenger: number;
+      requestedSeats: number;
+      message?: string;
+      sharePhoneNumber: boolean;
+    },
+  ) {
     return this.joinRequestsService.create(body);
   }
 

@@ -7,6 +7,7 @@ class JoinRequestService {
         passenger: number; // userId
         requestedSeats: number;
         message?: string;
+        sharePhoneNumber: boolean;
     }): Promise<JoinRequest> {
         const { data: response } = await apiClient.post<JoinRequest>('/join-requests', data);
         return response;

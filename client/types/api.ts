@@ -11,6 +11,9 @@ export interface User {
     updatedAt: string;
     publishedAt: string;
     userProfile?: {
+        fullName?: string;
+        phoneNumber?: string;
+        city?: string;
         avatar?: string | { url: string; formats?: any };
     };
 }
@@ -111,6 +114,7 @@ export interface JoinRequest {
     status: JoinRequestStatus;
     requestedSeats: number;
     message?: string;
+    sharePhoneNumber: boolean;
     createdAt: string;
     updatedAt: string;
 }
