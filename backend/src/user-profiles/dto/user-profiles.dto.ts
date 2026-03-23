@@ -28,6 +28,9 @@ export class UpdateUserProfileDto {
   @ApiPropertyOptional({ description: 'Uploaded government ID document URL' })
   governmentIdDocument?: string;
 
+  @ApiPropertyOptional({ description: 'Extracted Aadhaar number' })
+  aadhaarNumber?: string;
+
   @ApiPropertyOptional({ enum: Gender })
   gender?: Gender;
 

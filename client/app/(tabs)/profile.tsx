@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import TextRecognition from 'react-native-text-recognition';
 import {
     View,
     Text,
@@ -56,6 +57,7 @@ export default function ProfileScreen() {
     const [gender, setGender] = useState<'men' | 'women'>('men');
     const [city, setCity] = useState('');
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [isVerifyingGovernmentId, setIsVerifyingGovernmentId] = useState(false);
     const [showSignOutModal, setShowSignOutModal] = useState(false);
     const [showCityPicker, setShowCityPicker] = useState(false);
     const [citySearch, setCitySearch] = useState('');
@@ -103,13 +105,28 @@ export default function ProfileScreen() {
     });
 
     const updateProfileMutation = useMutation({
-        mutationFn: (data: { documentId: string; fullName: string; phoneNumber: string; gender: 'men' | 'women'; city: string; avatar?: string }) =>
+        mutationFn: (data: {
+            documentId: string;
+            fullName: string;
+            phoneNumber: string;
+            gender: 'men' | 'women';
+            city: string;
+            avatar?: string;
+            governmentIdDocument?: string;
+            aadhaarNumber?: string;
+            governmentIdVerified?: boolean;
+            isVerified?: boolean;
+        }) =>
             userService.updateProfile(data.documentId, {
                 fullName: data.fullName,
                 phoneNumber: data.phoneNumber,
                 gender: data.gender,
                 city: data.city,
                 avatar: data.avatar,
+                governmentIdDocument: data.governmentIdDocument,
+                aadhaarNumber: data.aadhaarNumber,
+                governmentIdVerified: data.governmentIdVerified,
+                isVerified: data.isVerified,
             }),
         onSuccess: (data) => {
             setProfile(data);
@@ -256,22 +273,87 @@ export default function ProfileScreen() {
     const name = profile?.fullName || 'No Name Set';
     const phone = profile?.phoneNumber || 'N/A';
     const profileGender = profile?.gender;
+    const aadhaarNumber = profile?.aadhaarNumber;
     const rating = profile?.rating || 0;
     const completedTripsCount = profile?.completedTripsCount || 0;
     const isVerified = profile?.isVerified || false;
+    const isGovernmentIdVerified = profile?.governmentIdVerified || false;
 
-    const handleVerifyNow = () => {
-        Alert.alert(
-            'Verification Strategy',
-            'I am thinking to use either PAN or Aadhar for verification. Will check in next phase...',
-            [
-                {
-                    text: 'OK',
-                    style: 'cancel',
-                },
+    const maskAadhaarNumber = (value?: string | null) => {
+        if (!value || value.length < 4) return 'Not available';
+        return `XXXX XXXX ${value.slice(-4)}`;
+    };
 
-            ]
-        );
+    const extractAadhaarNumber = (recognizedText: string[]) => {
+        const normalizedText = recognizedText.join(' ').replace(/[^\d]/g, '');
+        const match = normalizedText.match(/[2-9]\d{11}/);
+        return match ? match[0] : null;
+    };
+
+    const handleVerifyNow = async () => {
+        if (!profile) {
+            Toast.show({
+                type: 'info',
+                text1: 'Complete Profile First',
+                text2: 'Please complete your profile before verifying your identity.'
+            });
+            handlePresentModalPress();
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            quality: 0.9,
+        });
+
+        if (result.canceled) {
+            return;
+        }
+
+        try {
+            setIsVerifyingGovernmentId(true);
+            const imageUri = result.assets[0].uri;
+            const recognizedText = await TextRecognition.recognize(imageUri);
+            const aadhaarNumber = extractAadhaarNumber(recognizedText);
+
+            if (!aadhaarNumber) {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Aadhaar not detected',
+                    text2: 'We could not find a valid 12-digit Aadhaar number in that image.'
+                });
+                return;
+            }
+
+            const governmentIdDocument = await userService.uploadFile(imageUri);
+            await updateProfileMutation.mutateAsync({
+                documentId: profile.documentId,
+                fullName: profile.fullName,
+                phoneNumber: profile.phoneNumber,
+                gender: profile.gender!,
+                city: profile.city!,
+                governmentIdDocument,
+                aadhaarNumber,
+                governmentIdVerified: true,
+                isVerified: true,
+            });
+
+            Toast.show({
+                type: 'success',
+                text1: 'Verification submitted',
+                text2: `Aadhaar ending ${aadhaarNumber.slice(-4)} verified successfully.`
+            });
+        } catch (verificationError) {
+            console.error('Aadhaar verification error:', verificationError);
+            Toast.show({
+                type: 'error',
+                text1: 'Verification failed',
+                text2: 'We could not process that Aadhaar image. Please try again.'
+            });
+        } finally {
+            setIsVerifyingGovernmentId(false);
+        }
     };
 
     const isPending = createProfileMutation.isPending || updateProfileMutation.isPending;
@@ -353,17 +435,35 @@ export default function ProfileScreen() {
                             <Text style={[styles.completePromptText, { color: primaryColor }]}>Complete your profile →</Text>
                         </TouchableOpacity>
                     ) : isVerified ? (
-                        <View style={[styles.verifiedBadge, { backgroundColor: successBgColor }]}>
-                            <Text style={[styles.verifiedText, { color: successColor }]}>Verified</Text>
+                        <View style={styles.verificationBadges}>
+                            <View style={[styles.verifiedBadge, { backgroundColor: successBgColor }]}>
+                                <Text style={[styles.verifiedText, { color: successColor }]}>Verified</Text>
+                            </View>
+                            {isGovernmentIdVerified ? (
+                                <View style={[styles.govtBadge, { backgroundColor: `${primaryColor}14` }]}>
+                                    <IconSymbol name="checkmark.shield.fill" size={12} color={primaryColor} />
+                                    <Text style={[styles.govtBadgeText, { color: primaryColor }]}>Government ID verified</Text>
+                                </View>
+                            ) : null}
                         </View>
                     ) : (
                         <>
                             <View style={[styles.unverifiedBadge, { backgroundColor: dangerBgColor }]}>
                                 <Text style={[styles.unverifiedText, { color: dangerColor }]}>Unverified</Text>
                             </View>
-                            <TouchableOpacity onPress={handleVerifyNow}>
-                                <Text style={[styles.verifyNowText, { color: primaryColor }]}>Verify now?</Text>
+                            <TouchableOpacity onPress={handleVerifyNow} disabled={isVerifyingGovernmentId}>
+                                <Text style={[styles.verifyNowText, { color: primaryColor }]}>
+                                    {isVerifyingGovernmentId ? 'Verifying Aadhaar...' : 'Verify now?'}
+                                </Text>
                             </TouchableOpacity>
+                            {isVerifyingGovernmentId ? (
+                                <View style={styles.verificationProgressRow}>
+                                    <ActivityIndicator size="small" color={primaryColor} />
+                                    <Text style={[styles.verificationProgressText, { color: subtextColor }]}>
+                                        Running OCR, uploading ID, and updating your verification status...
+                                    </Text>
+                                </View>
+                            ) : null}
                         </>
                     )}
                 </View>
@@ -452,6 +552,18 @@ export default function ProfileScreen() {
                                 <Text style={[styles.label, { color: subtextColor }]}>City</Text>
                             </View>
                             <Text style={[styles.value, { color: textColor, fontWeight: '700' }]}>{profile.city}</Text>
+                        </View>
+                    )}
+
+                    {aadhaarNumber && (
+                        <View style={[styles.row, { marginBottom: 0 }]}>
+                            <View style={styles.labelRow}>
+                                <IconSymbol name="checkmark.shield.fill" size={14} color={successColor} />
+                                <Text style={[styles.label, { color: subtextColor }]}>Aadhaar</Text>
+                            </View>
+                            <Text style={[styles.value, { color: textColor, fontWeight: '700' }]}>
+                                {maskAadhaarNumber(aadhaarNumber)}
+                            </Text>
                         </View>
                     )}
                 </View>
@@ -783,9 +895,26 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 20,
     },
+    verificationBadges: {
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 8,
+    },
     verifiedText: {
         fontSize: 12,
         fontWeight: '600',
+    },
+    govtBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 20,
+    },
+    govtBadgeText: {
+        fontSize: 12,
+        fontWeight: '700',
     },
     card: {
         borderRadius: 14,
@@ -882,6 +1011,20 @@ const styles = StyleSheet.create({
         paddingTop: 8,
         fontSize: 12,
         fontWeight: '600',
+    },
+    verificationProgressRow: {
+        marginTop: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 10,
+        maxWidth: 280,
+    },
+    verificationProgressText: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 18,
+        textAlign: 'left',
     },
 
     completePrompt: {

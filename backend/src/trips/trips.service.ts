@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -296,11 +296,28 @@ export class TripsService {
     // 1. Get the current trip to identify change
     const oldTrip = await this.prisma.trip.findUnique({
       where: { documentId },
-      select: { status: true, startingPoint: true, destination: true },
+      select: {
+        status: true,
+        startingPoint: true,
+        destination: true,
+        isPriceCalculated: true,
+        pricePerSeat: true,
+      },
     });
 
     if (!oldTrip) {
       throw new NotFoundException(`Trip not found`);
+    }
+
+    if (
+      data.status === 'COMPLETED' &&
+      oldTrip.isPriceCalculated &&
+      oldTrip.pricePerSeat == null &&
+      data.pricePerSeat == null
+    ) {
+      throw new BadRequestException(
+        'Price per seat is required before completing a trip with calculated pricing.',
+      );
     }
 
     // 2. Perform the update

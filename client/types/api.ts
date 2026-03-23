@@ -46,6 +46,7 @@ export interface UserProfile {
     isVerified?: boolean;
     governmentIdVerified?: boolean;
     governmentIdDocument?: string;
+    aadhaarNumber?: string;
     userId: number;
     user?: User;
     avatar?: Media | string;

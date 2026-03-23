@@ -69,6 +69,7 @@ class UserService {
       city?: string;
       avatar?: number | string;
       governmentIdDocument?: string;
+      aadhaarNumber?: string;
       governmentIdVerified?: boolean;
       isVerified?: boolean;
       pushToken?: string;

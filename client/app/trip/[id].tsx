@@ -60,6 +60,7 @@ export default function TripDetailsScreen() {
 
 
     const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showCompletionPriceModal, setShowCompletionPriceModal] = useState(false);
     const [showBlockAlert, setShowBlockAlert] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
     const [agreeToCancel, setAgreeToCancel] = useState(false);
@@ -103,6 +104,8 @@ export default function TripDetailsScreen() {
     const [selectedStars, setSelectedStars] = useState(0);
     const [ratingComment, setRatingComment] = useState('');
     const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+    const [completionPriceInput, setCompletionPriceInput] = useState('');
+    const [isCompletingTrip, setIsCompletingTrip] = useState(false);
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -279,7 +282,7 @@ export default function TripDetailsScreen() {
 
         setIsCancelling(true);
         try {
-            await tripService.updateTripStatus(documentId as string, 'CANCELLED');
+            await tripService.updateTripStatus(documentId as string, { status: 'CANCELLED' });
             Toast.show({
                 type: 'success',
                 text1: 'Trip Cancelled',
@@ -300,12 +303,13 @@ export default function TripDetailsScreen() {
     };
 
     const updateTripStatusMutation = useOptimisticMutation({
-        mutationFn: (status: TripStatus) => tripService.updateTripStatus(documentId as string, status),
+        mutationFn: ({ status, pricePerSeat }: { status: TripStatus; pricePerSeat?: number }) =>
+            tripService.updateTripStatus(documentId as string, { status, pricePerSeat }),
         queryKeys: [
             ['trip-details', documentId, user?.id],
             ['trips', user?.id] // For Activity Screen Sync
         ],
-        optimisticUpdateFn: (status, currentQueryClient) => {
+        optimisticUpdateFn: ({ status, pricePerSeat }, currentQueryClient) => {
             if (!user) return;
 
             // 1. Update trip detail cache
@@ -313,7 +317,11 @@ export default function TripDetailsScreen() {
                 if (!oldData) return oldData;
                 return {
                     ...oldData,
-                    trip: { ...oldData.trip, status: status }
+                    trip: {
+                        ...oldData.trip,
+                        status,
+                        ...(pricePerSeat !== undefined ? { pricePerSeat } : {}),
+                    }
                 };
             });
 
@@ -321,7 +329,9 @@ export default function TripDetailsScreen() {
             currentQueryClient.setQueryData(['trips', user.id], (oldTrips: Trip[] | undefined) => {
                 if (!oldTrips) return oldTrips;
                 return oldTrips.map(t =>
-                    t.documentId === documentId ? { ...t, status: status } : t
+                    t.documentId === documentId
+                        ? { ...t, status, ...(pricePerSeat !== undefined ? { pricePerSeat } : {}) }
+                        : t
                 );
             });
         },
@@ -331,7 +341,45 @@ export default function TripDetailsScreen() {
 
     const handleUpdateTripStatus = (status: TripStatus) => {
         if (!documentId) return;
-        updateTripStatusMutation.mutate(status);
+        updateTripStatusMutation.mutate({ status });
+    };
+
+    const handleCompleteTrip = () => {
+        if (!trip) return;
+
+        if (trip.isPriceCalculated && !trip.pricePerSeat) {
+            setCompletionPriceInput('');
+            setShowCompletionPriceModal(true);
+            return;
+        }
+
+        handleUpdateTripStatus('COMPLETED');
+    };
+
+    const handleConfirmCompletionPrice = async () => {
+        if (!documentId) return;
+
+        const parsedPrice = Number.parseFloat(completionPriceInput.trim());
+        if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+            Toast.show({
+                type: 'error',
+                text1: 'Invalid amount',
+                text2: 'Enter the final price per person to complete this ride.',
+            });
+            return;
+        }
+
+        setIsCompletingTrip(true);
+        try {
+            await updateTripStatusMutation.mutateAsync({
+                status: 'COMPLETED',
+                pricePerSeat: parsedPrice,
+            });
+            setShowCompletionPriceModal(false);
+            setCompletionPriceInput('');
+        } finally {
+            setIsCompletingTrip(false);
+        }
     };
 
     const handleSubmitRating = async () => {
@@ -536,7 +584,13 @@ export default function TripDetailsScreen() {
                                     <View style={[styles.divider, { backgroundColor: borderColor }]} />
                                     <View style={styles.infoRow}>
                                         <InfoItem icon="person.2.fill" label="Available Seats" value={`${trip.availableSeats}`} textColor={textColor} subtextColor={subtextColor} />
-                                        <InfoItem icon="indianrupeesign.circle.fill" label="Price per seat" value={trip.isPriceCalculated ? "Calculated on completion" : `₹${trip.pricePerSeat}`} textColor={textColor} subtextColor={subtextColor} />
+                                        <InfoItem
+                                            icon="indianrupeesign.circle.fill"
+                                            label="Price per seat"
+                                            value={trip.pricePerSeat ? `₹${trip.pricePerSeat}` : trip.isPriceCalculated ? 'Calculated on completion' : 'Not set'}
+                                            textColor={textColor}
+                                            subtextColor={subtextColor}
+                                        />
                                     </View>
                                     <View style={[styles.divider, { backgroundColor: borderColor }]} />
                                     <View style={styles.infoRow}>
@@ -707,7 +761,7 @@ export default function TripDetailsScreen() {
                                         {trip.status === 'STARTED' && (
                                             <TouchableOpacity
                                                 style={[styles.completeTripButton, { backgroundColor: successColor }]}
-                                                onPress={() => handleUpdateTripStatus('COMPLETED')}
+                                                onPress={handleCompleteTrip}
                                             >
                                                 <Text style={styles.lifecycleButtonText}>Complete Trip</Text>
                                             </TouchableOpacity>
@@ -1066,6 +1120,69 @@ export default function TripDetailsScreen() {
                                         <ActivityIndicator size="small" color="#fff" />
                                     ) : (
                                         <Text style={{ color: '#fff', fontWeight: '700' }}>Submit Rating</Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            <Modal
+                visible={showCompletionPriceModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => !isCompletingTrip && setShowCompletionPriceModal(false)}
+            >
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, { backgroundColor: cardColor, paddingBottom: 32 }]}>
+                            <View style={styles.modalHeader}>
+                                <View style={[styles.starCircle, { backgroundColor: `${successColor}18` }]}>
+                                    <IconSymbol name="indianrupeesign.circle.fill" size={28} color={successColor} />
+                                </View>
+                                <Text style={[styles.modalTitle, { color: textColor }]}>Enter Final Ride Price</Text>
+                                <Text style={[styles.modalSubtitle, { color: subtextColor }]}>
+                                    This ride uses calculated pricing. Enter the final amount per person before marking it completed.
+                                </Text>
+                            </View>
+
+                            <View style={[styles.completionPriceBox, { borderColor, backgroundColor: `${subtextColor}05` }]}>
+                                <Text style={[styles.completionPriceLabel, { color: subtextColor }]}>Price per person</Text>
+                                <View style={styles.completionPriceRow}>
+                                    <Text style={[styles.completionPriceCurrency, { color: textColor }]}>₹</Text>
+                                    <TextInput
+                                        style={[styles.completionPriceInput, { color: textColor }]}
+                                        value={completionPriceInput}
+                                        onChangeText={setCompletionPriceInput}
+                                        placeholder="0"
+                                        placeholderTextColor={subtextColor}
+                                        keyboardType="decimal-pad"
+                                        autoFocus
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.modalActions}>
+                                <TouchableOpacity
+                                    style={[styles.modalButton, styles.secondaryButton, { borderColor }]}
+                                    onPress={() => setShowCompletionPriceModal(false)}
+                                    disabled={isCompletingTrip}
+                                >
+                                    <Text style={[styles.secondaryButtonText, { color: textColor }]}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.modalButton, { backgroundColor: successColor }]}
+                                    onPress={handleConfirmCompletionPrice}
+                                    disabled={isCompletingTrip}
+                                >
+                                    {isCompletingTrip ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Text style={{ color: '#fff', fontWeight: '700' }}>Complete Ride</Text>
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -1550,6 +1667,33 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         padding: 12,
         marginBottom: 24,
+    },
+    completionPriceBox: {
+        width: '100%',
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 16,
+        marginBottom: 24,
+    },
+    completionPriceLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        marginBottom: 10,
+    },
+    completionPriceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    completionPriceCurrency: {
+        fontSize: 24,
+        fontWeight: '700',
+    },
+    completionPriceInput: {
+        flex: 1,
+        fontSize: 24,
+        fontWeight: '700',
+        paddingVertical: 0,
     },
     commentInput: {
         fontSize: 15,

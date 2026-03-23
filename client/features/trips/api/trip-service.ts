@@ -53,9 +53,12 @@ class TripService {
     return data.data;
   }
 
-  async updateTripStatus(documentId: string, status: string): Promise<Trip> {
+  async updateTripStatus(
+    documentId: string,
+    payload: { status: string; pricePerSeat?: number },
+  ): Promise<Trip> {
     const { data } = await apiClient.put<{ data: Trip }>(`/trips/${documentId}`, {
-      data: { status },
+      data: payload,
     });
     return data.data;
   }

@@ -108,7 +108,9 @@ const TripCard = (props: {
             <View style={styles.cardFooter}>
                 <View>
 
-                    <Text style={[styles.price, { color: primaryColor }]}>{!isPriceCalculated ? price : "Calculated on departure"}</Text>
+                    <Text style={[styles.price, { color: primaryColor }]}>
+                        {price ? price : isPriceCalculated ? 'Calculated on departure' : 'Price not set'}
+                    </Text>
                 </View>
                 <IconSymbol name="chevron.right" size={18} color={subtextColor} />
             </View>
