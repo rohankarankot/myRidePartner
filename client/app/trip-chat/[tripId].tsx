@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Keyboard, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
@@ -11,6 +11,7 @@ import {
     IMessage,
     InputToolbar,
 } from 'react-native-gifted-chat';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppLoader } from '@/components/app-loader';
@@ -134,7 +135,6 @@ export default function TripChatScreen() {
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [isSendingLocation, setIsSendingLocation] = useState(false);
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
     const isTypingRef = useRef(false);
     const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -146,6 +146,7 @@ export default function TripChatScreen() {
     const cardColor = useThemeColor({}, 'card');
     const borderColor = useThemeColor({}, 'border');
     const primaryColor = useThemeColor({}, 'primary');
+    const headerHeight = insets.top + 60;
 
     const { data: chatAccess, isLoading: isLoadingAccess } = useQuery({
         queryKey: ['trip-chat-access', tripId],
@@ -270,28 +271,6 @@ export default function TripChatScreen() {
             isChatScreenActiveRef.current = false;
         };
     }, [chatAccess?.canAccess, chatAccess?.tripStatus, tripId]);
-
-    useEffect(() => {
-        const updateKeyboardHeight = (event: any) => {
-            setKeyboardHeight(event?.endCoordinates?.height || 0);
-        };
-
-        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-        const frameEvent = Platform.OS === 'ios' ? 'keyboardWillChangeFrame' : 'keyboardDidChangeFrame';
-
-        const showSubscription = Keyboard.addListener(showEvent, updateKeyboardHeight);
-        const frameSubscription = Keyboard.addListener(frameEvent as any, updateKeyboardHeight);
-        const hideSubscription = Keyboard.addListener(hideEvent, () => {
-            setKeyboardHeight(0);
-        });
-
-        return () => {
-            showSubscription.remove();
-            frameSubscription.remove();
-            hideSubscription.remove();
-        };
-    }, []);
 
     const giftedMessages = useMemo(
         () =>
@@ -419,7 +398,7 @@ export default function TripChatScreen() {
                     )
                 )
             );
-        } catch (error) {
+        } catch {
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
                     oldMessages.filter((item) => item.documentId !== optimisticMessage.documentId)
@@ -531,41 +510,58 @@ export default function TripChatScreen() {
         ]);
     };
 
-    const keyboardLift = Math.max(0, keyboardHeight - insets.bottom);
-
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
-            <Stack.Screen
-                options={{
-                    title: 'Ride Chat',
-                    headerShown: true,
-                    headerStyle: { backgroundColor },
-                    headerTintColor: textColor,
-                    headerShadowVisible: false,
-                    headerRight: () => (
-                        <TouchableOpacity
-                            onPress={() => router.push(`/trip-chat-members/${tripId}`)}
-                            style={styles.headerInfoButton}
-                        >
-                            <IconSymbol name="info.circle.fill" size={22} color={textColor} />
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
+            <View
+                style={[
+                    styles.customHeader,
+                    {
+                        backgroundColor,
+                        borderBottomColor: borderColor,
+                        paddingTop: insets.top + 8,
+                        height: headerHeight,
+                    },
+                ]}
+            >
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.headerIconButton}
+                >
+                    <IconSymbol name="chevron.left" size={22} color={textColor} />
+                </TouchableOpacity>
+
+                <View style={styles.headerTitleWrap}>
+                    <Text style={[styles.headerTitle, { color: textColor }]}>Ride Chat</Text>
+                    <Text style={[styles.headerSubtitle, { color: subtextColor }]}>
+                        Chat with approved riders
+                    </Text>
+                </View>
+
+                <TouchableOpacity
+                    onPress={() => router.push(`/trip-chat-members/${tripId}`)}
+                    style={styles.headerIconButton}
+                >
+                    <IconSymbol name="info.circle.fill" size={22} color={textColor} />
+                </TouchableOpacity>
+            </View>
 
             {isLoadingAccess || isLoadingMessages ? (
-                <View style={[styles.center, { backgroundColor }]}>
+                <View style={[styles.center, { backgroundColor, paddingTop: headerHeight }]}>
                     <AppLoader />
                 </View>
             ) : isBlocked ? (
-                <View style={[styles.center, { backgroundColor, paddingHorizontal: 24 }]}>
+                <View style={[styles.center, { backgroundColor, paddingHorizontal: 24, paddingTop: headerHeight }]}>
                     <Text style={[styles.emptyTitle, { color: textColor }]}>Chat unavailable</Text>
                     <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
                         This ride chat is only available for the captain and approved riders while the trip is active.
                     </Text>
                 </View>
             ) : (
-                <View style={[styles.chatWrapper, { marginBottom: keyboardLift + 15 }]}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'translate-with-padding'}
+                    keyboardVerticalOffset={0}
+                    style={[styles.chatWrapper, { paddingTop: headerHeight }]}
+                >
                     <GiftedChat
                         messages={giftedMessages}
                         onSend={handleSend}
@@ -575,7 +571,7 @@ export default function TripChatScreen() {
                         }}
                         text={composerText}
                         scrollToBottom
-                        bottomOffset={0}
+                        bottomOffset={insets.bottom}
                         renderAvatarOnTop
                         keyboardShouldPersistTaps="handled"
                         minInputToolbarHeight={60}
@@ -735,7 +731,7 @@ export default function TripChatScreen() {
                             </View>
                         ) : null}
                     />
-                </View>
+                </KeyboardAvoidingView>
             )}
         </SafeAreaView>
     );
@@ -745,12 +741,40 @@ const styles = StyleSheet.create({
     safe: {
         flex: 1,
     },
+    customHeader: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
     chatWrapper: {
         flex: 1,
     },
-    headerInfoButton: {
-        paddingHorizontal: 6,
-        paddingVertical: 4,
+    headerIconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerTitleWrap: {
+        flex: 1,
+        alignItems: 'center',
+        paddingHorizontal: 12,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    headerSubtitle: {
+        fontSize: 12,
+        marginTop: 2,
     },
     center: {
         flex: 1,

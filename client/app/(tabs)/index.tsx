@@ -348,10 +348,24 @@ export default function FindRidesScreen() {
       <View style={styles.emptyContainer}>
         <IconSymbol name="list.bullet" size={48} color={subtextColor} />
         <Text style={[styles.emptyText, { color: subtextColor }]}>
-          {selectedCity ? `No rides found in ${selectedCity}.` : 'Select a city to view rides.'}
+          {selectedCity ? `Hmm, no rides found in ${selectedCity}.` : 'Select a city to view rides.'}
         </Text>
+        <Text style={[styles.emptyText, { color: subtextColor }]}>
+          Be the first to create a ride.
+        </Text>
+        {selectedCity && (
+          <TouchableOpacity
+            style={[styles.emptyPrimaryButton, { backgroundColor: primaryColor }]}
+            onPress={() => router.push('/create')}
+          >
+            <Text style={styles.emptyPrimaryButtonText}>Create a Ride</Text>
+          </TouchableOpacity>
+        )}
         {(gender !== 'both' || date !== undefined) && (
-          <TouchableOpacity onPress={handleResetFilters}>
+          <TouchableOpacity
+            style={styles.emptySecondaryButton}
+            onPress={handleResetFilters}
+          >
             <Text style={{ color: primaryColor, fontWeight: '600' }}>Clear Filters</Text>
           </TouchableOpacity>
         )}
@@ -739,6 +753,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 12,
     marginBottom: 20,
+  },
+  emptyPrimaryButton: {
+    minWidth: 170,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  emptyPrimaryButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  emptySecondaryButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   fab: {
     position: 'absolute',

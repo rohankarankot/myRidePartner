@@ -23,6 +23,7 @@ const MAPPING = {
   'person.fill': 'person',
   'gearshape.fill': 'settings',
   'chevron.left.forwardslash.chevron.right': 'code',
+  'chevron.left': 'chevron-left',
   'chevron.right': 'chevron-right',
   'calendar': 'event',
   'clock.fill': 'access-time',
