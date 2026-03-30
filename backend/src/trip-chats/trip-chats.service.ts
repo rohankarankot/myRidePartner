@@ -9,7 +9,7 @@ import { JoinRequestStatus, Prisma, TripStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
-import { GetTripChatMessagesQueryDto } from './dto/trip-chats.dto';
+import { CreateTripChatMessageDto, GetTripChatMessagesQueryDto } from './dto/trip-chats.dto';
 
 type TripWithRelations = {
   id: number;
@@ -17,6 +17,33 @@ type TripWithRelations = {
   status: TripStatus;
   creatorId: number;
 };
+
+const tripChatMessageSenderSelect = {
+  id: true,
+  username: true,
+  email: true,
+  userProfile: {
+    select: {
+      avatar: true,
+      fullName: true,
+    },
+  },
+} satisfies Prisma.UserSelect;
+
+const repliedToMessageInclude = {
+  sender: {
+    select: tripChatMessageSenderSelect,
+  },
+} satisfies Prisma.TripChatMessageInclude;
+
+const tripChatMessageInclude = {
+  sender: {
+    select: tripChatMessageSenderSelect,
+  },
+  replyTo: {
+    include: repliedToMessageInclude,
+  },
+} satisfies Prisma.TripChatMessageInclude;
 
 @Injectable()
 export class TripChatsService {
@@ -75,19 +102,7 @@ export class TripChatsService {
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: limit + 1,
         include: {
-          sender: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              userProfile: {
-                select: {
-                  avatar: true,
-                  fullName: true,
-                },
-              },
-            },
-          },
+          ...tripChatMessageInclude,
         },
       }),
     );
@@ -103,14 +118,27 @@ export class TripChatsService {
         message: message.message,
         createdAt: message.createdAt,
         sender: message.sender,
+        replyTo: message.replyTo
+          ? {
+              documentId: message.replyTo.documentId,
+              message: message.replyTo.message,
+              createdAt: message.replyTo.createdAt,
+              sender: message.replyTo.sender,
+            }
+          : null,
       })),
       hasMore,
       nextCursor: selectedMessages[0]?.documentId ?? null,
     };
   }
 
-  async createMessage(tripDocumentId: string, userId: number, body: string) {
+  async createMessage(
+    tripDocumentId: string,
+    userId: number,
+    payload: CreateTripChatMessageDto,
+  ) {
     const trip = await this.assertChatAccess(tripDocumentId, userId);
+    const body = payload?.message;
 
     if (typeof body !== 'string') {
       throw new BadRequestException('Message is required');
@@ -123,43 +151,53 @@ export class TripChatsService {
     }
 
     const chat = await this.findOrCreateChat(trip);
+    let replyToMessage: Awaited<ReturnType<typeof this.prisma.tripChatMessage.findUnique>> | null = null;
+
+    if (payload.replyToDocumentId) {
+      replyToMessage = await this.runWithChatTableGuard(() =>
+        this.prisma.tripChatMessage.findUnique({
+          where: { documentId: payload.replyToDocumentId },
+          include: repliedToMessageInclude,
+        }),
+      );
+
+      if (!replyToMessage || replyToMessage.chatId !== chat.id) {
+        throw new BadRequestException('Reply target was not found in this chat');
+      }
+    }
+
     const message = await this.runWithChatTableGuard(() =>
       this.prisma.tripChatMessage.create({
         data: {
           chatId: chat.id,
           senderId: userId,
           message: trimmedMessage,
+          replyToId: replyToMessage?.id,
         },
-        include: {
-          sender: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              userProfile: {
-                select: {
-                  avatar: true,
-                  fullName: true,
-                },
-              },
-            },
-          },
-        },
+        include: tripChatMessageInclude,
       }),
     );
 
-    const payload = {
+    const responsePayload = {
       id: message!.id,
       documentId: message!.documentId,
       message: message!.message,
       createdAt: message!.createdAt,
       sender: message!.sender,
+      replyTo: message!.replyTo
+        ? {
+            documentId: message!.replyTo.documentId,
+            message: message!.replyTo.message,
+            createdAt: message!.replyTo.createdAt,
+            sender: message!.replyTo.sender,
+          }
+        : null,
     };
 
-    this.eventsGateway.emitToChatRoom(trip.documentId, 'chat_message_created', payload);
-    await this.notifyTripChatRecipients(trip, payload);
+    this.eventsGateway.emitToChatRoom(trip.documentId, 'chat_message_created', responsePayload);
+    await this.notifyTripChatRecipients(trip, responsePayload);
 
-    return payload;
+    return responsePayload;
   }
 
   async deleteChatForCompletedTrip(tripDocumentId: string) {

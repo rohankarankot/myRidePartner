@@ -414,11 +414,14 @@ node __CLEANUP__/scripts/cleanup.js --list
 node __CLEANUP__/scripts/cleanup.js clerk    # Remove auth/org/billing
 node __CLEANUP__/scripts/cleanup.js kanban   # Remove kanban board
 node __CLEANUP__/scripts/cleanup.js sentry   # Remove error tracking
+
+# Remove all optional features in one pass
+node __CLEANUP__/scripts/cleanup.js --all
 ```
 
 **Safety**: Script requires git repository with at least one commit. Use `--force` to skip.
 
-After cleanup, delete the `__CLEANUP__` folder.
+After cleanup, review and test the app, then delete the `__CLEANUP__` folder. This repo uses `src/proxy.ts` for auth/proxy handling rather than `middleware.ts`.
 
 ---
 

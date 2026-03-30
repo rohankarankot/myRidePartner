@@ -53,6 +53,6 @@ export class TripChatsController {
     @Req() req: any,
     @Body() body: CreateTripChatMessageDto,
   ) {
-    return this.tripChatsService.createMessage(documentId, req.user.id, body.message);
+    return this.tripChatsService.createMessage(documentId, req.user.id, body);
   }
 }

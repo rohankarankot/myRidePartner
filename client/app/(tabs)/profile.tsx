@@ -9,7 +9,6 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    Alert,
     RefreshControl,
     Modal,
     useColorScheme,
@@ -26,12 +25,10 @@ import { userService } from '@/services/user-service';
 import Toast from 'react-native-toast-message';
 import {
     BottomSheetModal,
-    BottomSheetView,
     BottomSheetBackdrop,
     BottomSheetTextInput,
     BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
-import { Colors } from '@/constants/theme';
 import { CITIES } from '@/constants/cities';
 import { AppLoader } from '@/components/app-loader';
 
@@ -525,10 +522,10 @@ export default function ProfileScreen() {
 
                     <View style={styles.row}>
                         <View style={styles.labelRow}>
-                            <IconSymbol 
-                                name="person.fill" 
-                                size={14} 
-                                color={profileGender === 'men' ? '#3B82F6' : profileGender === 'women' ? '#EC4899' : '#94A3B8'} 
+                            <IconSymbol
+                                name="person.fill"
+                                size={14}
+                                color={profileGender === 'men' ? '#3B82F6' : profileGender === 'women' ? '#EC4899' : '#94A3B8'}
                             />
                             <Text style={[styles.label, { color: subtextColor }]}>Gender</Text>
                         </View>
@@ -751,16 +748,16 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
 
                     {showCityPicker && (
-                        <View style={{ 
-                            backgroundColor: `${subtextColor}05`, 
-                            borderRadius: 12, 
+                        <View style={{
+                            backgroundColor: `${subtextColor}05`,
+                            borderRadius: 12,
                             marginTop: 8,
                             maxHeight: 250,
                             borderWidth: 1,
                             borderColor: `${borderColor}50`,
                             padding: 8
                         }}>
-                             <BottomSheetTextInput
+                            <BottomSheetTextInput
                                 style={[styles.input, { height: 44, marginBottom: 8, borderColor: `${borderColor}30`, fontSize: 14, backgroundColor: cardColor }]}
                                 placeholder="Search city..."
                                 placeholderTextColor={subtextColor}
@@ -783,8 +780,8 @@ export default function ProfileScreen() {
                                         }}
                                         onPress={() => selectCity(c)}
                                     >
-                                        <Text style={{ 
-                                            fontSize: 15, 
+                                        <Text style={{
+                                            fontSize: 15,
                                             color: city === c ? primaryColor : textColor,
                                             fontWeight: city === c ? '700' : '400'
                                         }}>{c}</Text>

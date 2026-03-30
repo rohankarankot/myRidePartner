@@ -6,6 +6,11 @@ export class CreateTripChatMessageDto {
   @ApiProperty({ example: 'I am five minutes away.' })
   @IsString()
   message: string;
+
+  @ApiPropertyOptional({ example: 'msg_abc123' })
+  @IsOptional()
+  @IsString()
+  replyToDocumentId?: string;
 }
 
 export class GetTripChatMessagesQueryDto {

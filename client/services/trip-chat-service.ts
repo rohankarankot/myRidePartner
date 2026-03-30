@@ -23,9 +23,14 @@ class TripChatService {
         return data;
     }
 
-    async sendMessage(tripDocumentId: string, message: string): Promise<TripChatMessage> {
+    async sendMessage(
+        tripDocumentId: string,
+        message: string,
+        options?: { replyToDocumentId?: string }
+    ): Promise<TripChatMessage> {
         const { data } = await apiClient.post<TripChatMessage>(`/trips/${tripDocumentId}/chat/messages`, {
             message,
+            replyToDocumentId: options?.replyToDocumentId,
         });
         return data;
     }

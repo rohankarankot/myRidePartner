@@ -248,12 +248,16 @@ model TripChatMessage {
   chat       TripChat  @relation(fields: [chatId], references: [id], onDelete: Cascade)
   senderId   Int
   sender     User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyToId  Int?
+  replyTo    TripChatMessage?  @relation("TripChatMessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies    TripChatMessage[] @relation("TripChatMessageReplies")
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
   @@index([chatId, createdAt])
   @@index([senderId])
+  @@index([replyToId])
 }
 
 model UserReport {

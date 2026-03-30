@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, AppState, Linking, PanResponder, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
@@ -52,22 +53,51 @@ const parseLocationMessage = (value: string): ParsedLocationMessage | null => {
 const buildLocationMessage = (payload: ParsedLocationMessage) =>
     `${LOCATION_MESSAGE_PREFIX}${JSON.stringify(payload)}`;
 
-const toGiftedMessage = (message: TripChatMessage): IMessage => ({
+type ReplyPreview = NonNullable<TripChatMessage['replyTo']>;
+
+type ChatGiftedMessage = IMessage & {
+    replyTo?: ReplyPreview | null;
+};
+
+const getSenderDisplayName = (sender?: TripChatMessage['sender'] | ReplyPreview['sender']) =>
+    sender?.userProfile?.fullName || sender?.username || 'Rider';
+
+const getReplyPreviewText = (message?: string) => {
+    const locationPayload = message ? parseLocationMessage(message) : null;
+    if (locationPayload) {
+        return 'Shared a location';
+    }
+
+    return message || '';
+};
+
+const toReplyPreview = (message: TripChatMessage): ReplyPreview => ({
+    documentId: message.documentId,
+    message: message.message,
+    createdAt: message.createdAt,
+    sender: message.sender,
+});
+
+const toGiftedMessage = (message: TripChatMessage): ChatGiftedMessage => ({
     _id: message.documentId,
     text: message.message,
     createdAt: new Date(message.createdAt),
     user: {
         _id: String(message.sender.id),
-        name: message.sender.userProfile?.fullName || message.sender.username || 'Rider',
+        name: getSenderDisplayName(message.sender),
         avatar: typeof message.sender.userProfile?.avatar === 'string'
             ? message.sender.userProfile.avatar
             : message.sender.userProfile?.avatar?.url,
     },
+    replyTo: message.replyTo ?? null,
     sent: !message.documentId.startsWith('optimistic-'),
     pending: message.documentId.startsWith('optimistic-'),
 });
 
-const fromGiftedMessage = (message: IMessage, fallbackUser: { id: number; username?: string; email?: string }) => ({
+const fromGiftedMessage = (
+    message: ChatGiftedMessage,
+    fallbackUser: { id: number; username?: string; email?: string }
+): TripChatMessage => ({
     id: -1,
     documentId: String(message._id),
     message: message.text,
@@ -85,6 +115,7 @@ const fromGiftedMessage = (message: IMessage, fallbackUser: { id: number; userna
         publishedAt: new Date().toISOString(),
         userProfile: undefined,
     },
+    replyTo: message.replyTo ?? null,
 });
 
 const MESSAGE_PAGE_SIZE = 40;
@@ -126,6 +157,118 @@ const updatePaginatedMessages = (
     };
 };
 
+type MessageSwipeReplyProps = {
+    children: React.ReactNode;
+    isCurrentUser: boolean;
+    primaryColor: string;
+    onReply: () => void;
+};
+
+function MessageSwipeReply({ children, isCurrentUser, primaryColor, onReply }: MessageSwipeReplyProps) {
+    const translateX = useRef(new Animated.Value(0)).current;
+    const hasTriggeredReplyRef = useRef(false);
+    const swipeDistance = 72;
+    const replyThreshold = 44;
+
+    const resetPosition = () => {
+        Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 140,
+            friction: 12,
+        }).start(() => {
+            hasTriggeredReplyRef.current = false;
+        });
+    };
+
+    const panResponder = useRef(
+        PanResponder.create({
+            onMoveShouldSetPanResponder: (_event, gestureState) => {
+                const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.4;
+                const isReplyDirection = isCurrentUser ? gestureState.dx < -12 : gestureState.dx > 12;
+                return isHorizontalSwipe && isReplyDirection;
+            },
+            onPanResponderMove: (_event, gestureState) => {
+                const rawDx = isCurrentUser ? -gestureState.dx : gestureState.dx;
+                const nextTranslate = Math.max(0, Math.min(rawDx, swipeDistance));
+                translateX.setValue(isCurrentUser ? -nextTranslate : nextTranslate);
+
+                if (!hasTriggeredReplyRef.current && nextTranslate >= replyThreshold) {
+                    hasTriggeredReplyRef.current = true;
+                    void Haptics.selectionAsync();
+                }
+            },
+            onPanResponderRelease: (_event, gestureState) => {
+                const rawDx = isCurrentUser ? -gestureState.dx : gestureState.dx;
+                if (rawDx >= replyThreshold) {
+                    onReply();
+                }
+                resetPosition();
+            },
+            onPanResponderTerminate: resetPosition,
+        })
+    ).current;
+
+    const iconTranslate = translateX.interpolate({
+        inputRange: isCurrentUser ? [-swipeDistance, 0] : [0, swipeDistance],
+        outputRange: isCurrentUser ? [0, 12] : [-12, 0],
+        extrapolate: 'clamp',
+    });
+
+    const iconOpacity = translateX.interpolate({
+        inputRange: isCurrentUser ? [-swipeDistance, -10, 0] : [0, 10, swipeDistance],
+        outputRange: [0, 0.65, 1],
+        extrapolate: 'clamp',
+    });
+
+    return (
+        <View style={styles.swipeRow}>
+            {!isCurrentUser ? (
+                <Animated.View
+                    pointerEvents="none"
+                    style={[
+                        styles.replyCue,
+                        styles.replyCueLeft,
+                        {
+                            opacity: iconOpacity,
+                            transform: [{ translateX: iconTranslate }],
+                        },
+                    ]}
+                >
+                    <View style={[styles.replyCueIcon, { backgroundColor: `${primaryColor}16` }]}>
+                        <IconSymbol name="arrowshape.turn.up.left.fill" size={15} color={primaryColor} />
+                    </View>
+                </Animated.View>
+            ) : null}
+            <Animated.View
+                {...panResponder.panHandlers}
+                style={{
+                    transform: [{ translateX }],
+                }}
+            >
+                {children}
+            </Animated.View>
+            {isCurrentUser ? (
+                <Animated.View
+                    pointerEvents="none"
+                    style={[
+                        styles.replyCue,
+                        styles.replyCueRight,
+                        {
+                            opacity: iconOpacity,
+                            transform: [{ translateX: iconTranslate }],
+                        },
+                    ]}
+                >
+                    <View style={[styles.replyCueIcon, { backgroundColor: `${primaryColor}16` }]}>
+                        <IconSymbol name="arrowshape.turn.up.left.fill" size={15} color={primaryColor} />
+                    </View>
+                </Animated.View>
+            ) : null}
+        </View>
+    );
+}
+
 export default function TripChatScreen() {
     const { tripId } = useLocalSearchParams<{ tripId: string }>();
     const { user } = useAuth();
@@ -135,7 +278,8 @@ export default function TripChatScreen() {
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [isSendingLocation, setIsSendingLocation] = useState(false);
-    const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
+    const [replyingTo, setReplyingTo] = useState<TripChatMessage | null>(null);
+    const [typingUsers, setTypingUsers] = useState<{ userId: number; userName: string }[]>([]);
     const isTypingRef = useRef(false);
     const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isChatScreenActiveRef = useRef(false);
@@ -212,7 +356,7 @@ export default function TripChatScreen() {
             router.replace(`/trip/${tripId}`);
         };
 
-        const handleTypingUpdated = (data: { tripDocumentId: string; typingUsers: Array<{ userId: number; userName: string }> }) => {
+        const handleTypingUpdated = (data: { tripDocumentId: string; typingUsers: { userId: number; userName: string }[] }) => {
             if (data.tripDocumentId !== tripId) return;
 
             setTypingUsers(
@@ -358,9 +502,20 @@ export default function TripChatScreen() {
         }
     };
 
-    const handleSend = async (outgoingMessages: IMessage[] = []) => {
+    const triggerReply = (message: ChatGiftedMessage) => {
+        const sourceMessage = messages.find((item) => item.documentId === String(message._id));
+        if (!sourceMessage) {
+            return;
+        }
+
+        setReplyingTo(sourceMessage);
+        void Haptics.selectionAsync();
+    };
+
+    const handleSend = async (outgoingMessages: ChatGiftedMessage[] = []) => {
         const outgoing = outgoingMessages[0];
         const trimmedMessage = outgoing?.text?.trim();
+        const activeReply = replyingTo;
 
         if (!tripId || !user || !trimmedMessage || isSending) return;
 
@@ -375,6 +530,7 @@ export default function TripChatScreen() {
                 _id: `optimistic-${Date.now()}`,
                 text: trimmedMessage,
                 createdAt: new Date(),
+                replyTo: activeReply ? toReplyPreview(activeReply) : null,
             },
             user
         );
@@ -387,10 +543,13 @@ export default function TripChatScreen() {
         );
 
         setComposerText('');
+        setReplyingTo(null);
         setIsSending(true);
 
         try {
-            const createdMessage = await tripChatService.sendMessage(tripId, trimmedMessage);
+            const createdMessage = await tripChatService.sendMessage(tripId, trimmedMessage, {
+                replyToDocumentId: activeReply?.documentId,
+            });
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
                     oldMessages.map((item) =>
@@ -406,6 +565,7 @@ export default function TripChatScreen() {
             );
 
             setComposerText(trimmedMessage);
+            setReplyingTo(activeReply ?? null);
             Toast.show({
                 type: 'error',
                 text1: 'Message Failed',
@@ -421,6 +581,7 @@ export default function TripChatScreen() {
             return;
         }
 
+        const activeReply = replyingTo;
         setIsSendingLocation(true);
 
         try {
@@ -454,6 +615,7 @@ export default function TripChatScreen() {
                         _id: String(user.id),
                         name: user.username || 'You',
                     },
+                    replyTo: activeReply ? toReplyPreview(activeReply) : null,
                 },
                 user
             );
@@ -465,7 +627,11 @@ export default function TripChatScreen() {
                 ])
             );
 
-            const createdMessage = await tripChatService.sendMessage(tripId, locationMessage);
+            setReplyingTo(null);
+
+            const createdMessage = await tripChatService.sendMessage(tripId, locationMessage, {
+                replyToDocumentId: activeReply?.documentId,
+            });
 
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
@@ -481,6 +647,7 @@ export default function TripChatScreen() {
                 text2: 'Riders can now open your location in Google Maps.',
             });
         } catch {
+            setReplyingTo(activeReply ?? null);
             Toast.show({
                 type: 'error',
                 text1: 'Location Share Failed',
@@ -506,8 +673,48 @@ export default function TripChatScreen() {
                     _id: String(user?.id || ''),
                     name: user?.username || 'You',
                 },
+                replyTo: replyingTo
+                    ? toReplyPreview(replyingTo)
+                    : null,
             },
         ]);
+    };
+
+    const renderReplySnippet = (replyTo?: ReplyPreview | null, isCurrentUser?: boolean) => {
+        if (!replyTo) {
+            return null;
+        }
+
+        return (
+            <View
+                style={[
+                    styles.replySnippet,
+                    {
+                        backgroundColor: isCurrentUser ? 'rgba(255,255,255,0.14)' : `${primaryColor}14`,
+                        borderLeftColor: isCurrentUser ? 'rgba(255,255,255,0.78)' : primaryColor,
+                    },
+                ]}
+            >
+                <Text
+                    numberOfLines={1}
+                    style={[
+                        styles.replySnippetAuthor,
+                        { color: isCurrentUser ? '#FFFFFF' : primaryColor },
+                    ]}
+                >
+                    {getSenderDisplayName(replyTo.sender)}
+                </Text>
+                <Text
+                    numberOfLines={2}
+                    style={[
+                        styles.replySnippetText,
+                        { color: isCurrentUser ? 'rgba(255,255,255,0.86)' : subtextColor },
+                    ]}
+                >
+                    {getReplyPreviewText(replyTo.message)}
+                </Text>
+            </View>
+        );
     };
 
     return (
@@ -606,52 +813,49 @@ export default function TripChatScreen() {
                         }}
                         renderBubble={(props: any) => (
                             (() => {
-                                const locationPayload = parseLocationMessage(props.currentMessage?.text || '');
+                                const currentMessage = props.currentMessage as ChatGiftedMessage | undefined;
+                                const locationPayload = parseLocationMessage(currentMessage?.text || '');
+                                const isCurrentUser = String(currentMessage?.user?._id) === String(user?.id);
 
-                                if (locationPayload) {
-                                    const isCurrentUser = String(props.currentMessage?.user?._id) === String(user?.id);
-
-                                    return (
-                                        <TouchableOpacity
-                                            activeOpacity={0.85}
-                                            onPress={() => openSharedLocation(locationPayload)}
-                                            style={[
-                                                styles.locationBubble,
-                                                {
-                                                    alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                                                    backgroundColor: isCurrentUser ? primaryColor : cardColor,
-                                                    borderColor,
-                                                },
-                                            ]}
-                                        >
-                                            <View style={styles.locationBubbleHeader}>
-                                                <IconSymbol
-                                                    name="location.fill"
-                                                    size={18}
-                                                    color={isCurrentUser ? '#FFFFFF' : primaryColor}
-                                                />
-                                                <Text
-                                                    style={[
-                                                        styles.locationBubbleTitle,
-                                                        { color: isCurrentUser ? '#FFFFFF' : textColor },
-                                                    ]}
-                                                >
-                                                    {locationPayload.label}
-                                                </Text>
-                                            </View>
+                                const bubbleContent = locationPayload ? (
+                                    <TouchableOpacity
+                                        activeOpacity={0.85}
+                                        onPress={() => openSharedLocation(locationPayload)}
+                                        style={[
+                                            styles.locationBubble,
+                                            {
+                                                alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                backgroundColor: isCurrentUser ? primaryColor : cardColor,
+                                                borderColor,
+                                            },
+                                        ]}
+                                    >
+                                        {renderReplySnippet(currentMessage?.replyTo, isCurrentUser)}
+                                        <View style={styles.locationBubbleHeader}>
+                                            <IconSymbol
+                                                name="location.fill"
+                                                size={18}
+                                                color={isCurrentUser ? '#FFFFFF' : primaryColor}
+                                            />
                                             <Text
                                                 style={[
-                                                    styles.locationBubbleSubtitle,
-                                                    { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
+                                                    styles.locationBubbleTitle,
+                                                    { color: isCurrentUser ? '#FFFFFF' : textColor },
                                                 ]}
                                             >
-                                                Tap to open in Google Maps
+                                                {locationPayload.label}
                                             </Text>
-                                        </TouchableOpacity>
-                                    );
-                                }
-
-                                return (
+                                        </View>
+                                        <Text
+                                            style={[
+                                                styles.locationBubbleSubtitle,
+                                                { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
+                                            ]}
+                                        >
+                                            Tap to open in Google Maps
+                                        </Text>
+                                    </TouchableOpacity>
+                                ) : (
                                     <Bubble
                                         {...props}
                                         wrapperStyle={{
@@ -662,8 +866,20 @@ export default function TripChatScreen() {
                                             right: { color: '#FFFFFF' },
                                             left: { color: textColor },
                                         }}
+                                        renderCustomView={() => renderReplySnippet(currentMessage?.replyTo, isCurrentUser)}
+                                        customViewPosition="top"
                                     />
                                 );
+
+                                return currentMessage ? (
+                                    <MessageSwipeReply
+                                        isCurrentUser={isCurrentUser}
+                                        primaryColor={primaryColor}
+                                        onReply={() => triggerReply(currentMessage)}
+                                    >
+                                        {bubbleContent}
+                                    </MessageSwipeReply>
+                                ) : bubbleContent;
                             })()
                         )}
                         renderInputToolbar={(props: any) => (
@@ -686,16 +902,36 @@ export default function TripChatScreen() {
                                         />
                                     </TouchableOpacity>
                                 ) : null}
-                                <InputToolbar
-                                    {...props}
-                                    containerStyle={[
-                                        styles.toolbar,
-                                        {
-                                            backgroundColor,
-                                        },
-                                    ]}
-                                    primaryStyle={styles.toolbarPrimary}
-                                />
+                                <View style={styles.toolbarStack}>
+                                    {replyingTo ? (
+                                        <View style={[styles.replyComposerCard, { backgroundColor: cardColor, borderColor }]}>
+                                            <View style={styles.replyComposerContent}>
+                                                <Text style={[styles.replyComposerTitle, { color: primaryColor }]}>
+                                                    Replying to {getSenderDisplayName(replyingTo.sender)}
+                                                </Text>
+                                                <Text numberOfLines={2} style={[styles.replyComposerText, { color: subtextColor }]}>
+                                                    {getReplyPreviewText(replyingTo.message)}
+                                                </Text>
+                                            </View>
+                                            <TouchableOpacity
+                                                onPress={() => setReplyingTo(null)}
+                                                style={styles.replyComposerClose}
+                                            >
+                                                <IconSymbol name="xmark" size={16} color={subtextColor} />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : null}
+                                    <InputToolbar
+                                        {...props}
+                                        containerStyle={[
+                                            styles.toolbar,
+                                            {
+                                                backgroundColor,
+                                            },
+                                        ]}
+                                        primaryStyle={styles.toolbarPrimary}
+                                    />
+                                </View>
                                 <TouchableOpacity
                                     onPress={handlePressSend}
                                     disabled={!composerText.trim() || isSending}
@@ -795,11 +1031,37 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
         paddingBottom: 8,
     },
+    swipeRow: {
+        position: 'relative',
+        overflow: 'visible',
+    },
+    replyCue: {
+        position: 'absolute',
+        top: '50%',
+        marginTop: -17,
+    },
+    replyCueLeft: {
+        left: 6,
+    },
+    replyCueRight: {
+        right: 6,
+    },
+    replyCueIcon: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     toolbarRow: {
         flexDirection: 'row',
         alignItems: 'flex-end',
         paddingHorizontal: 8,
         gap: 8,
+    },
+    toolbarStack: {
+        flex: 1,
+        overflow: 'visible',
     },
     locationActionButton: {
         width: 38,
@@ -816,6 +1078,22 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderWidth: 1,
         marginBottom: 4,
+    },
+    replySnippet: {
+        borderLeftWidth: 3,
+        borderRadius: 14,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        marginBottom: 8,
+    },
+    replySnippetAuthor: {
+        fontSize: 12,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    replySnippetText: {
+        fontSize: 12,
+        lineHeight: 16,
     },
     locationBubbleHeader: {
         flexDirection: 'row',
@@ -853,6 +1131,40 @@ const styles = StyleSheet.create({
         paddingHorizontal: 0,
         paddingBottom: 6,
         flex: 1,
+        zIndex: 1,
+    },
+    replyComposerCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: 18,
+        paddingLeft: 12,
+        paddingRight: 8,
+        paddingVertical: 10,
+        marginTop: 0,
+        marginBottom: 6,
+        zIndex: 2,
+        elevation: 2,
+    },
+    replyComposerContent: {
+        flex: 1,
+        paddingRight: 8,
+    },
+    replyComposerTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        marginBottom: 3,
+    },
+    replyComposerText: {
+        fontSize: 13,
+        lineHeight: 18,
+    },
+    replyComposerClose: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     toolbarPrimary: {
         alignItems: 'flex-end',

@@ -7,7 +7,8 @@ describe('TripChatsService', () => {
     trip: { findUnique: jest.fn() },
     joinRequest: { findFirst: jest.fn(), findMany: jest.fn() },
     tripChat: { create: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
-    tripChatMessage: { findMany: jest.fn(), create: jest.fn() },
+    tripChatMessage: { findMany: jest.fn(), create: jest.fn(), findUnique: jest.fn() },
+    userBlock: { findFirst: jest.fn() },
   } as any;
 
   const eventsGateway = {
@@ -36,6 +37,8 @@ describe('TripChatsService', () => {
     prisma.joinRequest.findFirst.mockResolvedValue(null);
     prisma.joinRequest.findMany.mockResolvedValue([]);
     prisma.tripChat.findUnique.mockResolvedValue(null);
+    prisma.userBlock.findFirst.mockResolvedValue(null);
+    prisma.tripChatMessage.findUnique.mockResolvedValue(null);
   });
 
   it('allows the captain to access the trip chat', async () => {
@@ -82,15 +85,15 @@ describe('TripChatsService', () => {
       sender: { id: 22, username: 'rider', email: 'rider@example.com', userProfile: null },
     });
 
-    const result = await service.createMessage('trip-123', 22, ' Hello ');
+    const result = await service.createMessage('trip-123', 22, { message: ' Hello ' });
 
     expect(result.message).toBe('Hello');
     expect(eventsGateway.emitToChatRoom).toHaveBeenCalledWith('trip-123', 'chat_message_created', result);
   });
 
   it('rejects missing or empty messages with a bad request error', async () => {
-    await expect(service.createMessage('trip-123', 10, undefined as unknown as string)).rejects.toBeInstanceOf(BadRequestException);
-    await expect(service.createMessage('trip-123', 10, '   ')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createMessage('trip-123', 10, { message: undefined as unknown as string })).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.createMessage('trip-123', 10, { message: '   ' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('sends chat notifications only to recipients not actively viewing the trip chat', async () => {
@@ -105,7 +108,7 @@ describe('TripChatsService', () => {
     prisma.joinRequest.findMany.mockResolvedValueOnce([{ passengerId: 22 }, { passengerId: 33 }]);
     eventsGateway.isUserActivelyViewingChat.mockImplementation((_tripId: string, userId: number) => userId === 22);
 
-    await service.createMessage('trip-123', 10, 'Hello there');
+    await service.createMessage('trip-123', 10, { message: 'Hello there' });
 
     expect(notificationsService.sendPushOnly).toHaveBeenCalledTimes(1);
     expect(notificationsService.sendPushOnly).toHaveBeenCalledWith(
@@ -130,5 +133,49 @@ describe('TripChatsService', () => {
     prisma.trip.findUnique.mockResolvedValueOnce(null);
 
     await expect(service.getChatAccess('missing-trip', 10)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('attaches the replied-to message when sending a reply', async () => {
+    prisma.tripChat.create.mockResolvedValueOnce({ id: 5, documentId: 'chat-1' });
+    prisma.tripChatMessage.findUnique.mockResolvedValueOnce({
+      id: 3,
+      chatId: 5,
+      documentId: 'msg-parent',
+      message: 'Original message',
+      createdAt: new Date('2026-03-21T09:58:00.000Z'),
+      sender: { id: 10, username: 'captain', email: 'captain@example.com', userProfile: null },
+    });
+    prisma.tripChatMessage.create.mockResolvedValueOnce({
+      id: 7,
+      documentId: 'msg-1',
+      message: 'Reply message',
+      createdAt: new Date('2026-03-21T10:00:00.000Z'),
+      sender: { id: 10, username: 'captain', email: 'captain@example.com', userProfile: null },
+      replyTo: {
+        documentId: 'msg-parent',
+        message: 'Original message',
+        createdAt: new Date('2026-03-21T09:58:00.000Z'),
+        sender: { id: 10, username: 'captain', email: 'captain@example.com', userProfile: null },
+      },
+    });
+
+    const result = await service.createMessage('trip-123', 10, {
+      message: 'Reply message',
+      replyToDocumentId: 'msg-parent',
+    });
+
+    expect(prisma.tripChatMessage.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          replyToId: 3,
+        }),
+      }),
+    );
+    expect(result.replyTo).toEqual(
+      expect.objectContaining({
+        documentId: 'msg-parent',
+        message: 'Original message',
+      }),
+    );
   });
 });
