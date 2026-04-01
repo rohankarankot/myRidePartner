@@ -2,6 +2,7 @@ import { PropsWithChildren } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import Toast from 'react-native-toast-message';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
@@ -19,15 +20,17 @@ export function AppProviders({ children }: PropsWithChildren) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <PushNotificationHandler />
-          <SocketHandler />
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <BottomSheetModalProvider>
-              {children}
-              <StatusBar style="auto" />
-              <Toast position="bottom" bottomOffset={80} />
-            </BottomSheetModalProvider>
-          </ThemeProvider>
+          <KeyboardProvider>
+            <PushNotificationHandler />
+            <SocketHandler />
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <BottomSheetModalProvider>
+                {children}
+                <StatusBar style="auto" />
+                <Toast position="bottom" bottomOffset={80} />
+              </BottomSheetModalProvider>
+            </ThemeProvider>
+          </KeyboardProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
