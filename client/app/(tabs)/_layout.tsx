@@ -112,7 +112,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      screenOptions={({ navigation }) => ({
+      screenOptions={() => ({
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         tabBarShowLabel: false,
         headerShown: true,
@@ -127,15 +127,7 @@ export default function TabLayout() {
         headerTitleAlign: 'center',
         headerRight: () => <HeaderRight type="notifications" />,
         headerBackTitleVisible: false,
-        headerLeft: ({ tintColor, canGoBack }) =>
-          canGoBack || navigation.canGoBack() ? (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <IconSymbol name="chevron.left" size={22} color={(tintColor as string) || currentColors.text} />
-            </TouchableOpacity>
-          ) : null,
+        headerLeft: () => null,
       })}>
       <Tabs.Screen
         name="index"

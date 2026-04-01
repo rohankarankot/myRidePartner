@@ -15,6 +15,18 @@ import { CustomAlert } from '@/components/CustomAlert';
 
 type FormErrors = Partial<Record<'from' | 'to' | 'date' | 'time' | 'seats' | 'price' | 'description', string>>;
 
+const getStartOfDay = (value: Date) => {
+    const next = new Date(value);
+    next.setHours(0, 0, 0, 0);
+    return next;
+};
+
+const addDays = (value: Date, days: number) => {
+    const next = new Date(value);
+    next.setDate(next.getDate() + days);
+    return next;
+};
+
 const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType = 'default', editable = true, onPress, multiline = false, numberOfLines = 1, error }: {
     label: string,
     placeholder: string,
@@ -62,10 +74,13 @@ const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType
 };
 
 export default function CreateScreen() {
+    const today = getStartOfDay(new Date());
+    const maxTripDate = addDays(today, 2);
+
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
 
-    const [date, setDate] = useState(new Date());
+    const [date, setDate] = useState(today);
     const [time, setTime] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -81,7 +96,7 @@ export default function CreateScreen() {
     const [errors, setErrors] = useState<FormErrors>({});
 
     const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-        const currentDate = selectedDate || date;
+        const currentDate = getStartOfDay(selectedDate || date);
         setShowDatePicker(Platform.OS === 'ios');
         setDate(currentDate);
         setErrors((current) => ({ ...current, date: undefined }));
@@ -109,7 +124,7 @@ export default function CreateScreen() {
         const trimmedDescription = description.trim();
         const numericSeats = Number(seats);
         const numericPrice = Number(price);
-        const selectedDateString = formatDate(date);
+        const selectedDate = getStartOfDay(date);
         const selectedDateTime = new Date(date);
         selectedDateTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
         const now = new Date();
@@ -126,8 +141,8 @@ export default function CreateScreen() {
             nextErrors.to = 'Destination must be 20 characters or less.';
         }
 
-        if (selectedDateString !== formatDate(new Date())) {
-            nextErrors.date = 'Ride date must be today.';
+        if (selectedDate < today || selectedDate > maxTripDate) {
+            nextErrors.date = 'Ride date must be within the next 3 days.';
         }
 
         if (selectedDateTime.getTime() <= now.getTime()) {
@@ -264,7 +279,7 @@ export default function CreateScreen() {
     const resetForm = () => {
         setFrom('');
         setTo('');
-        setDate(new Date());
+        setDate(today);
         setTime(new Date());
         setSeats('');
         setPrice('');
@@ -364,8 +379,8 @@ export default function CreateScreen() {
                                 mode="date"
                                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                                 onChange={onDateChange}
-                                minimumDate={new Date()}
-                                maximumDate={new Date()}
+                                minimumDate={today}
+                                maximumDate={maxTripDate}
                             />
                         )}
 
@@ -463,7 +478,9 @@ export default function CreateScreen() {
                             </View>
                         </View>
                     </View>
-
+                    <Text style={[styles.disclaimer, { color: subtextColor }]}>
+                        By publishing, you agree to share the ride cost fairly with co-passengers.
+                    </Text>
                     <TouchableOpacity
                         style={[styles.publishButton, { backgroundColor: primaryColor, opacity: publishMutation.isPending ? 0.7 : 1 }]}
                         onPress={handlePublish}
@@ -476,9 +493,7 @@ export default function CreateScreen() {
                         )}
                     </TouchableOpacity>
 
-                    <Text style={[styles.disclaimer, { color: subtextColor }]}>
-                        By publishing, you agree to share the ride cost fairly with co-passengers.
-                    </Text>
+
                 </ScrollView>
             </KeyboardAvoidingView>
         </>
@@ -573,6 +588,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 10,
         elevation: 4,
+        marginTop: 20,
     },
     publishButtonText: {
         color: '#fff',
@@ -580,7 +596,6 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     disclaimer: {
-        marginTop: 20,
         textAlign: 'center',
         fontSize: 12,
         paddingHorizontal: 20,
