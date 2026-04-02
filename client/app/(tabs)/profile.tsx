@@ -11,7 +11,6 @@ import {
     ActivityIndicator,
     RefreshControl,
     Modal,
-    useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserProfile } from '@/hooks/use-user-profile';
@@ -354,7 +353,6 @@ export default function ProfileScreen() {
     };
 
     const isPending = createProfileMutation.isPending || updateProfileMutation.isPending;
-    const colorScheme = useColorScheme();
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
@@ -486,7 +484,7 @@ export default function ProfileScreen() {
 
                     <TouchableOpacity
                         style={styles.row}
-                        onPress={() => router.navigate({ pathname: '/(tabs)/activity', params: { tab: 'completed' } })}
+                        onPress={() => router.push({ pathname: '/my-activity', params: { tab: 'completed' } })}
                         activeOpacity={0.6}
                     >
                         <View style={styles.labelRow}>
@@ -603,6 +601,22 @@ export default function ProfileScreen() {
 
                     <TouchableOpacity
                         style={styles.actionRow}
+                        onPress={() => router.push('/my-activity')}
+                        activeOpacity={0.6}
+                    >
+                        <View style={styles.actionLeft}>
+                            <View style={[styles.actionIcon, { backgroundColor: `${primaryColor}15` }]}>
+                                <IconSymbol name="flag.checkered" size={16} color={primaryColor} />
+                            </View>
+                            <Text style={[styles.actionLabel, { color: textColor }]}>My Activity</Text>
+                        </View>
+                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+                    <TouchableOpacity
+                        style={styles.actionRow}
                         onPress={() => router.push('/notifications')}
                         activeOpacity={0.6}
                     >
@@ -647,7 +661,7 @@ export default function ProfileScreen() {
                         </View>
                         <Text style={[styles.signOutTitle, { color: textColor }]}>Sign Out?</Text>
                         <Text style={[styles.signOutSubtitle, { color: subtextColor }]}>
-                            You'll need to log back in to access your account.
+                            You&apos;ll need to log back in to access your account.
                         </Text>
                         <View style={styles.signOutActions}>
                             <TouchableOpacity

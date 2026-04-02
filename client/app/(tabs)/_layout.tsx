@@ -21,8 +21,6 @@ import ChatsOutlineIcon from '@/assets/tab-icons/chats-outline.svg';
 import ChatsFilledIcon from '@/assets/tab-icons/chats-filled.svg';
 import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
 import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
-import ActivityOutlineIcon from '@/assets/tab-icons/activity-outline.svg';
-import ActivityFilledIcon from '@/assets/tab-icons/activity-filled.svg';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -150,16 +148,7 @@ export default function TabLayout() {
               : <ChatsOutlineIcon width={30} height={30} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="community"
-        options={{
-          title: 'Community',
-          headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="person.2.fill" size={28} color={color} />
-          ),
-        }}
-      />
+
       <Tabs.Screen
         name="create"
         options={{
@@ -171,13 +160,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="community"
+        options={{
+          title: 'Community',
+          headerShown: false,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol name="person.2.fill" size={28} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="activity"
         options={{
-          title: 'Activity',
-          tabBarIcon: ({ color, focused }) =>
-            focused
-              ? <ActivityFilledIcon width={30} height={30} color={color} />
-              : <ActivityOutlineIcon width={30} height={30} color={color} />,
+          href: null,
         }}
       />
 
