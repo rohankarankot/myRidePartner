@@ -85,6 +85,7 @@ model User {
   ratingsGiven       Rating[]       @relation("Rater")
   ratingsReceived    Rating[]       @relation("Ratee")
   sentChatMessages   TripChatMessage[]
+  sentPublicChatMessages PublicChatMessage[]
   reportsGiven       UserReport[]   @relation("Reporter")
   reportsReceived    UserReport[]   @relation("ReportedUser")
   blockedUsers       UserBlock[]    @relation("Blocker")
@@ -258,6 +259,21 @@ model TripChatMessage {
   @@index([chatId, createdAt])
   @@index([senderId])
   @@index([replyToId])
+}
+
+model PublicChatMessage {
+  id         Int      @id @default(autoincrement())
+  documentId String   @unique @default(uuid())
+  message    String
+
+  senderId   Int
+  sender     User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([senderId])
 }
 
 model UserReport {

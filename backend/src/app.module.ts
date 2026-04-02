@@ -16,6 +16,7 @@ import { PrismaModule } from './prisma.module';
 import { AdminModule } from './admin/admin.module';
 import { TripChatsModule } from './trip-chats/trip-chats.module';
 import { ReportsModule } from './reports/reports.module';
+import { PublicChatModule } from './public-chat/public-chat.module';
 
 @Module({
   imports: [
@@ -32,10 +33,10 @@ import { ReportsModule } from './reports/reports.module';
     PrismaModule,
     AdminModule,
     TripChatsModule,
+    PublicChatModule,
     ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-

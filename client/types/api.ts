@@ -256,3 +256,49 @@ export interface PaginatedTripChatMessages {
     hasMore: boolean;
     nextCursor: string | null;
 }
+
+export interface PublicChatMessage {
+    id: number;
+    documentId: string;
+    message: string;
+    sender: User & {
+        userProfile?: {
+            avatar?: string | { url: string; formats?: any };
+            fullName?: string;
+        } | null;
+    };
+    createdAt: string;
+}
+
+export interface PaginatedPublicChatMessages {
+    messages: PublicChatMessage[];
+    hasMore: boolean;
+    nextCursor: string | null;
+}
+
+export interface CommunityMember {
+    id: number;
+    username?: string;
+    email: string;
+    userProfile?: {
+        fullName?: string;
+        city?: string;
+        avatar?: string | { url: string; formats?: any };
+    } | null;
+}
+
+export interface PaginatedCommunityMembers {
+    data: CommunityMember[];
+    meta: {
+        pagination: {
+            page: number;
+            pageSize: number;
+            pageCount: number;
+            total: number;
+        };
+    };
+}
+
+export interface CommunityMemberCitiesResponse {
+    data: string[];
+}

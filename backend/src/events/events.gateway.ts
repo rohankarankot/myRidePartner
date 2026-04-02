@@ -190,6 +190,26 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('join_public_chat')
+  handleJoinPublicChat(@ConnectedSocket() client: Socket) {
+    if (!client.data.userId) {
+      return { status: 'error', message: 'Missing user context' };
+    }
+
+    const room = 'public_chat';
+    client.join(room);
+    this.logger.log(`Client ${client.id} joined public chat room ${room}`);
+    return { status: 'joined', room };
+  }
+
+  @SubscribeMessage('leave_public_chat')
+  handleLeavePublicChat(@ConnectedSocket() client: Socket) {
+    const room = 'public_chat';
+    client.leave(room);
+    this.logger.log(`Client ${client.id} left public chat room ${room}`);
+    return { status: 'left', room };
+  }
+
   @SubscribeMessage('chat_typing')
   async handleChatTyping(
     @ConnectedSocket() client: Socket,
@@ -303,6 +323,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = `chat_${tripDocumentId}`;
     this.server.to(room).emit(event, data);
     this.logger.log(`Emitting ${event} to chat room ${room}`);
+  }
+
+  emitToPublicChatRoom(event: string, data: any) {
+    const room = 'public_chat';
+    this.server.to(room).emit(event, data);
+    this.logger.log(`Emitting ${event} to public chat room ${room}`);
   }
 
   isUserActivelyViewingChat(tripDocumentId: string, userId: number) {

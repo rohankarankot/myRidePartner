@@ -178,6 +178,108 @@ export class UsersService {
     return blocks.map((block) => block.blockedUserId);
   }
 
+  async getCommunityMembers(
+    userId: number,
+    options?: { page?: number; pageSize?: number; city?: string },
+  ) {
+    const page = Math.max(1, Number(options?.page ?? 1));
+    const pageSize = Math.min(50, Math.max(1, Number(options?.pageSize ?? 20)));
+    const skip = (page - 1) * pageSize;
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+
+    const where: Prisma.UserWhereInput = {
+      id: {
+        notIn: blockedUserIds,
+      },
+      accountStatus: UserAccountStatus.ACTIVE,
+      userProfile: {
+        is: {
+          city: options?.city
+            ? options.city
+            : {
+                not: null,
+              },
+        },
+      },
+      ...(options?.city
+        ? {}
+        : {
+            NOT: {
+              userProfile: {
+                is: {
+                  city: '',
+                },
+              },
+            },
+          }),
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: [{ createdAt: 'desc' }],
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          userProfile: {
+            select: {
+              fullName: true,
+              city: true,
+              avatar: true,
+            },
+          },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: users,
+      meta: {
+        pagination: {
+          page,
+          pageSize,
+          pageCount: Math.ceil(total / pageSize),
+          total,
+        },
+      },
+    };
+  }
+
+  async getCommunityMemberCities(userId: number) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const profiles = await this.prisma.userProfile.findMany({
+      where: {
+        city: {
+          not: null,
+        },
+        NOT: {
+          city: '',
+        },
+        user: {
+          id: {
+            notIn: blockedUserIds,
+          },
+          accountStatus: UserAccountStatus.ACTIVE,
+        },
+      },
+      select: {
+        city: true,
+      },
+      distinct: ['city'],
+      orderBy: {
+        city: 'asc',
+      },
+    });
+
+    return {
+      data: profiles.map((profile) => profile.city!).filter(Boolean),
+    };
+  }
+
   async blockUser(blockerId: number, blockedUserId: number): Promise<void> {
     if (blockerId === blockedUserId) {
       throw new BadRequestException('You cannot block yourself');

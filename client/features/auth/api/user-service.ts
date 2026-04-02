@@ -1,5 +1,5 @@
 import apiClient from '@/api/api-client';
-import { User, UserAnalytics, UserProfile } from '@/types/api';
+import { CommunityMemberCitiesResponse, PaginatedCommunityMembers, User, UserAnalytics, UserProfile } from '@/types/api';
 
 class UserService {
   async getCurrentUser(): Promise<User> {
@@ -24,6 +24,30 @@ class UserService {
 
   async getBlockedUserIds(): Promise<number[]> {
     const { data } = await apiClient.get<{ data: number[] }>('/users/me/blocks');
+    return data.data;
+  }
+
+  async getCommunityMembers(options?: { page?: number; pageSize?: number; city?: string }): Promise<PaginatedCommunityMembers> {
+    const params = new URLSearchParams();
+    if (options?.page) {
+      params.set('page', String(options.page));
+    }
+    if (options?.pageSize) {
+      params.set('pageSize', String(options.pageSize));
+    }
+    if (options?.city) {
+      params.set('city', options.city);
+    }
+
+    const query = params.toString();
+    const { data } = await apiClient.get<PaginatedCommunityMembers>(
+      `/users/community-members${query ? `?${query}` : ''}`
+    );
+    return data;
+  }
+
+  async getCommunityMemberCities(): Promise<string[]> {
+    const { data } = await apiClient.get<CommunityMemberCitiesResponse>('/users/community-members/cities');
     return data.data;
   }
 

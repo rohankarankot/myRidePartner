@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
@@ -41,6 +41,27 @@ export class UsersController {
   async getMyBlockedUsers(@Req() req: any) {
     const blockedUserIds = await this.usersService.getBlockedUserIds(req.user.id);
     return { data: blockedUserIds };
+  }
+
+  @Get('community-members')
+  @ApiOperation({ summary: 'List community chat members' })
+  async getCommunityMembers(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('city') city?: string,
+  ) {
+    return this.usersService.getCommunityMembers(req.user.id, {
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      city,
+    });
+  }
+
+  @Get('community-members/cities')
+  @ApiOperation({ summary: 'List available cities for community chat members' })
+  async getCommunityMemberCities(@Req() req: any) {
+    return this.usersService.getCommunityMemberCities(req.user.id);
   }
 
   @Post('me/blocks/:blockedUserId')

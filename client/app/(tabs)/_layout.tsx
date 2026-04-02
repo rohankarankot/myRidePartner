@@ -151,6 +151,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="community"
+        options={{
+          title: 'Community',
+          headerShown: false,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol name="person.2.fill" size={28} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="create"
         options={{
           title: 'Publish',

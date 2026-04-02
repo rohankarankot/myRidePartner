@@ -79,6 +79,14 @@ class SocketService {
     this.emit('chat_screen_state', { tripDocumentId: tripId, isActive });
   }
 
+  joinPublicChat() {
+    this.emit('join_public_chat', {});
+  }
+
+  leavePublicChat() {
+    this.emit('leave_public_chat', {});
+  }
+
   isConnected() {
     return this.socket?.connected || false;
   }
