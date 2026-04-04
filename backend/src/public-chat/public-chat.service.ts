@@ -56,6 +56,13 @@ export class PublicChatService {
         sender: {
           select: publicChatSenderSelect,
         },
+        replyTo: {
+          include: {
+            sender: {
+              select: publicChatSenderSelect,
+            },
+          },
+        },
       },
     });
 
@@ -69,6 +76,7 @@ export class PublicChatService {
         message: message.message,
         createdAt: message.createdAt,
         sender: message.sender,
+        replyTo: message.replyTo,
       })),
       hasMore,
       nextCursor: selectedMessages[0]?.documentId ?? null,
@@ -87,14 +95,33 @@ export class PublicChatService {
       throw new BadRequestException('Message cannot be empty');
     }
 
+    let replyToId: number | undefined;
+    if (body.replyToDocumentId) {
+      const referencedMessage = await this.prisma.publicChatMessage.findUnique({
+        where: { documentId: body.replyToDocumentId },
+        select: { id: true },
+      });
+      if (referencedMessage) {
+        replyToId = referencedMessage.id;
+      }
+    }
+
     const message = await this.prisma.publicChatMessage.create({
       data: {
         senderId: userId,
         message: trimmedMessage,
+        replyToId,
       },
       include: {
         sender: {
           select: publicChatSenderSelect,
+        },
+        replyTo: {
+          include: {
+            sender: {
+              select: publicChatSenderSelect,
+            },
+          },
         },
       },
     });
@@ -105,6 +132,7 @@ export class PublicChatService {
       message: message.message,
       createdAt: message.createdAt,
       sender: message.sender,
+      replyTo: message.replyTo,
     };
 
     this.eventsGateway.emitToPublicChatRoom('public_chat_message_created', payload);

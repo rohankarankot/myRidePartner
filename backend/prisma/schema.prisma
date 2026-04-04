@@ -268,12 +268,17 @@ model PublicChatMessage {
 
   senderId   Int
   sender     User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  
+  replyToId  Int?
+  replyTo    PublicChatMessage?  @relation("PublicChatMessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies    PublicChatMessage[] @relation("PublicChatMessageReplies")
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([createdAt])
   @@index([senderId])
+  @@index([replyToId])
 }
 
 model UserReport {

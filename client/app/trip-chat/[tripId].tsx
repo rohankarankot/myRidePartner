@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -214,6 +214,52 @@ export default function TripChatScreen() {
     const isTypingRef = useRef(false);
     const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isChatScreenActiveRef = useRef(false);
+    const flatListRef = useRef<FlatList<any>>(null);
+
+    const scrollToMessage = (messageId: string) => {
+        const index = giftedMessages.findIndex((m) => String(m._id) === String(messageId));
+        
+        if (index === -1) {
+            Toast.show({
+                type: 'info',
+                text1: 'Message not found',
+                text2: "The original message might be too old or deleted.",
+            });
+            return;
+        }
+
+        const list: any = flatListRef.current;
+        if (!list) {
+            Toast.show({
+                type: 'error',
+                text1: 'Scroll Error',
+                text2: "The chat list surface could not be found.",
+            });
+            return;
+        }
+
+        const actualList = 
+            (typeof list.scrollToIndex === 'function' ? list : null) ||
+            (list.flatListRef?.current && typeof list.flatListRef.current.scrollToIndex === 'function' ? list.flatListRef.current : null) ||
+            (list.getNode && typeof list.getNode().scrollToIndex === 'function' ? list.getNode() : null) ||
+            (list._listRef && typeof list._listRef.scrollToIndex === 'function' ? list._listRef : null);
+
+        if (actualList) {
+            try {
+                actualList.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+            } catch (e) {
+                console.log('Failed to scroll:', e);
+                Toast.show({ type: 'error', text1: 'Scroll Error', text2: 'Item is not measured yet.' });
+            }
+        } else {
+            const keys = Object.keys(list).slice(0, 5).join(', ');
+            Toast.show({
+                type: 'error',
+                text1: 'Scroll Error',
+                text2: `Underlying method missing. Available keys: ${keys}`,
+            });
+        }
+    };
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -659,7 +705,11 @@ export default function TripChatScreen() {
                                 const messageColor = isRight ? 'rgba(255,255,255,0.85)' : subtextColor;
 
                                 return (
-                                    <View style={[styles.replyBubbleView, { backgroundColor: bubbleBg }]}>
+                                    <TouchableOpacity 
+                                        activeOpacity={0.8} 
+                                        onPress={() => scrollToMessage(currentMessage.replyTo.documentId)}
+                                        style={[styles.replyBubbleView, { backgroundColor: bubbleBg }]}
+                                    >
                                         <View style={[styles.replyBubbleBar, { backgroundColor: barColor }]} />
                                         <View style={styles.replyBubbleContent}>
                                             <Text style={[styles.replyBubbleName, { color: nameColor }]} numberOfLines={1}>
@@ -669,7 +719,7 @@ export default function TripChatScreen() {
                                                 {currentMessage.replyTo.message}
                                             </Text>
                                         </View>
-                                    </View>
+                                    </TouchableOpacity>
                                 );
                             }
                             return null;
@@ -705,7 +755,23 @@ export default function TripChatScreen() {
                             ],
                         }}
                         listViewProps={{
+                            ref: (r: any) => {
+                                if (r) {
+                                    flatListRef.current = r;
+                                }
+                            },
                             contentContainerStyle: giftedMessages.length === 0 ? styles.emptyList : undefined,
+                            onScrollToIndexFailed: (info: any) => {
+                                const offset = info.averageItemLength * info.index;
+                                if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
+                                    flatListRef.current.scrollToOffset({ offset, animated: true });
+                                    setTimeout(() => {
+                                        if (flatListRef.current && typeof flatListRef.current.scrollToIndex === 'function') {
+                                            flatListRef.current.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
+                                        }
+                                    }, 100);
+                                }
+                            }
                         }}
                         renderBubble={(props: any) => (
                             <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>

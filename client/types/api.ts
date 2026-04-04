@@ -268,6 +268,17 @@ export interface PublicChatMessage {
         } | null;
     };
     createdAt: string;
+    replyTo?: {
+        documentId: string;
+        message: string;
+        createdAt: string;
+        sender: User & {
+            userProfile?: {
+                avatar?: string | { url: string; formats?: any };
+                fullName?: string;
+            } | null;
+        };
+    } | null;
 }
 
 export interface PaginatedPublicChatMessages {

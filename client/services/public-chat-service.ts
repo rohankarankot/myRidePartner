@@ -18,9 +18,13 @@ class PublicChatService {
         return data;
     }
 
-    async sendMessage(message: string): Promise<PublicChatMessage> {
+    async sendMessage(
+        message: string,
+        options?: { replyToDocumentId?: string }
+    ): Promise<PublicChatMessage> {
         const { data } = await apiClient.post<PublicChatMessage>('/public-chat/messages', {
             message,
+            replyToDocumentId: options?.replyToDocumentId,
         });
         return data;
     }

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { InfiniteData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,6 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Toast from 'react-native-toast-message';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { AppLoader } from '@/components/app-loader';
+import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { publicChatService } from '@/services/public-chat-service';
 import { socketService } from '@/services/socket-service';
@@ -20,7 +21,21 @@ import { useAuth } from '@/context/auth-context';
 
 const MESSAGE_PAGE_SIZE = 40;
 
-const toGiftedMessage = (message: PublicChatMessage): IMessage => ({
+interface ExtendedMessage extends IMessage {
+    replyTo?: {
+        documentId: string;
+        message: string;
+        createdAt: string;
+        sender: {
+            id: number;
+            username: string;
+            name: string;
+            avatar?: string;
+        };
+    } | null;
+}
+
+const toGiftedMessage = (message: PublicChatMessage): ExtendedMessage => ({
     _id: message.documentId,
     text: message.message,
     createdAt: new Date(message.createdAt),
@@ -33,9 +48,22 @@ const toGiftedMessage = (message: PublicChatMessage): IMessage => ({
     },
     sent: !message.documentId.startsWith('optimistic-'),
     pending: message.documentId.startsWith('optimistic-'),
+    replyTo: message.replyTo ? {
+        documentId: message.replyTo.documentId,
+        message: message.replyTo.message,
+        createdAt: message.replyTo.createdAt,
+        sender: {
+            id: message.replyTo.sender.id,
+            username: message.replyTo.sender.username,
+            name: message.replyTo.sender.userProfile?.fullName || message.replyTo.sender.username || 'Member',
+            avatar: typeof message.replyTo.sender.userProfile?.avatar === 'string'
+                ? message.replyTo.sender.userProfile?.avatar
+                : message.replyTo.sender.userProfile?.avatar?.url,
+        }
+    } : null,
 });
 
-const fromGiftedMessage = (message: IMessage, fallbackUser: { id: number; username?: string; email?: string }): PublicChatMessage => ({
+const fromGiftedMessage = (message: ExtendedMessage, fallbackUser: { id: number; username?: string; email?: string }): PublicChatMessage => ({
     id: -1,
     documentId: String(message._id),
     message: message.text,
@@ -53,7 +81,61 @@ const fromGiftedMessage = (message: IMessage, fallbackUser: { id: number; userna
         publishedAt: new Date().toISOString(),
         userProfile: undefined,
     },
+    replyTo: message.replyTo ? {
+        documentId: message.replyTo.documentId,
+        message: message.replyTo.message,
+        createdAt: message.replyTo.createdAt,
+        sender: {
+            ...fallbackUser,
+            provider: 'local',
+            confirmed: true,
+            blocked: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            publishedAt: new Date().toISOString(),
+            userProfile: undefined,
+        } as any
+    } : undefined,
 });
+
+const SwipeableMessageBubble = ({ 
+    props, 
+    children, 
+    onSwipe 
+}: { 
+    props: any; 
+    children: React.ReactNode;
+    onSwipe: (message: ExtendedMessage) => void;
+}) => {
+    const swipeableRef = useRef<any>(null);
+    const primaryColor = useThemeColor({}, 'primary');
+
+    const renderSwipeAction = () => (
+        <View style={{ justifyContent: 'center', alignItems: 'center', width: 50 }}>
+            <View style={{ backgroundColor: `${primaryColor}22`, borderRadius: 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center' }}>
+                <IconSymbol name="arrowshape.turn.up.left.fill" size={14} color={primaryColor} />
+            </View>
+        </View>
+    );
+
+    return (
+        <Swipeable
+            ref={swipeableRef}
+            friction={2}
+            leftThreshold={30}
+            rightThreshold={30}
+            containerStyle={{ zIndex: 100, overflow: 'visible' }}
+            renderLeftActions={renderSwipeAction}
+            renderRightActions={renderSwipeAction}
+            onSwipeableWillOpen={() => {
+                onSwipe(props.currentMessage);
+                swipeableRef.current?.close();
+            }}
+        >
+            {children}
+        </Swipeable>
+    );
+};
 
 const mergeUniqueMessages = (messages: PublicChatMessage[]) =>
     messages.filter((item, index, items) =>
@@ -99,6 +181,53 @@ export function CommunityChatScreen() {
     const headerHeight = insets.top + 60;
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
+    const flatListRef = useRef<FlatList<any>>(null);
+
+    const scrollToMessage = (messageId: string) => {
+        const index = giftedMessages.findIndex((m) => String(m._id) === String(messageId));
+        
+        if (index === -1) {
+            Toast.show({
+                type: 'info',
+                text1: 'Message not found',
+                text2: "The original message might be too old or deleted.",
+            });
+            return;
+        }
+
+        const list: any = flatListRef.current;
+        if (!list) {
+            Toast.show({
+                type: 'error',
+                text1: 'Scroll Error',
+                text2: "The chat list surface could not be found.",
+            });
+            return;
+        }
+
+        const actualList = 
+            (typeof list.scrollToIndex === 'function' ? list : null) ||
+            (list.flatListRef?.current && typeof list.flatListRef.current.scrollToIndex === 'function' ? list.flatListRef.current : null) ||
+            (list.getNode && typeof list.getNode().scrollToIndex === 'function' ? list.getNode() : null) ||
+            (list._listRef && typeof list._listRef.scrollToIndex === 'function' ? list._listRef : null);
+
+        if (actualList) {
+            try {
+                actualList.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+            } catch (e) {
+                console.log('Failed to scroll:', e);
+                Toast.show({ type: 'error', text1: 'Scroll Error', text2: 'Item is not measured yet.' });
+            }
+        } else {
+            const keys = Object.keys(list).slice(0, 5).join(', ');
+            Toast.show({
+                type: 'error',
+                text1: 'Scroll Error',
+                text2: `Underlying method missing. Available keys: ${keys}`,
+            });
+        }
+    };
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -174,15 +303,29 @@ export function CommunityChatScreen() {
             return;
         }
 
+        const currentReplyState = replyingTo;
+
         const optimisticMessage = fromGiftedMessage(
             {
                 ...outgoing,
                 _id: `optimistic-${Date.now()}`,
                 text: trimmedMessage,
                 createdAt: new Date(),
-            },
+                replyTo: currentReplyState ? {
+                    documentId: String(currentReplyState._id),
+                    message: currentReplyState.text,
+                    createdAt: currentReplyState.createdAt.toString(),
+                    sender: {
+                        id: Number(currentReplyState.user._id),
+                        username: 'User', 
+                        name: currentReplyState.user.name || 'Member',
+                    }
+                } : null,
+            } as ExtendedMessage,
             user
         );
+
+        setReplyingTo(null);
 
         queryClient.setQueryData(['public-chat-messages'], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
             updatePaginatedMessages(oldPages, (oldMessages) => [
@@ -195,7 +338,9 @@ export function CommunityChatScreen() {
         setIsSending(true);
 
         try {
-            const createdMessage = await publicChatService.sendMessage(trimmedMessage);
+            const createdMessage = await publicChatService.sendMessage(trimmedMessage, {
+                replyToDocumentId: currentReplyState ? String(currentReplyState._id) : undefined,
+            });
             queryClient.setQueryData(['public-chat-messages'], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
                     oldMessages.map((item) =>
@@ -318,44 +463,110 @@ export function CommunityChatScreen() {
                             ],
                         }}
                         listViewProps={{
+                            ref: (r: any) => {
+                                if (r) {
+                                    flatListRef.current = r;
+                                }
+                            },
                             contentContainerStyle: giftedMessages.length === 0 ? styles.emptyList : undefined,
+                            onScrollToIndexFailed: (info: any) => {
+                                const offset = info.averageItemLength * info.index;
+                                if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
+                                    flatListRef.current.scrollToOffset({ offset, animated: true });
+                                    setTimeout(() => {
+                                        if (flatListRef.current && typeof flatListRef.current.scrollToIndex === 'function') {
+                                            flatListRef.current.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
+                                        }
+                                    }, 100);
+                                }
+                            }
                         }}
                         renderBubble={(props: any) => (
-                            <Bubble
-                                {...props}
-                                wrapperStyle={{
-                                    right: { backgroundColor: primaryColor },
-                                    left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
-                                }}
-                                textStyle={{
-                                    right: { color: '#FFFFFF' },
-                                    left: { color: textColor },
-                                }}
-                            />
+                            <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
+                                <Bubble
+                                    {...props}
+                                    wrapperStyle={{
+                                        right: { backgroundColor: primaryColor },
+                                        left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
+                                    }}
+                                    textStyle={{
+                                        right: { color: '#FFFFFF' },
+                                        left: { color: textColor },
+                                    }}
+                                />
+                            </SwipeableMessageBubble>
                         )}
+                        renderCustomView={(props: any) => {
+                            const { currentMessage, position } = props;
+                            if (currentMessage?.replyTo) {
+                                const isRight = position === 'right';
+
+                                const bubbleBg = isRight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.06)';
+                                const barColor = isRight ? 'rgba(255,255,255,0.7)' : primaryColor;
+                                const nameColor = isRight ? '#FFFFFF' : primaryColor;
+                                const messageColor = isRight ? 'rgba(255,255,255,0.85)' : subtextColor;
+
+                                return (
+                                    <TouchableOpacity 
+                                        activeOpacity={0.8} 
+                                        onPress={() => scrollToMessage(currentMessage.replyTo.documentId)}
+                                        style={[styles.replyBubbleView, { backgroundColor: bubbleBg }]}
+                                    >
+                                        <View style={[styles.replyBubbleBar, { backgroundColor: barColor }]} />
+                                        <View style={styles.replyBubbleContent}>
+                                            <Text style={[styles.replyBubbleName, { color: nameColor }]} numberOfLines={1}>
+                                                {currentMessage.replyTo.sender.username || currentMessage.replyTo.sender.name}
+                                            </Text>
+                                            <Text style={[styles.replyBubbleMessage, { color: messageColor }]} numberOfLines={2}>
+                                                {currentMessage.replyTo.message}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            }
+                            return null;
+                        }}
                         renderInputToolbar={(props: any) => (
                             <View style={[styles.toolbarRow, { backgroundColor }]}>
-                                <InputToolbar
-                                    {...props}
-                                    containerStyle={[styles.toolbar, { backgroundColor }]}
-                                    primaryStyle={styles.toolbarPrimary}
-                                />
-                                <TouchableOpacity
-                                    onPress={handlePressSend}
-                                    disabled={!composerText.trim() || isSending}
-                                    style={[
-                                        styles.sendButton,
-                                        {
-                                            backgroundColor: composerText.trim() && !isSending ? primaryColor : '#E5E7EB',
-                                        },
-                                    ]}
-                                >
-                                    <IconSymbol
-                                        name="paperplane.fill"
-                                        size={18}
-                                        color={composerText.trim() && !isSending ? '#FFFFFF' : '#9CA3AF'}
+                                {replyingTo && (
+                                    <View style={[styles.replyPreviewContainer, { borderColor, backgroundColor: cardColor }]}>
+                                        <View style={[styles.replyPreviewBar, { backgroundColor: primaryColor }]} />
+                                        <View style={styles.replyPreviewContent}>
+                                            <Text style={[styles.replyPreviewName, { color: primaryColor }]}>
+                                                Replying to {replyingTo.user.name || (replyingTo.user as any).username || 'Member'}
+                                            </Text>
+                                            <Text style={[styles.replyPreviewMessage, { color: subtextColor }]} numberOfLines={1}>
+                                                {replyingTo.text}
+                                            </Text>
+                                        </View>
+                                        <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.replyPreviewClose}>
+                                            <IconSymbol name="xmark" size={20} color={subtextColor} />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                                <View style={{ flexDirection: 'row', alignItems: 'flex-end', flex: 1, paddingTop: 6, paddingBottom: 6 }}>
+                                    <InputToolbar
+                                        {...props}
+                                        containerStyle={{ borderTopWidth: 0, paddingHorizontal: 0, paddingBottom: 0, flex: 1, backgroundColor: 'transparent' }}
+                                        primaryStyle={{ alignItems: 'flex-end' }}
                                     />
-                                </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={handlePressSend}
+                                        disabled={!composerText.trim() || isSending}
+                                        style={[
+                                            styles.sendButton,
+                                            {
+                                                backgroundColor: composerText.trim() && !isSending ? primaryColor : '#E5E7EB',
+                                            },
+                                        ]}
+                                    >
+                                        <IconSymbol
+                                            name="paperplane.fill"
+                                            size={18}
+                                            color={composerText.trim() && !isSending ? '#FFFFFF' : '#9CA3AF'}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         )}
                         renderSend={() => null}
@@ -478,4 +689,61 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 6,
     },
+    replyPreviewContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderTopWidth: 1,
+    },
+    replyPreviewBar: {
+        width: 4,
+        borderRadius: 2,
+        marginRight: 8,
+    },
+    replyPreviewContent: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    replyPreviewName: {
+        fontSize: 13,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    replyPreviewMessage: {
+        fontSize: 13,
+    },
+    replyPreviewClose: {
+        padding: 4,
+        justifyContent: 'center',
+    },
+    replyBubbleView: {
+        flexDirection: 'row',
+        borderRadius: 8,
+        marginHorizontal: 8,
+        marginTop: 6,
+        marginBottom: 2,
+        paddingRight: 8,
+        overflow: 'hidden',
+        minWidth: 140,
+    },
+    replyBubbleBar: {
+        width: 4,
+        marginRight: 8,
+    },
+    replyBubbleContent: {
+        paddingVertical: 8,
+        paddingRight: 6,
+        flex: 1,
+    },
+    replyBubbleName: {
+        fontSize: 12,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    replyBubbleMessage: {
+        fontSize: 13,
+        lineHeight: 18,
+    },
 });
+
+

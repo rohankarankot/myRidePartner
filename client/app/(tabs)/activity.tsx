@@ -287,7 +287,7 @@ export default function ActivityScreen() {
                                                 ? trip.creator.userProfile.avatar
                                                 : (trip.creator?.userProfile?.avatar as any)?.url
                                         }
-                                        captainName={trip.creator?.username}
+                                        captainName={trip.creator?.userProfile?.fullName || trip.creator?.username}
                                         pendingRequestsCount={trip.joinRequests?.filter((r: any) => r.status === 'PENDING').length}
                                         onPress={(docId) => router.push(`/trip/${docId}`)}
                                     />
@@ -314,7 +314,7 @@ export default function ActivityScreen() {
                                                 ? request.trip.creator.userProfile.avatar
                                                 : (request.trip?.creator?.userProfile?.avatar as any)?.url
                                         }
-                                        captainName={request.trip?.creator?.username}
+                                        captainName={request.trip?.creator?.userProfile?.fullName || request.trip?.creator?.username}
                                         onPress={(docId) => router.push(`/trip/${docId}`)}
                                     />
                                 ))}

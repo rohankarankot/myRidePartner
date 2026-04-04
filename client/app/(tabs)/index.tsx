@@ -426,7 +426,7 @@ export default function FindRidesScreen() {
                   ? item.creator.userProfile.avatar
                   : (item.creator?.userProfile?.avatar as any)?.url
               }
-              captainName={item.creator?.username}
+              captainName={item.creator?.userProfile?.fullName || item.creator?.username}
               onPress={(id) => router.push(`/trip/${id}`)}
             />
           )}

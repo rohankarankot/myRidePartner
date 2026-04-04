@@ -6,6 +6,11 @@ export class CreatePublicChatMessageDto {
   @ApiProperty({ example: 'Anyone heading from Koramangala this evening?' })
   @IsString()
   message: string;
+
+  @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsOptional()
+  @IsString()
+  replyToDocumentId?: string;
 }
 
 export class GetPublicChatMessagesQueryDto {
