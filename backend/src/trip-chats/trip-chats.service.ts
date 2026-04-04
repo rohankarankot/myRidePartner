@@ -9,7 +9,13 @@ import { JoinRequestStatus, Prisma, TripStatus } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
-import { CreateTripChatMessageDto, GetTripChatMessagesQueryDto } from './dto/trip-chats.dto';
+import {
+  CreateTripChatMessageDto,
+  GetTripChatMessagesQueryDto,
+} from './dto/trip-chats.dto';
+import { UploadService } from '../upload/upload.service';
+
+const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
 
 type TripWithRelations = {
   id: number;
@@ -45,12 +51,17 @@ const tripChatMessageInclude = {
   },
 } satisfies Prisma.TripChatMessageInclude;
 
+type MediaMessagePayload = {
+  url?: string;
+};
+
 @Injectable()
 export class TripChatsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
     private readonly notificationsService: NotificationsService,
+    private readonly uploadService: UploadService,
   ) {}
 
   async getChatAccess(tripDocumentId: string, userId: number) {
@@ -109,7 +120,9 @@ export class TripChatsService {
 
     const fetchedMessages = messages ?? [];
     const hasMore = fetchedMessages.length > limit;
-    const selectedMessages = (hasMore ? fetchedMessages.slice(0, limit) : fetchedMessages).reverse();
+    const selectedMessages = (
+      hasMore ? fetchedMessages.slice(0, limit) : fetchedMessages
+    ).reverse();
 
     return {
       messages: selectedMessages.map((message) => ({
@@ -151,7 +164,9 @@ export class TripChatsService {
     }
 
     const chat = await this.findOrCreateChat(trip);
-    let replyToMessage: Awaited<ReturnType<typeof this.prisma.tripChatMessage.findUnique>> | null = null;
+    let replyToMessage: Awaited<
+      ReturnType<typeof this.prisma.tripChatMessage.findUnique>
+    > | null = null;
 
     if (payload.replyToDocumentId) {
       replyToMessage = await this.runWithChatTableGuard(() =>
@@ -162,7 +177,9 @@ export class TripChatsService {
       );
 
       if (!replyToMessage || replyToMessage.chatId !== chat.id) {
-        throw new BadRequestException('Reply target was not found in this chat');
+        throw new BadRequestException(
+          'Reply target was not found in this chat',
+        );
       }
     }
 
@@ -194,7 +211,11 @@ export class TripChatsService {
         : null,
     };
 
-    this.eventsGateway.emitToChatRoom(trip.documentId, 'chat_message_created', responsePayload);
+    this.eventsGateway.emitToChatRoom(
+      trip.documentId,
+      'chat_message_created',
+      responsePayload,
+    );
     await this.notifyTripChatRecipients(trip, responsePayload);
 
     return responsePayload;
@@ -216,6 +237,27 @@ export class TripChatsService {
       return;
     }
 
+    const messages = await this.runWithChatTableGuard(
+      () =>
+        this.prisma.tripChatMessage.findMany({
+          where: { chatId: chat.id },
+          select: { message: true },
+        }),
+      { swallowMissingTable: true },
+    );
+
+    const mediaUrls = Array.from(
+      new Set(
+        (messages ?? [])
+          .map((message) => this.extractMediaUrl(message.message))
+          .filter((url): url is string => Boolean(url)),
+      ),
+    );
+
+    await Promise.all(
+      mediaUrls.map((url) => this.uploadService.deleteFileByUrl(url)),
+    );
+
     await this.runWithChatTableGuard(
       () =>
         this.prisma.tripChat.delete({
@@ -232,6 +274,23 @@ export class TripChatsService {
   async canJoinSocketRoom(tripDocumentId: string, userId: number) {
     const trip = await this.getTripOrThrow(tripDocumentId);
     return this.canAccessTripChat(trip, userId);
+  }
+
+  private extractMediaUrl(message: string): string | null {
+    if (!message.startsWith(MEDIA_MESSAGE_PREFIX)) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(
+        message.slice(MEDIA_MESSAGE_PREFIX.length),
+      ) as MediaMessagePayload;
+      return typeof parsed.url === 'string' && parsed.url.trim()
+        ? parsed.url
+        : null;
+    } catch {
+      return null;
+    }
   }
 
   private async assertChatAccess(tripDocumentId: string, userId: number) {
@@ -343,7 +402,10 @@ export class TripChatsService {
     });
 
     const recipientIds = Array.from(
-      new Set([trip.creatorId, ...approvedPassengers.map((request) => request.passengerId)]),
+      new Set([
+        trip.creatorId,
+        ...approvedPassengers.map((request) => request.passengerId),
+      ]),
     ).filter((recipientId) => recipientId !== message.sender.id);
 
     if (recipientIds.length === 0) {
@@ -351,12 +413,19 @@ export class TripChatsService {
     }
 
     const senderName =
-      message.sender.userProfile?.fullName || message.sender.username || 'Someone';
+      message.sender.userProfile?.fullName ||
+      message.sender.username ||
+      'Someone';
     const messagePreview = this.buildChatNotificationPreview(message.message);
 
     await Promise.all(
       recipientIds.map(async (recipientId) => {
-        if (this.eventsGateway.isUserActivelyViewingChat(trip.documentId, recipientId)) {
+        if (
+          this.eventsGateway.isUserActivelyViewingChat(
+            trip.documentId,
+            recipientId,
+          )
+        ) {
           return;
         }
 
@@ -382,7 +451,9 @@ export class TripChatsService {
     return message.length > 120 ? `${message.slice(0, 117)}...` : message;
   }
 
-  private async getTripOrThrow(tripDocumentId: string): Promise<TripWithRelations> {
+  private async getTripOrThrow(
+    tripDocumentId: string,
+  ): Promise<TripWithRelations> {
     const trip = await this.prisma.trip.findUnique({
       where: { documentId: tripDocumentId },
       select: {
@@ -433,7 +504,8 @@ export class TripChatsService {
 
     return (
       error.code === 'P2021' &&
-      (missingTable === 'public.TripChat' || missingTable === 'public.TripChatMessage')
+      (missingTable === 'public.TripChat' ||
+        missingTable === 'public.TripChatMessage')
     );
   }
 }

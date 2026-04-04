@@ -19,12 +19,60 @@ export class UploadService {
       const uploadStream = cloudinary.uploader.upload_stream(
         { folder: 'myridepartner/avatars' },
         (error, result) => {
-          if (error) return reject(new InternalServerErrorException('Cloudinary upload failed'));
+          if (error) {
+            return reject(
+              new InternalServerErrorException('Cloudinary upload failed'),
+            );
+          }
           if (result) resolve(result);
-          else reject(new InternalServerErrorException('Empty result from Cloudinary'));
+          else {
+            reject(
+              new InternalServerErrorException('Empty result from Cloudinary'),
+            );
+          }
         },
       );
       streamifier.createReadStream(file.buffer).pipe(uploadStream);
     });
+  }
+
+  async deleteFileByUrl(fileUrl: string): Promise<void> {
+    const publicId = this.extractPublicIdFromUrl(fileUrl);
+
+    if (!publicId) {
+      return;
+    }
+
+    try {
+      await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+    } catch {
+      throw new InternalServerErrorException('Cloudinary delete failed');
+    }
+  }
+
+  private extractPublicIdFromUrl(fileUrl: string): string | null {
+    try {
+      const parsed = new URL(fileUrl);
+      const uploadSegment = '/upload/';
+      const uploadIndex = parsed.pathname.indexOf(uploadSegment);
+
+      if (uploadIndex === -1) {
+        return null;
+      }
+
+      const uploadPath = parsed.pathname.slice(
+        uploadIndex + uploadSegment.length,
+      );
+      const pathWithoutVersion = uploadPath.replace(/^v\d+\//, '');
+      const lastDotIndex = pathWithoutVersion.lastIndexOf('.');
+
+      if (lastDotIndex === -1) {
+        return pathWithoutVersion;
+      }
+
+      return pathWithoutVersion.slice(0, lastDotIndex);
+    } catch {
+      return null;
+    }
   }
 }

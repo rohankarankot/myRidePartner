@@ -79,6 +79,7 @@ const MAPPING = {
   'message.fill': 'message',
   'globe': 'public',
   'arrowshape.turn.up.left.fill': 'reply',
+  'wallet.pass.fill': 'account-balance-wallet',
 } as IconMapping;
 
 /**

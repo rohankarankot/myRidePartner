@@ -47,6 +47,7 @@ export function ProfileAnalyticsCard({ analytics }: ProfileAnalyticsCardProps) {
   const postedColor = '#2563EB';
   const approvedColor = '#059669';
   const completedColor = '#EA580C';
+  const recoveryColor = '#7C3AED';
 
   const summary = analytics.summary;
   const monthlyActivity = analytics.monthlyActivity;
@@ -59,6 +60,10 @@ export function ProfileAnalyticsCard({ analytics }: ProfileAnalyticsCardProps) {
     ]),
   );
   const maxSavedValue = Math.max(1, ...monthlyActivity.map((month) => month.moneySaved));
+  const maxRecoveredValue = Math.max(
+    1,
+    ...monthlyActivity.map((month) => month.costRecovered),
+  );
 
   return (
     <View style={[styles.card, { backgroundColor: cardColor }]}>
@@ -92,7 +97,7 @@ export function ProfileAnalyticsCard({ analytics }: ProfileAnalyticsCardProps) {
           <View style={[styles.heroDivider, { backgroundColor: `${primaryColor}18` }]} />
           <View style={styles.heroStat}>
             <Text style={[styles.heroStatValue, { color: textColor }]}>₹{summary.estimatedMoneySaved}</Text>
-            <Text style={[styles.heroStatLabel, { color: subtextColor }]}>Saved</Text>
+            <Text style={[styles.heroStatLabel, { color: subtextColor }]}>Passenger saved</Text>
           </View>
         </View>
       </View>
@@ -120,11 +125,18 @@ export function ProfileAnalyticsCard({ analytics }: ProfileAnalyticsCardProps) {
           tint="#F59E0B"
         />
         <MetricTile
-          title="Money Saved"
+          title="Passenger Savings"
           value={`₹${summary.estimatedMoneySaved}`}
-          caption="Estimated shared-fare savings"
+          caption="Completed rides you joined"
           icon="indianrupeesign.circle.fill"
           tint="#EC4899"
+        />
+        <MetricTile
+          title="Captain Recovery"
+          value={`₹${summary.estimatedCostRecovered}`}
+          caption="Passenger payments on your completed rides"
+          icon="wallet.pass.fill"
+          tint={recoveryColor}
         />
       </View>
 
@@ -181,7 +193,7 @@ export function ProfileAnalyticsCard({ analytics }: ProfileAnalyticsCardProps) {
 
       <View style={[styles.chartCard, { borderColor }]}>
         <View style={styles.savedHeader}>
-          <Text style={[styles.chartTitle, { color: textColor }]}>Estimated Money Saved</Text>
+          <Text style={[styles.chartTitle, { color: textColor }]}>Passenger Savings</Text>
           <Text style={[styles.savedTotal, { color: textColor }]}>₹{summary.estimatedMoneySaved}</Text>
         </View>
         <Text style={[styles.chartLegend, { color: subtextColor }]}>
@@ -203,6 +215,35 @@ export function ProfileAnalyticsCard({ analytics }: ProfileAnalyticsCardProps) {
                 />
               </View>
               <Text style={[styles.savedValue, { color: textColor }]}>₹{month.moneySaved}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.chartCard, { borderColor }]}>
+        <View style={styles.savedHeader}>
+          <Text style={[styles.chartTitle, { color: textColor }]}>Captain Cost Recovery</Text>
+          <Text style={[styles.savedTotal, { color: textColor }]}>₹{summary.estimatedCostRecovered}</Text>
+        </View>
+        <Text style={[styles.chartLegend, { color: subtextColor }]}>
+          Based on approved passengers on your completed rides
+        </Text>
+        <View style={styles.savedRows}>
+          {monthlyActivity.map((month) => (
+            <View key={`${month.key}-recovery`} style={styles.savedRow}>
+              <Text style={[styles.savedMonth, { color: subtextColor }]}>{month.label}</Text>
+              <View style={[styles.savedTrack, { backgroundColor: `${recoveryColor}10` }]}>
+                <View
+                  style={[
+                    styles.savedFill,
+                    {
+                      backgroundColor: recoveryColor,
+                      width: `${(month.costRecovered / maxRecoveredValue) * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={[styles.savedValue, { color: textColor }]}>₹{month.costRecovered}</Text>
             </View>
           ))}
         </View>

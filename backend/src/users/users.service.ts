@@ -103,50 +103,76 @@ export class UsersService {
   }
 
   async getUserAnalytics(userId: number) {
-    const [postedTrips, approvedRequestsForMyTrips, completedPassengerTrips] = await Promise.all([
-      this.prisma.trip.findMany({
-        where: { creatorId: userId },
-        select: {
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      this.prisma.joinRequest.findMany({
-        where: {
-          status: 'APPROVED',
-          trip: { creatorId: userId },
-        },
-        select: {
-          updatedAt: true,
-        },
-      }),
-      this.prisma.joinRequest.findMany({
-        where: {
-          passengerId: userId,
-          status: 'APPROVED',
-          trip: {
-            status: 'COMPLETED',
-          },
-        },
-        select: {
-          trip: {
-            select: {
-              pricePerSeat: true,
-              updatedAt: true,
+    const [postedTrips, approvedRequestsForMyTrips, completedPassengerTrips] =
+      await Promise.all([
+        this.prisma.trip.findMany({
+          where: { creatorId: userId },
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            pricePerSeat: true,
+            joinRequests: {
+              where: {
+                status: 'APPROVED',
+              },
+              select: {
+                id: true,
+              },
             },
           },
-        },
-      }),
-    ]);
+        }),
+        this.prisma.joinRequest.findMany({
+          where: {
+            status: 'APPROVED',
+            trip: { creatorId: userId },
+          },
+          select: {
+            updatedAt: true,
+          },
+        }),
+        this.prisma.joinRequest.findMany({
+          where: {
+            passengerId: userId,
+            status: 'APPROVED',
+            trip: {
+              status: 'COMPLETED',
+            },
+          },
+          select: {
+            trip: {
+              select: {
+                pricePerSeat: true,
+                updatedAt: true,
+              },
+            },
+          },
+        }),
+      ]);
 
-    const ridesPosted = postedTrips.length;
-    const ridesCompleted = postedTrips.filter((trip) => trip.status === 'COMPLETED').length;
-    const requestsApproved = approvedRequestsForMyTrips.length;
-    const completionRate = ridesPosted === 0 ? 0 : Math.round((ridesCompleted / ridesPosted) * 100);
+    const completedCaptainTrips = postedTrips.filter(
+      (trip) => trip.status === 'COMPLETED',
+    );
+
     const estimatedMoneySaved = completedPassengerTrips.reduce((sum, request) => {
       return sum + Number(request.trip.pricePerSeat ?? 0);
     }, 0);
+
+    const estimatedCostRecovered = completedCaptainTrips.reduce((sum, trip) => {
+      return (
+        sum +
+        Number(trip.pricePerSeat ?? 0) * trip.joinRequests.length
+      );
+    }, 0);
+
+    const ridesPosted = postedTrips.length;
+    const ridesCompleted = completedCaptainTrips.length;
+    const requestsApproved = approvedRequestsForMyTrips.length;
+    const completionRate =
+      ridesPosted === 0
+        ? 0
+        : Math.round((ridesCompleted / ridesPosted) * 100);
 
     const monthlyActivity = this.buildMonthlyAnalytics(
       postedTrips,
@@ -162,6 +188,7 @@ export class UsersService {
           ridesCompleted,
           completionRate,
           estimatedMoneySaved: Math.round(estimatedMoneySaved),
+          estimatedCostRecovered: Math.round(estimatedCostRecovered),
         },
         monthlyActivity,
       },
@@ -319,9 +346,17 @@ export class UsersService {
   }
 
   private buildMonthlyAnalytics(
-    postedTrips: Array<{ createdAt: Date; updatedAt: Date; status: string }>,
+    postedTrips: Array<{
+      createdAt: Date;
+      updatedAt: Date;
+      status: string;
+      pricePerSeat: Prisma.Decimal | null;
+      joinRequests: Array<{ id: number }>;
+    }>,
     approvedRequestsForMyTrips: Array<{ updatedAt: Date }>,
-    completedPassengerTrips: Array<{ trip: { pricePerSeat: Prisma.Decimal | null; updatedAt: Date } }>,
+    completedPassengerTrips: Array<{
+      trip: { pricePerSeat: Prisma.Decimal | null; updatedAt: Date };
+    }>,
   ) {
     const formatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
     const months: Array<{
@@ -331,6 +366,7 @@ export class UsersService {
       requestsApproved: number;
       ridesCompleted: number;
       moneySaved: number;
+      costRecovered: number;
     }> = [];
 
     for (let offset = 5; offset >= 0; offset -= 1) {
@@ -345,6 +381,7 @@ export class UsersService {
         requestsApproved: 0,
         ridesCompleted: 0,
         moneySaved: 0,
+        costRecovered: 0,
       });
     }
 
@@ -362,6 +399,9 @@ export class UsersService {
         const completedMonth = monthMap.get(getMonthKey(trip.updatedAt));
         if (completedMonth) {
           completedMonth.ridesCompleted += 1;
+          completedMonth.costRecovered += Math.round(
+            Number(trip.pricePerSeat ?? 0) * trip.joinRequests.length,
+          );
         }
       }
     });

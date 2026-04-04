@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
+import { AppState, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
+import Zoom from 'react-native-zoom-reanimated';
 import {
     Bubble,
     GiftedChat,
@@ -17,17 +19,24 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppLoader } from '@/components/app-loader';
 import { tripChatService } from '@/services/trip-chat-service';
 import { socketService } from '@/services/socket-service';
+import { userService } from '@/services/user-service';
 import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 
 const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
+const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
 
 type ParsedLocationMessage = {
     latitude: number;
     longitude: number;
     label: string;
+};
+
+type ParsedMediaMessage = {
+    url: string;
+    caption: string;
 };
 
 const parseLocationMessage = (value: string): ParsedLocationMessage | null => {
@@ -51,8 +60,45 @@ const parseLocationMessage = (value: string): ParsedLocationMessage | null => {
     }
 };
 
+const parseMediaMessage = (value: string): ParsedMediaMessage | null => {
+    if (!value.startsWith(MEDIA_MESSAGE_PREFIX)) {
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(value.slice(MEDIA_MESSAGE_PREFIX.length));
+        if (typeof parsed.url !== 'string' || !parsed.url.trim()) {
+            return null;
+        }
+
+        return {
+            url: parsed.url,
+            caption: typeof parsed.caption === 'string' ? parsed.caption : '',
+        };
+    } catch {
+        return null;
+    }
+};
+
 const buildLocationMessage = (payload: ParsedLocationMessage) =>
     `${LOCATION_MESSAGE_PREFIX}${JSON.stringify(payload)}`;
+
+const buildMediaMessage = (payload: ParsedMediaMessage) =>
+    `${MEDIA_MESSAGE_PREFIX}${JSON.stringify(payload)}`;
+
+const summarizeMessageContent = (value: string) => {
+    const mediaPayload = parseMediaMessage(value);
+    if (mediaPayload) {
+        return mediaPayload.caption.trim() || 'Photo';
+    }
+
+    const locationPayload = parseLocationMessage(value);
+    if (locationPayload) {
+        return locationPayload.label || 'Shared location';
+    }
+
+    return value;
+};
 
 export interface ExtendedMessage extends IMessage {
     replyTo?: {
@@ -62,29 +108,41 @@ export interface ExtendedMessage extends IMessage {
             name: string;
         };
     };
+    media?: ParsedMediaMessage;
 }
 
-const toGiftedMessage = (message: TripChatMessage): ExtendedMessage => ({
-    _id: message.documentId,
-    text: message.message,
-    createdAt: new Date(message.createdAt),
-    user: {
-        _id: String(message.sender.id),
-        name: message.sender.userProfile?.fullName || message.sender.username || 'Rider',
-        avatar: typeof message.sender.userProfile?.avatar === 'string'
-            ? message.sender.userProfile.avatar
-            : message.sender.userProfile?.avatar?.url,
-    },
-    sent: !message.documentId.startsWith('optimistic-'),
-    pending: message.documentId.startsWith('optimistic-'),
-    replyTo: message.replyTo ? {
-        documentId: message.replyTo.documentId,
-        message: message.replyTo.message,
-        sender: {
-            name: message.replyTo.sender.userProfile?.fullName || message.replyTo.sender.username || 'Rider',
-        }
-    } : undefined,
-});
+type PendingMediaDraft = {
+    localUri: string;
+    caption: string;
+    replyTo?: ExtendedMessage;
+};
+
+const toGiftedMessage = (message: TripChatMessage): ExtendedMessage => {
+    const media = parseMediaMessage(message.message);
+
+    return {
+        _id: message.documentId,
+        text: message.message,
+        createdAt: new Date(message.createdAt),
+        user: {
+            _id: String(message.sender.id),
+            name: message.sender.userProfile?.fullName || message.sender.username || 'Rider',
+            avatar: typeof message.sender.userProfile?.avatar === 'string'
+                ? message.sender.userProfile.avatar
+                : message.sender.userProfile?.avatar?.url,
+        },
+        sent: !message.documentId.startsWith('optimistic-'),
+        pending: message.documentId.startsWith('optimistic-'),
+        replyTo: message.replyTo ? {
+            documentId: message.replyTo.documentId,
+            message: message.replyTo.message,
+            sender: {
+                name: message.replyTo.sender.userProfile?.fullName || message.replyTo.sender.username || 'Rider',
+            }
+        } : undefined,
+        media: media || undefined,
+    };
+};
 
 const fromGiftedMessage = (message: ExtendedMessage, fallbackUser: { id: number; username?: string; email?: string }, replyTo?: ExtendedMessage) => ({
     id: -1,
@@ -163,12 +221,12 @@ const updatePaginatedMessages = (
     };
 };
 
-const SwipeableMessageBubble = ({ 
-    props, 
-    children, 
-    onSwipe 
-}: { 
-    props: any; 
+const SwipeableMessageBubble = ({
+    props,
+    children,
+    onSwipe
+}: {
+    props: any;
     children: React.ReactNode;
     onSwipe: (message: ExtendedMessage) => void;
 }) => {
@@ -221,7 +279,10 @@ export default function TripChatScreen() {
         messagePreview?: string | null;
     } | null>(null);
     const [isSendingLocation, setIsSendingLocation] = useState(false);
-    const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
+    const [isSendingMedia, setIsSendingMedia] = useState(false);
+    const [previewMedia, setPreviewMedia] = useState<ParsedMediaMessage | null>(null);
+    const [pendingMediaDraft, setPendingMediaDraft] = useState<PendingMediaDraft | null>(null);
+    const [typingUsers, setTypingUsers] = useState<{ userId: number; userName: string }[]>([]);
     const isTypingRef = useRef(false);
     const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isChatScreenActiveRef = useRef(false);
@@ -251,7 +312,7 @@ export default function TripChatScreen() {
 
     const scrollToMessage = (messageId: string) => {
         const index = giftedMessages.findIndex((m) => String(m._id) === String(messageId));
-        
+
         if (index === -1) {
             Toast.show({
                 type: 'info',
@@ -271,7 +332,7 @@ export default function TripChatScreen() {
             return;
         }
 
-        const actualList = 
+        const actualList =
             (typeof list.scrollToIndex === 'function' ? list : null) ||
             (list.flatListRef?.current && typeof list.flatListRef.current.scrollToIndex === 'function' ? list.flatListRef.current : null) ||
             (list.getNode && typeof list.getNode().scrollToIndex === 'function' ? list.getNode() : null) ||
@@ -303,6 +364,10 @@ export default function TripChatScreen() {
     const primaryColor = useThemeColor({}, 'primary');
     const dangerColor = useThemeColor({}, 'danger');
     const headerHeight = insets.top + 60;
+    const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+    const previewViewportWidth = Math.max(windowWidth - 32, 1);
+    const previewViewportHeight = Math.max(windowHeight - 180, 1);
+    const modalTopInset = Math.max(insets.top, 12);
 
     const { data: chatAccess, isLoading: isLoadingAccess } = useQuery({
         queryKey: ['trip-chat-access', tripId],
@@ -368,7 +433,7 @@ export default function TripChatScreen() {
             router.replace(`/trip/${tripId}`);
         };
 
-        const handleTypingUpdated = (data: { tripDocumentId: string; typingUsers: Array<{ userId: number; userName: string }> }) => {
+        const handleTypingUpdated = (data: { tripDocumentId: string; typingUsers: { userId: number; userName: string }[] }) => {
             if (data.tripDocumentId !== tripId) return;
 
             setTypingUsers(
@@ -457,6 +522,12 @@ export default function TripChatScreen() {
             });
         }
     };
+
+    const openSharedMedia = (payload: ParsedMediaMessage) => {
+        setPreviewMedia(payload);
+    };
+
+
 
     const typingText = useMemo(() => {
         if (typingUsers.length === 0) {
@@ -658,9 +729,128 @@ export default function TripChatScreen() {
         }
     };
 
+    const handlePickAndSendMedia = async () => {
+        if (!tripId || !user || isSending || isSendingMedia) {
+            return;
+        }
+
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (permission.status !== 'granted') {
+                Toast.show({
+                    type: 'info',
+                    text1: 'Photos Permission Needed',
+                    text2: 'Allow photo access to share images in the ride chat.',
+                });
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ['images'],
+                allowsEditing: true,
+                quality: 0.8,
+            });
+
+            if (result.canceled || !result.assets?.[0]?.uri) {
+                return;
+            }
+
+            setPendingMediaDraft({
+                localUri: result.assets[0].uri,
+                caption: '',
+                replyTo: replyingTo || undefined,
+            });
+        } catch {
+            Toast.show({
+                type: 'error',
+                text1: 'Image Failed',
+                text2: 'Unable to share your image right now.',
+            });
+        }
+    };
+
+    const handleSendPendingMedia = async () => {
+        if (!tripId || !user || !pendingMediaDraft || isSendingMedia) {
+            return;
+        }
+
+        const currentReplyTo = pendingMediaDraft.replyTo;
+        const mediaCaption = pendingMediaDraft.caption.trim();
+        let optimisticDocumentId: string | null = null;
+
+        setIsSendingMedia(true);
+
+        try {
+            const uploadedUrl = await userService.uploadFile(pendingMediaDraft.localUri);
+            const mediaMessage = buildMediaMessage({
+                url: uploadedUrl,
+                caption: mediaCaption,
+            });
+
+            setReplyingTo(null);
+            setActiveMessageMenuId(null);
+            setPendingMediaDraft(null);
+
+            optimisticDocumentId = `optimistic-media-${Date.now()}`;
+            const optimisticMessage = fromGiftedMessage(
+                {
+                    _id: optimisticDocumentId,
+                    text: mediaMessage,
+                    createdAt: new Date(),
+                    user: {
+                        _id: String(user.id),
+                        name: user.username || 'You',
+                    },
+                    media: {
+                        url: uploadedUrl,
+                        caption: mediaCaption,
+                    },
+                },
+                user,
+                currentReplyTo || undefined
+            );
+
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+                updatePaginatedMessages(oldPages, (oldMessages) => [
+                    optimisticMessage,
+                    ...oldMessages,
+                ])
+            );
+            scrollToBottom();
+
+            const createdMessage = await tripChatService.sendMessage(tripId, mediaMessage, {
+                replyToDocumentId: currentReplyTo ? String(currentReplyTo._id) : undefined,
+            });
+
+            queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+                updatePaginatedMessages(oldPages, (oldMessages) =>
+                    oldMessages.map((item) =>
+                        item.documentId === optimisticMessage.documentId ? createdMessage : item
+                    )
+                )
+            );
+        } catch {
+            if (optimisticDocumentId) {
+                queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
+                    updatePaginatedMessages(oldPages, (oldMessages) =>
+                        oldMessages.filter((item) => item.documentId !== optimisticDocumentId)
+                    )
+                );
+            }
+
+            Toast.show({
+                type: 'error',
+                text1: 'Image Failed',
+                text2: 'Unable to share your image right now.',
+            });
+        } finally {
+            setIsSendingMedia(false);
+        }
+    };
+
     const handlePressSend = () => {
         const trimmedMessage = composerText.trim();
-        if (!trimmedMessage || isSending) {
+        if (!trimmedMessage || isSending || isSendingMedia) {
             return;
         }
 
@@ -687,7 +877,7 @@ export default function TripChatScreen() {
             userId: senderId,
             userName: message.user.name || 'Rider',
             messageDocumentId: String(message._id),
-            messagePreview: message.text,
+            messagePreview: summarizeMessageContent(message.text),
         });
         setActiveMessageMenuId(null);
         setShowReportModal(true);
@@ -704,6 +894,139 @@ export default function TripChatScreen() {
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
+            <Modal
+                visible={!!pendingMediaDraft}
+                transparent
+                animationType="slide"
+                onRequestClose={() => !isSendingMedia && setPendingMediaDraft(null)}
+            >
+                <KeyboardAvoidingView
+                    style={styles.composeOverlay}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+                >
+                    <View style={[styles.composeCard, { backgroundColor: backgroundColor }]}>
+                        <View
+                            style={[
+                                styles.composeHeader,
+                                { borderBottomColor: borderColor, paddingTop: modalTopInset },
+                            ]}
+                        >
+                            <TouchableOpacity
+                                onPress={() => setPendingMediaDraft(null)}
+                                disabled={isSendingMedia}
+                                style={styles.previewIconButton}
+                            >
+                                <IconSymbol name="xmark" size={22} color={textColor} />
+                            </TouchableOpacity>
+                            <Text style={[styles.composeTitle, { color: textColor }]}>Send photo</Text>
+                            <View style={styles.composeHeaderSpacer} />
+                        </View>
+
+                        {pendingMediaDraft ? (
+                            <View style={styles.composeBody}>
+                                <Image
+                                    source={{ uri: pendingMediaDraft.localUri }}
+                                    style={styles.composeImagePreview}
+                                    resizeMode="contain"
+                                />
+                                {pendingMediaDraft.replyTo ? (
+                                    <View style={[styles.composeReplyCard, { backgroundColor: cardColor, borderColor }]}>
+                                        <Text style={[styles.composeReplyName, { color: primaryColor }]}>
+                                            Replying to {pendingMediaDraft.replyTo.user.name}
+                                        </Text>
+                                        <Text style={[styles.composeReplyText, { color: subtextColor }]} numberOfLines={1}>
+                                            {summarizeMessageContent(pendingMediaDraft.replyTo.text)}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                                <View style={styles.composeFooter}>
+                                    <TextInput
+                                        value={pendingMediaDraft.caption}
+                                        onChangeText={(caption) =>
+                                            setPendingMediaDraft((current) => current ? { ...current, caption } : current)
+                                        }
+                                        placeholder="Add a caption (optional)"
+                                        placeholderTextColor={subtextColor}
+                                        multiline
+                                        maxLength={300}
+                                        style={[
+                                            styles.composeCaptionInput,
+                                            { color: textColor, backgroundColor: cardColor, borderColor },
+                                        ]}
+                                    />
+                                    <TouchableOpacity
+                                        onPress={handleSendPendingMedia}
+                                        disabled={isSendingMedia}
+                                        style={[
+                                            styles.composeSendButton,
+                                            { backgroundColor: isSendingMedia ? `${subtextColor}33` : primaryColor },
+                                        ]}
+                                    >
+                                        <IconSymbol name="paperplane.fill" size={18} color="#FFFFFF" />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ) : null}
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            <Modal
+                visible={!!previewMedia}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setPreviewMedia(null)}
+            >
+                <View style={styles.previewOverlay}>
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        style={styles.previewBackdrop}
+                        onPress={() => setPreviewMedia(null)}
+                    />
+
+                    <View style={styles.previewContent}>
+                        <View style={[styles.previewHeader, { paddingTop: modalTopInset }]}>
+                            <TouchableOpacity
+                                onPress={() => setPreviewMedia(null)}
+                                style={styles.previewIconButton}
+                            >
+                                <IconSymbol name="xmark" size={22} color="#FFFFFF" />
+                            </TouchableOpacity>
+
+
+                        </View>
+
+                        {previewMedia ? (
+                            <View style={styles.previewBody}>
+                                <Zoom
+                                    style={styles.previewZoom}
+                                    contentContainerStyle={styles.previewZoomContent}
+                                    minScale={1}
+                                    maxScale={5}
+                                    doubleTapConfig={{ defaultScale: 2.5, maxZoomScale: 5 }}
+                                >
+                                    <Image
+                                        source={{ uri: previewMedia.url }}
+                                        style={[
+                                            styles.previewImage,
+                                            {
+                                                width: previewViewportWidth,
+                                                height: previewViewportHeight,
+                                            },
+                                        ]}
+                                        resizeMode="contain"
+                                    />
+                                </Zoom>
+                                {previewMedia.caption ? (
+                                    <Text style={styles.previewCaption}>{previewMedia.caption}</Text>
+                                ) : null}
+                            </View>
+                        ) : null}
+                    </View>
+                </View>
+            </Modal>
+
             {reportTarget ? (
                 <ReportModal
                     visible={showReportModal}
@@ -791,8 +1114,8 @@ export default function TripChatScreen() {
                                 const messageColor = isRight ? 'rgba(255,255,255,0.85)' : subtextColor;
 
                                 return (
-                                    <TouchableOpacity 
-                                        activeOpacity={0.8} 
+                                    <TouchableOpacity
+                                        activeOpacity={0.8}
                                         onPress={() => scrollToMessage(currentMessage.replyTo.documentId)}
                                         style={[styles.replyBubbleView, { backgroundColor: bubbleBg }]}
                                     >
@@ -802,7 +1125,7 @@ export default function TripChatScreen() {
                                                 {currentMessage.replyTo.sender.username || currentMessage.replyTo.sender.name}
                                             </Text>
                                             <Text style={[styles.replyBubbleMessage, { color: messageColor }]} numberOfLines={2}>
-                                                {currentMessage.replyTo.message}
+                                                {summarizeMessageContent(currentMessage.replyTo.message)}
                                             </Text>
                                         </View>
                                     </TouchableOpacity>
@@ -864,6 +1187,7 @@ export default function TripChatScreen() {
                             const currentMessage = props.currentMessage as ExtendedMessage;
                             const messageId = String(currentMessage?._id);
                             const locationPayload = parseLocationMessage(currentMessage?.text || '');
+                            const mediaPayload = currentMessage?.media || parseMediaMessage(currentMessage?.text || '');
                             const isCurrentUser = String(currentMessage?.user?._id) === String(user?.id);
                             const isHighlighted = messageId === highlightedMessageId;
                             const isMenuOpen = messageId === activeMessageMenuId;
@@ -951,6 +1275,44 @@ export default function TripChatScreen() {
                                                     Tap to open in Google Maps
                                                 </Text>
                                             </TouchableOpacity>
+                                        ) : mediaPayload ? (
+                                            <TouchableOpacity
+                                                activeOpacity={0.92}
+                                                onPress={() => openSharedMedia(mediaPayload)}
+                                                style={[
+                                                    styles.mediaBubble,
+                                                    {
+                                                        alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                        backgroundColor: isCurrentUser ? primaryColor : cardColor,
+                                                        borderColor: isHighlighted ? primaryColor : borderColor,
+                                                        borderWidth: isHighlighted ? 2 : 1,
+                                                    },
+                                                ]}
+                                            >
+                                                <Image
+                                                    source={{ uri: mediaPayload.url }}
+                                                    style={styles.mediaImage}
+                                                    resizeMode="cover"
+                                                />
+                                                {mediaPayload.caption ? (
+                                                    <Text
+                                                        style={[
+                                                            styles.mediaCaption,
+                                                            { color: isCurrentUser ? '#FFFFFF' : textColor },
+                                                        ]}
+                                                    >
+                                                        {mediaPayload.caption}
+                                                    </Text>
+                                                ) : null}
+                                                <Text
+                                                    style={[
+                                                        styles.mediaHint,
+                                                        { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
+                                                    ]}
+                                                >
+                                                    Tap to open image
+                                                </Text>
+                                            </TouchableOpacity>
                                         ) : (
                                             <Bubble
                                                 {...props}
@@ -989,7 +1351,7 @@ export default function TripChatScreen() {
                                                 {replyingTo.text}
                                             </Text>
                                         </View>
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             onPress={() => setReplyingTo(null)}
                                             style={styles.replyPreviewClose}
                                         >
@@ -998,52 +1360,68 @@ export default function TripChatScreen() {
                                     </View>
                                 )}
                                 <View style={[styles.toolbarRow, { backgroundColor }]}>
-                                {chatAccess?.isCaptain ? (
                                     <TouchableOpacity
-                                        onPress={handleShareCurrentLocation}
-                                        disabled={isSendingLocation}
+                                        onPress={handlePickAndSendMedia}
+                                        disabled={isSendingMedia || isSending}
                                         style={[
-                                            styles.locationActionButton,
+                                            styles.toolbarActionButton,
                                             {
-                                                backgroundColor: isSendingLocation ? `${subtextColor}22` : `${primaryColor}14`,
+                                                backgroundColor: isSendingMedia ? `${subtextColor}22` : `${primaryColor}14`,
                                             },
                                         ]}
                                     >
                                         <IconSymbol
-                                            name="location.fill"
+                                            name="camera.fill"
                                             size={20}
-                                            color={isSendingLocation ? subtextColor : primaryColor}
+                                            color={isSendingMedia ? subtextColor : primaryColor}
                                         />
                                     </TouchableOpacity>
-                                ) : null}
-                                <InputToolbar
-                                    {...props}
-                                    containerStyle={[
-                                        styles.toolbar,
-                                        {
-                                            backgroundColor,
-                                        },
-                                    ]}
-                                    primaryStyle={styles.toolbarPrimary}
-                                />
-                                <TouchableOpacity
-                                    onPress={handlePressSend}
-                                    disabled={!composerText.trim() || isSending}
-                                    style={[
-                                        styles.sendButton,
-                                        {
-                                            backgroundColor: composerText.trim() && !isSending ? primaryColor : '#E5E7EB',
-                                        },
-                                    ]}
-                                >
-                                    <IconSymbol
-                                        name="paperplane.fill"
-                                        size={18}
-                                        color={composerText.trim() && !isSending ? '#FFFFFF' : '#9CA3AF'}
+                                    {chatAccess?.isCaptain ? (
+                                        <TouchableOpacity
+                                            onPress={handleShareCurrentLocation}
+                                            disabled={isSendingLocation || isSendingMedia}
+                                            style={[
+                                                styles.toolbarActionButton,
+                                                {
+                                                    backgroundColor: isSendingLocation ? `${subtextColor}22` : `${primaryColor}14`,
+                                                },
+                                            ]}
+                                        >
+                                            <IconSymbol
+                                                name="location.fill"
+                                                size={20}
+                                                color={isSendingLocation ? subtextColor : primaryColor}
+                                            />
+                                        </TouchableOpacity>
+                                    ) : null}
+                                    <InputToolbar
+                                        {...props}
+                                        containerStyle={[
+                                            styles.toolbar,
+                                            {
+                                                backgroundColor,
+                                            },
+                                        ]}
+                                        primaryStyle={styles.toolbarPrimary}
                                     />
-                                </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={handlePressSend}
+                                        disabled={!composerText.trim() || isSending || isSendingMedia}
+                                        style={[
+                                            styles.sendButton,
+                                            {
+                                                backgroundColor: composerText.trim() && !isSending && !isSendingMedia ? primaryColor : '#E5E7EB',
+                                            },
+                                        ]}
+                                    >
+                                        <IconSymbol
+                                            name="paperplane.fill"
+                                            size={18}
+                                            color={composerText.trim() && !isSending && !isSendingMedia ? '#FFFFFF' : '#9CA3AF'}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
-                        </View>
                         )}
                         renderSend={() => null}
                         renderChatEmpty={() => (
@@ -1071,6 +1449,146 @@ export default function TripChatScreen() {
 const styles = StyleSheet.create({
     safe: {
         flex: 1,
+    },
+    previewOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.92)',
+    },
+    composeOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+    },
+    composeCard: {
+        flex: 1,
+        paddingTop: 8,
+        paddingBottom: 20,
+    },
+    composeHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    composeTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+    },
+    composeHeaderSpacer: {
+        width: 40,
+        height: 40,
+    },
+    composeSendButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 4,
+    },
+    composeBody: {
+        flex: 1,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        gap: 14,
+    },
+    composeImagePreview: {
+        width: '100%',
+        height: 340,
+        borderRadius: 20,
+        backgroundColor: '#000000',
+    },
+    composeReplyCard: {
+        borderWidth: 1,
+        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    composeReplyName: {
+        fontSize: 13,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    composeReplyText: {
+        fontSize: 13,
+    },
+    composeCaptionInput: {
+        flex: 1,
+        minHeight: 56,
+        maxHeight: 120,
+        borderWidth: 1,
+        borderRadius: 22,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 15,
+        textAlignVertical: 'top',
+    },
+    composeFooter: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: 10,
+        marginTop: 'auto',
+    },
+    previewBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    previewContent: {
+        flex: 1,
+        paddingTop: 56,
+        paddingBottom: 28,
+        paddingHorizontal: 16,
+    },
+    previewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    previewIconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    previewOpenButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 999,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    previewOpenButtonText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    previewBody: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+    },
+    previewZoom: {
+        flex: 1,
+        width: '100%',
+    },
+    previewZoomContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    previewImage: {
+        maxWidth: '100%',
+        maxHeight: '100%',
+    },
+    previewCaption: {
+        marginTop: 16,
+        color: '#FFFFFF',
+        fontSize: 15,
+        lineHeight: 22,
+        textAlign: 'center',
     },
     customHeader: {
         position: 'absolute',
@@ -1132,13 +1650,38 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         gap: 8,
     },
-    locationActionButton: {
+    toolbarActionButton: {
         width: 38,
         height: 38,
         borderRadius: 19,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 8,
+    },
+    mediaBubble: {
+        maxWidth: 270,
+        borderRadius: 20,
+        padding: 8,
+        borderWidth: 1,
+        marginBottom: 4,
+        overflow: 'hidden',
+    },
+    mediaImage: {
+        width: 252,
+        height: 220,
+        borderRadius: 14,
+        backgroundColor: '#E5E7EB',
+    },
+    mediaCaption: {
+        fontSize: 14,
+        lineHeight: 20,
+        marginTop: 10,
+        marginHorizontal: 4,
+    },
+    mediaHint: {
+        fontSize: 12,
+        marginTop: 8,
+        marginHorizontal: 4,
     },
     locationBubble: {
         maxWidth: 270,

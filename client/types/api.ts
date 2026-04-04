@@ -73,6 +73,7 @@ export interface UserAnalyticsSummary {
     ridesCompleted: number;
     completionRate: number;
     estimatedMoneySaved: number;
+    estimatedCostRecovered: number;
 }
 
 export interface UserAnalyticsMonth {
@@ -82,6 +83,7 @@ export interface UserAnalyticsMonth {
     requestsApproved: number;
     ridesCompleted: number;
     moneySaved: number;
+    costRecovered: number;
 }
 
 export interface UserAnalytics {

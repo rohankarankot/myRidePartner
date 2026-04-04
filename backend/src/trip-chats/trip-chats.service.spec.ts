@@ -21,7 +21,11 @@ describe('TripChatsService', () => {
     sendPushOnly: jest.fn(),
   } as any;
 
-  const service = new TripChatsService(prisma, eventsGateway, notificationsService);
+  const uploadService = {
+    deleteFileByUrl: jest.fn(),
+  } as any;
+
+  const service = new TripChatsService(prisma, eventsGateway, notificationsService, uploadService);
 
   const baseTrip = {
     id: 99,
@@ -122,11 +126,42 @@ describe('TripChatsService', () => {
 
   it('deletes the chat when a trip is completed and emits chat_deleted', async () => {
     prisma.tripChat.findFirst.mockResolvedValueOnce({ id: 12 });
+    prisma.tripChatMessage.findMany.mockResolvedValueOnce([]);
 
     await service.deleteChatForCompletedTrip('trip-123');
 
     expect(prisma.tripChat.delete).toHaveBeenCalledWith({ where: { id: 12 } });
     expect(eventsGateway.emitToChatRoom).toHaveBeenCalledWith('trip-123', 'chat_deleted', { tripDocumentId: 'trip-123' });
+  });
+
+  it('deletes uploaded chat photos before removing the completed trip chat', async () => {
+    prisma.tripChat.findFirst.mockResolvedValueOnce({ id: 12 });
+    prisma.tripChatMessage.findMany.mockResolvedValueOnce([
+      {
+        message:
+          '__ride_media__::{"url":"https://res.cloudinary.com/demo/image/upload/v123/myridepartner/avatars/chat-a.jpg","caption":"One"}',
+      },
+      {
+        message:
+          '__ride_media__::{"url":"https://res.cloudinary.com/demo/image/upload/v123/myridepartner/avatars/chat-a.jpg","caption":"Duplicate"}',
+      },
+      { message: 'Plain text message' },
+      {
+        message:
+          '__ride_media__::{"url":"https://res.cloudinary.com/demo/image/upload/v456/myridepartner/avatars/chat-b.jpg","caption":"Two"}',
+      },
+    ]);
+
+    await service.deleteChatForCompletedTrip('trip-123');
+
+    expect(uploadService.deleteFileByUrl).toHaveBeenCalledTimes(2);
+    expect(uploadService.deleteFileByUrl).toHaveBeenCalledWith(
+      'https://res.cloudinary.com/demo/image/upload/v123/myridepartner/avatars/chat-a.jpg',
+    );
+    expect(uploadService.deleteFileByUrl).toHaveBeenCalledWith(
+      'https://res.cloudinary.com/demo/image/upload/v456/myridepartner/avatars/chat-b.jpg',
+    );
+    expect(prisma.tripChat.delete).toHaveBeenCalledWith({ where: { id: 12 } });
   });
 
   it('throws when the trip does not exist', async () => {
