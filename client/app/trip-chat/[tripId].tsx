@@ -214,7 +214,12 @@ export default function TripChatScreen() {
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
     const [activeMessageMenuId, setActiveMessageMenuId] = useState<string | null>(null);
     const [showReportModal, setShowReportModal] = useState(false);
-    const [reportTarget, setReportTarget] = useState<{ userId: number; userName: string } | null>(null);
+    const [reportTarget, setReportTarget] = useState<{
+        userId: number;
+        userName: string;
+        messageDocumentId?: string | null;
+        messagePreview?: string | null;
+    } | null>(null);
     const [isSendingLocation, setIsSendingLocation] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
     const isTypingRef = useRef(false);
@@ -681,6 +686,8 @@ export default function TripChatScreen() {
         setReportTarget({
             userId: senderId,
             userName: message.user.name || 'Rider',
+            messageDocumentId: String(message._id),
+            messagePreview: message.text,
         });
         setActiveMessageMenuId(null);
         setShowReportModal(true);
@@ -709,8 +716,11 @@ export default function TripChatScreen() {
                     reportedUserName={reportTarget.userName}
                     reporterUserId={user?.id}
                     tripDocumentId={tripId}
-                    source="trip"
+                    source="trip_chat"
                     context="message"
+                    targetType="MESSAGE"
+                    messageDocumentId={reportTarget.messageDocumentId}
+                    messagePreview={reportTarget.messagePreview}
                 />
             ) : null}
 

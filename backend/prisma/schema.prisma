@@ -59,8 +59,21 @@ enum ReportReason {
   fake_profile
   scam
   inappropriate
+  reselling
   safety
   other
+}
+
+enum ReportSource {
+  profile
+  trip
+  community_chat
+  trip_chat
+}
+
+enum ReportTargetType {
+  USER
+  MESSAGE
 }
 
 model User {
@@ -288,8 +301,11 @@ model UserReport {
   documentId       String       @unique @default(uuid())
   reason           ReportReason
   details          String?
-  source           String       // "trip" | "profile"
+  source           ReportSource
+  targetType       ReportTargetType @default(USER)
   tripDocumentId   String?      // optional trip context
+  messageDocumentId String?
+  messagePreview   String?
 
   reportedUserId   Int
   reportedUser     User         @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
@@ -300,4 +316,6 @@ model UserReport {
 
   @@index([reportedUserId])
   @@index([reporterId])
+  @@index([source, targetType])
+  @@index([messageDocumentId])
 }

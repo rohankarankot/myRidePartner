@@ -207,7 +207,12 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
     const [activeMessageMenuId, setActiveMessageMenuId] = useState<string | null>(null);
     const [showReportModal, setShowReportModal] = useState(false);
-    const [reportTarget, setReportTarget] = useState<{ userId: number; userName: string } | null>(null);
+    const [reportTarget, setReportTarget] = useState<{
+        userId: number;
+        userName: string;
+        messageDocumentId?: string | null;
+        messagePreview?: string | null;
+    } | null>(null);
     const [selectedCity, setSelectedCity] = useState<string | null>(normalizeCity(initialCity) || normalizeCity(profile?.city));
     const [citySearch, setCitySearch] = useState('');
     const flatListRef = useRef<FlatList<any>>(null);
@@ -517,6 +522,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
         setReportTarget({
             userId: senderId,
             userName: message.user.name || 'Member',
+            messageDocumentId: String(message._id),
+            messagePreview: message.text,
         });
         setActiveMessageMenuId(null);
         setShowReportModal(true);
@@ -544,8 +551,11 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     reportedUserId={reportTarget.userId}
                     reportedUserName={reportTarget.userName}
                     reporterUserId={user?.id}
-                    source="profile"
+                    source="community_chat"
                     context="message"
+                    targetType="MESSAGE"
+                    messageDocumentId={reportTarget.messageDocumentId}
+                    messagePreview={reportTarget.messagePreview}
                 />
             ) : null}
 

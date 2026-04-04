@@ -12,7 +12,10 @@ export interface ReportPayload {
   reportedUserName?: string | null;
   reporterUserId?: number | null;
   tripDocumentId?: string | null;
-  source: 'trip' | 'profile';
+  source: 'trip' | 'profile' | 'community_chat' | 'trip_chat';
+  targetType?: 'USER' | 'MESSAGE';
+  messageDocumentId?: string | null;
+  messagePreview?: string | null;
 }
 
 /**
@@ -25,8 +28,11 @@ export async function saveReport(payload: ReportPayload): Promise<void> {
       reason: payload.reasonId,
       details: payload.details,
       source: payload.source,
+      targetType: payload.targetType,
       reportedUserId: payload.reportedUserId,
       tripDocumentId: payload.tripDocumentId,
+      messageDocumentId: payload.messageDocumentId,
+      messagePreview: payload.messagePreview,
     });
   } catch (error) {
     logger.warn('Failed to send report to backend, saving locally', { error });

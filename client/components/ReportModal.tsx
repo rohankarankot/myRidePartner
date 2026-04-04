@@ -45,7 +45,10 @@ export interface ReportPayload {
     reportedUserName?: string | null;
     reporterUserId?: number | null;
     tripDocumentId?: string | null;
-    source: 'trip' | 'profile';
+    source: 'trip' | 'profile' | 'community_chat' | 'trip_chat';
+    targetType?: 'USER' | 'MESSAGE';
+    messageDocumentId?: string | null;
+    messagePreview?: string | null;
 }
 
 interface ReportModalProps {
@@ -56,8 +59,11 @@ interface ReportModalProps {
     reportedUserName?: string | null;
     reporterUserId?: number | null;
     tripDocumentId?: string | null;
-    source: 'trip' | 'profile';
+    source: 'trip' | 'profile' | 'community_chat' | 'trip_chat';
     context?: ReportContext;
+    targetType?: 'USER' | 'MESSAGE';
+    messageDocumentId?: string | null;
+    messagePreview?: string | null;
 }
 
 export function ReportModal({
@@ -70,6 +76,9 @@ export function ReportModal({
     tripDocumentId,
     source,
     context = 'user',
+    targetType,
+    messageDocumentId,
+    messagePreview,
 }: ReportModalProps) {
     const cardColor = useThemeColor({}, 'card');
     const textColor = useThemeColor({}, 'text');
@@ -121,6 +130,9 @@ export function ReportModal({
                 reporterUserId,
                 tripDocumentId,
                 source,
+                targetType: targetType ?? (context === 'message' ? 'MESSAGE' : 'USER'),
+                messageDocumentId,
+                messagePreview,
             });
             setSubmitted(true);
         } finally {
