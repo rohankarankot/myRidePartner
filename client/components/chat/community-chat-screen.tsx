@@ -527,7 +527,7 @@ export function CommunityChatScreen() {
                             return null;
                         }}
                         renderInputToolbar={(props: any) => (
-                            <View style={[styles.toolbarRow, { backgroundColor }]}>
+                            <View style={{ backgroundColor }}>
                                 {replyingTo && (
                                     <View style={[styles.replyPreviewContainer, { borderColor, backgroundColor: cardColor }]}>
                                         <View style={[styles.replyPreviewBar, { backgroundColor: primaryColor }]} />
@@ -544,11 +544,11 @@ export function CommunityChatScreen() {
                                         </TouchableOpacity>
                                     </View>
                                 )}
-                                <View style={{ flexDirection: 'row', alignItems: 'flex-end', flex: 1, paddingTop: 6, paddingBottom: 6 }}>
+                                <View style={styles.toolbarRow}>
                                     <InputToolbar
                                         {...props}
-                                        containerStyle={{ borderTopWidth: 0, paddingHorizontal: 0, paddingBottom: 0, flex: 1, backgroundColor: 'transparent' }}
-                                        primaryStyle={{ alignItems: 'flex-end' }}
+                                        containerStyle={[styles.toolbar, { backgroundColor }]}
+                                        primaryStyle={styles.toolbarPrimary}
                                     />
                                     <TouchableOpacity
                                         onPress={handlePressSend}
