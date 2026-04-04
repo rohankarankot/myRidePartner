@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -27,6 +27,8 @@ import { PaginatedPublicChatMessages, PublicChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { userService } from '@/services/user-service';
 import { useUserStore } from '@/store/user-store';
+import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { saveReport } from '@/features/safety/report-service';
 
 const MESSAGE_PAGE_SIZE = 40;
 
@@ -192,7 +194,7 @@ const updatePaginatedMessages = (
     };
 };
 
-export function CommunityChatScreen() {
+export function CommunityChatScreen({ initialCity }: { initialCity?: string | null }) {
     const { user } = useAuth();
     const { profile } = useUserStore();
     const queryClient = useQueryClient();
@@ -203,7 +205,9 @@ export function CommunityChatScreen() {
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
-    const [selectedCity, setSelectedCity] = useState<string | null>(normalizeCity(profile?.city));
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportTarget, setReportTarget] = useState<{ userId: number; userName: string } | null>(null);
+    const [selectedCity, setSelectedCity] = useState<string | null>(normalizeCity(initialCity) || normalizeCity(profile?.city));
     const [citySearch, setCitySearch] = useState('');
     const flatListRef = useRef<FlatList<any>>(null);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -219,6 +223,15 @@ export function CommunityChatScreen() {
             setHighlightedMessageId((current) => current === messageId ? null : current);
             highlightTimeoutRef.current = null;
         }, 1500);
+    };
+
+    const scrollToBottom = () => {
+        requestAnimationFrame(() => {
+            flatListRef.current?.scrollToOffset?.({
+                offset: 0,
+                animated: true,
+            });
+        });
     };
 
     const scrollToMessage = (messageId: string) => {
@@ -282,10 +295,13 @@ export function CommunityChatScreen() {
     });
 
     useEffect(() => {
-        if (!selectedCity && profile?.city) {
-            setSelectedCity(normalizeCity(profile.city));
+        if (!selectedCity) {
+            const nextCity = normalizeCity(initialCity) || normalizeCity(profile?.city);
+            if (nextCity) {
+                setSelectedCity(nextCity);
+            }
         }
-    }, [profile?.city, selectedCity]);
+    }, [initialCity, profile?.city, selectedCity]);
 
     const cityOptions = useMemo(() => {
         const unique = new Set<string>();
@@ -435,6 +451,7 @@ export function CommunityChatScreen() {
                 ...oldMessages,
             ])
         );
+        scrollToBottom();
 
         setComposerText('');
         setIsSending(true);
@@ -488,8 +505,64 @@ export function CommunityChatScreen() {
         ]);
     };
 
+    const handleOpenReport = (message: ExtendedMessage) => {
+        const senderId = Number(message.user._id);
+        if (!senderId || senderId === user?.id) {
+            return;
+        }
+
+        setReportTarget({
+            userId: senderId,
+            userName: message.user.name || 'Member',
+        });
+        setShowReportModal(true);
+    };
+
+    const handleSubmitReport = async (payload: ReportPayload) => {
+        await saveReport(payload);
+    };
+
+    const handleOpenMessageActions = (message: ExtendedMessage) => {
+        const isOwnMessage = Number(message.user._id) === user?.id;
+
+        Alert.alert(
+            'Message actions',
+            undefined,
+            [
+                {
+                    text: 'Reply',
+                    onPress: () => setReplyingTo(message),
+                },
+                ...(!isOwnMessage ? [{
+                    text: 'Report user',
+                    style: 'destructive' as const,
+                    onPress: () => handleOpenReport(message),
+                }] : []),
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+            ]
+        );
+    };
+
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
+            {reportTarget ? (
+                <ReportModal
+                    visible={showReportModal}
+                    onClose={() => {
+                        setShowReportModal(false);
+                        setReportTarget(null);
+                    }}
+                    onSubmit={handleSubmitReport}
+                    reportedUserId={reportTarget.userId}
+                    reportedUserName={reportTarget.userName}
+                    reporterUserId={user?.id}
+                    source="profile"
+                />
+            ) : null}
+
             <View
                 style={[
                     styles.customHeader,
@@ -523,7 +596,10 @@ export function CommunityChatScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    onPress={() => router.push('/community-info')}
+                    onPress={() => router.push({
+                        pathname: '/community-room',
+                        params: selectedCity ? { city: selectedCity } : undefined,
+                    })}
                     style={styles.headerIconButton}
                 >
                     <IconSymbol name="info.circle.fill" size={22} color={primaryColor} />
@@ -642,6 +718,7 @@ export function CommunityChatScreen() {
                                 })()}
                             </SwipeableMessageBubble>
                         )}
+                        onLongPressMessage={(_: any, message: ExtendedMessage) => handleOpenMessageActions(message)}
                         renderCustomView={(props: any) => {
                             const { currentMessage, position } = props;
                             if (currentMessage?.replyTo) {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
+import { Alert, AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,6 +19,8 @@ import { tripChatService } from '@/services/trip-chat-service';
 import { socketService } from '@/services/socket-service';
 import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
+import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { saveReport } from '@/features/safety/report-service';
 
 const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
 
@@ -210,6 +212,8 @@ export default function TripChatScreen() {
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportTarget, setReportTarget] = useState<{ userId: number; userName: string } | null>(null);
     const [isSendingLocation, setIsSendingLocation] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
     const isTypingRef = useRef(false);
@@ -228,6 +232,15 @@ export default function TripChatScreen() {
             setHighlightedMessageId((current) => current === messageId ? null : current);
             highlightTimeoutRef.current = null;
         }, 1500);
+    };
+
+    const scrollToBottom = () => {
+        requestAnimationFrame(() => {
+            flatListRef.current?.scrollToOffset?.({
+                offset: 0,
+                animated: true,
+            });
+        });
     };
 
     const scrollToMessage = (messageId: string) => {
@@ -528,6 +541,7 @@ export default function TripChatScreen() {
                 ...oldMessages,
             ])
         );
+        scrollToBottom();
 
         setComposerText('');
         setIsSending(true);
@@ -655,8 +669,65 @@ export default function TripChatScreen() {
         ]);
     };
 
+    const handleOpenReport = (message: ExtendedMessage) => {
+        const senderId = Number(message.user._id);
+        if (!senderId || senderId === user?.id) {
+            return;
+        }
+
+        setReportTarget({
+            userId: senderId,
+            userName: message.user.name || 'Rider',
+        });
+        setShowReportModal(true);
+    };
+
+    const handleSubmitReport = async (payload: ReportPayload) => {
+        await saveReport(payload);
+    };
+
+    const handleOpenMessageActions = (message: ExtendedMessage) => {
+        const isOwnMessage = Number(message.user._id) === user?.id;
+
+        Alert.alert(
+            'Message actions',
+            undefined,
+            [
+                {
+                    text: 'Reply',
+                    onPress: () => setReplyingTo(message),
+                },
+                ...(!isOwnMessage ? [{
+                    text: 'Report user',
+                    style: 'destructive' as const,
+                    onPress: () => handleOpenReport(message),
+                }] : []),
+                {
+                    text: 'Cancel',
+                    style: 'cancel',
+                },
+            ]
+        );
+    };
+
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
+            {reportTarget ? (
+                <ReportModal
+                    visible={showReportModal}
+                    onClose={() => {
+                        setShowReportModal(false);
+                        setReportTarget(null);
+                    }}
+                    onSubmit={handleSubmitReport}
+                    reportedUserId={reportTarget.userId}
+                    reportedUserName={reportTarget.userName}
+                    reporterUserId={user?.id}
+                    tripDocumentId={tripId}
+                    source="trip"
+                />
+            ) : null}
+
             <View
                 style={[
                     styles.customHeader,
@@ -712,6 +783,7 @@ export default function TripChatScreen() {
                         }}
                         text={composerText}
                         scrollToBottom
+                        onLongPressMessage={(_: any, message: ExtendedMessage) => handleOpenMessageActions(message)}
                         renderCustomView={(props: any) => {
                             const { currentMessage, position } = props;
                             if (currentMessage?.replyTo) {

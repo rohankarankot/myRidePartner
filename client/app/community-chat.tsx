@@ -1,13 +1,9 @@
 import React from 'react';
-import { Stack, useRouter } from 'expo-router';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { CommunityChatScreen } from '@/components/chat/community-chat-screen';
 
 export default function CommunityChatRoute() {
-    const router = useRouter();
-    const backgroundColor = useThemeColor({}, 'background');
-    const textColor = useThemeColor({}, 'text');
-    const primaryColor = useThemeColor({}, 'primary');
+    const { city } = useLocalSearchParams<{ city?: string }>();
 
     return (
         <>
@@ -16,7 +12,7 @@ export default function CommunityChatRoute() {
                     headerShown: false,
                 }}
             />
-            <CommunityChatScreen />
+            <CommunityChatScreen initialCity={city} />
         </>
     );
 }

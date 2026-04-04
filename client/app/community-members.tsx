@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal, BottomSheetTextInput, BottomSheetView } from '@gorhom/bottom-sheet';
 import { AppLoader } from '@/components/app-loader';
@@ -47,6 +47,7 @@ const CommunityCitySheetHeader = React.memo(({
 ));
 
 export default function CommunityMembersScreen() {
+    const { city } = useLocalSearchParams<{ city?: string }>();
     const { profile } = useUserStore();
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -55,7 +56,7 @@ export default function CommunityMembersScreen() {
     const borderColor = useThemeColor({}, 'border');
     const primaryColor = useThemeColor({}, 'primary');
     const citySheetRef = useRef<BottomSheetModal>(null);
-    const [selectedCity, setSelectedCity] = useState<string | null>(profile?.city || null);
+    const [selectedCity, setSelectedCity] = useState<string | null>(city || profile?.city || null);
     const [citySearch, setCitySearch] = useState('');
 
     const { data: cities = [] } = useQuery({
