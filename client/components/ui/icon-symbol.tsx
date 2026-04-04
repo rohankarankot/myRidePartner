@@ -78,6 +78,7 @@ const MAPPING = {
   'chevron.down': 'expand-more',
   'message.fill': 'message',
   'globe': 'public',
+  'arrowshape.turn.up.left.fill': 'reply',
 } as IconMapping;
 
 /**

@@ -11,6 +11,7 @@ import {
     IMessage,
     InputToolbar,
 } from 'react-native-gifted-chat';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppLoader } from '@/components/app-loader';
@@ -51,7 +52,17 @@ const parseLocationMessage = (value: string): ParsedLocationMessage | null => {
 const buildLocationMessage = (payload: ParsedLocationMessage) =>
     `${LOCATION_MESSAGE_PREFIX}${JSON.stringify(payload)}`;
 
-const toGiftedMessage = (message: TripChatMessage): IMessage => ({
+export interface ExtendedMessage extends IMessage {
+    replyTo?: {
+        documentId: string;
+        message: string;
+        sender: {
+            name: string;
+        };
+    };
+}
+
+const toGiftedMessage = (message: TripChatMessage): ExtendedMessage => ({
     _id: message.documentId,
     text: message.message,
     createdAt: new Date(message.createdAt),
@@ -64,13 +75,38 @@ const toGiftedMessage = (message: TripChatMessage): IMessage => ({
     },
     sent: !message.documentId.startsWith('optimistic-'),
     pending: message.documentId.startsWith('optimistic-'),
+    replyTo: message.replyTo ? {
+        documentId: message.replyTo.documentId,
+        message: message.replyTo.message,
+        sender: {
+            name: message.replyTo.sender.userProfile?.fullName || message.replyTo.sender.username || 'Rider',
+        }
+    } : undefined,
 });
 
-const fromGiftedMessage = (message: IMessage, fallbackUser: { id: number; username?: string; email?: string }) => ({
+const fromGiftedMessage = (message: ExtendedMessage, fallbackUser: { id: number; username?: string; email?: string }, replyTo?: ExtendedMessage) => ({
     id: -1,
     documentId: String(message._id),
     message: message.text,
     createdAt: new Date(message.createdAt).toISOString(),
+    replyTo: replyTo ? {
+        documentId: String(replyTo._id),
+        message: replyTo.text,
+        createdAt: new Date().toISOString(),
+        sender: {
+            id: Number(replyTo.user._id),
+            documentId: String(replyTo.user._id),
+            username: replyTo.user.name || '',
+            email: '',
+            provider: 'local',
+            confirmed: true,
+            blocked: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            publishedAt: new Date().toISOString(),
+            userProfile: undefined,
+        }
+    } : null,
     sender: {
         id: fallbackUser.id,
         documentId: String(message._id),
@@ -125,6 +161,45 @@ const updatePaginatedMessages = (
     };
 };
 
+const SwipeableMessageBubble = ({ 
+    props, 
+    children, 
+    onSwipe 
+}: { 
+    props: any; 
+    children: React.ReactNode;
+    onSwipe: (message: ExtendedMessage) => void;
+}) => {
+    const swipeableRef = useRef<Swipeable>(null);
+    const primaryColor = useThemeColor({}, 'primary');
+
+    const renderSwipeAction = () => (
+        <View style={{ justifyContent: 'center', alignItems: 'center', width: 50 }}>
+            <View style={{ backgroundColor: `${primaryColor}22`, borderRadius: 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center' }}>
+                <IconSymbol name="arrowshape.turn.up.left.fill" size={14} color={primaryColor} />
+            </View>
+        </View>
+    );
+
+    return (
+        <Swipeable
+            ref={swipeableRef}
+            friction={2}
+            leftThreshold={30}
+            rightThreshold={30}
+            containerStyle={{ zIndex: 100, overflow: 'visible' }}
+            renderLeftActions={renderSwipeAction}
+            renderRightActions={renderSwipeAction}
+            onSwipeableWillOpen={() => {
+                onSwipe(props.currentMessage);
+                swipeableRef.current?.close();
+            }}
+        >
+            {children}
+        </Swipeable>
+    );
+};
+
 export default function TripChatScreen() {
     const { tripId } = useLocalSearchParams<{ tripId: string }>();
     const { user } = useAuth();
@@ -133,6 +208,7 @@ export default function TripChatScreen() {
     const insets = useSafeAreaInsets();
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [isSendingLocation, setIsSendingLocation] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
     const isTypingRef = useRef(false);
@@ -368,6 +444,9 @@ export default function TripChatScreen() {
         }
         emitTypingState(false);
 
+        const currentReplyTo = replyingTo;
+        setReplyingTo(null);
+
         const optimisticMessage = fromGiftedMessage(
             {
                 ...outgoing,
@@ -375,7 +454,8 @@ export default function TripChatScreen() {
                 text: trimmedMessage,
                 createdAt: new Date(),
             },
-            user
+            user,
+            currentReplyTo || undefined
         );
 
         queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
@@ -389,7 +469,9 @@ export default function TripChatScreen() {
         setIsSending(true);
 
         try {
-            const createdMessage = await tripChatService.sendMessage(tripId, trimmedMessage);
+            const createdMessage = await tripChatService.sendMessage(tripId, trimmedMessage, {
+                replyToDocumentId: currentReplyTo ? String(currentReplyTo._id) : undefined,
+            });
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
                     oldMessages.map((item) =>
@@ -566,6 +648,32 @@ export default function TripChatScreen() {
                         }}
                         text={composerText}
                         scrollToBottom
+                        renderCustomView={(props: any) => {
+                            const { currentMessage, position } = props;
+                            if (currentMessage?.replyTo) {
+                                const isRight = position === 'right';
+
+                                const bubbleBg = isRight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.06)';
+                                const barColor = isRight ? 'rgba(255,255,255,0.7)' : primaryColor;
+                                const nameColor = isRight ? '#FFFFFF' : primaryColor;
+                                const messageColor = isRight ? 'rgba(255,255,255,0.85)' : subtextColor;
+
+                                return (
+                                    <View style={[styles.replyBubbleView, { backgroundColor: bubbleBg }]}>
+                                        <View style={[styles.replyBubbleBar, { backgroundColor: barColor }]} />
+                                        <View style={styles.replyBubbleContent}>
+                                            <Text style={[styles.replyBubbleName, { color: nameColor }]} numberOfLines={1}>
+                                                {currentMessage.replyTo.sender.username || currentMessage.replyTo.sender.name}
+                                            </Text>
+                                            <Text style={[styles.replyBubbleMessage, { color: messageColor }]} numberOfLines={2}>
+                                                {currentMessage.replyTo.message}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                );
+                            }
+                            return null;
+                        }}
                         bottomOffset={insets.bottom}
                         renderAvatarOnTop
                         keyboardShouldPersistTaps="handled"
@@ -600,69 +708,91 @@ export default function TripChatScreen() {
                             contentContainerStyle: giftedMessages.length === 0 ? styles.emptyList : undefined,
                         }}
                         renderBubble={(props: any) => (
-                            (() => {
-                                const locationPayload = parseLocationMessage(props.currentMessage?.text || '');
+                            <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
+                                {(() => {
+                                    const locationPayload = parseLocationMessage(props.currentMessage?.text || '');
 
-                                if (locationPayload) {
-                                    const isCurrentUser = String(props.currentMessage?.user?._id) === String(user?.id);
+                                    if (locationPayload) {
+                                        const isCurrentUser = String(props.currentMessage?.user?._id) === String(user?.id);
 
-                                    return (
-                                        <TouchableOpacity
-                                            activeOpacity={0.85}
-                                            onPress={() => openSharedLocation(locationPayload)}
-                                            style={[
-                                                styles.locationBubble,
-                                                {
-                                                    alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                                                    backgroundColor: isCurrentUser ? primaryColor : cardColor,
-                                                    borderColor,
-                                                },
-                                            ]}
-                                        >
-                                            <View style={styles.locationBubbleHeader}>
-                                                <IconSymbol
-                                                    name="location.fill"
-                                                    size={18}
-                                                    color={isCurrentUser ? '#FFFFFF' : primaryColor}
-                                                />
-                                                <Text
-                                                    style={[
-                                                        styles.locationBubbleTitle,
-                                                        { color: isCurrentUser ? '#FFFFFF' : textColor },
-                                                    ]}
-                                                >
-                                                    {locationPayload.label}
-                                                </Text>
-                                            </View>
-                                            <Text
+                                        return (
+                                            <TouchableOpacity
+                                                activeOpacity={0.85}
+                                                onPress={() => openSharedLocation(locationPayload)}
                                                 style={[
-                                                    styles.locationBubbleSubtitle,
-                                                    { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
+                                                    styles.locationBubble,
+                                                    {
+                                                        alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                        backgroundColor: isCurrentUser ? primaryColor : cardColor,
+                                                        borderColor,
+                                                    },
                                                 ]}
                                             >
-                                                Tap to open in Google Maps
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                }
+                                                <View style={styles.locationBubbleHeader}>
+                                                    <IconSymbol
+                                                        name="location.fill"
+                                                        size={18}
+                                                        color={isCurrentUser ? '#FFFFFF' : primaryColor}
+                                                    />
+                                                    <Text
+                                                        style={[
+                                                            styles.locationBubbleTitle,
+                                                            { color: isCurrentUser ? '#FFFFFF' : textColor },
+                                                        ]}
+                                                    >
+                                                        {locationPayload.label}
+                                                    </Text>
+                                                </View>
+                                                <Text
+                                                    style={[
+                                                        styles.locationBubbleSubtitle,
+                                                        { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
+                                                    ]}
+                                                >
+                                                    Tap to open in Google Maps
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    }
 
-                                return (
-                                    <Bubble
-                                        {...props}
-                                        wrapperStyle={{
-                                            right: { backgroundColor: primaryColor },
-                                            left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
-                                        }}
-                                        textStyle={{
-                                            right: { color: '#FFFFFF' },
-                                            left: { color: textColor },
-                                        }}
-                                    />
-                                );
-                            })()
+                                    return (
+                                        <Bubble
+                                            {...props}
+                                            wrapperStyle={{
+                                                right: { backgroundColor: primaryColor },
+                                                left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
+                                            }}
+                                            textStyle={{
+                                                right: { color: '#FFFFFF' },
+                                                left: { color: textColor },
+                                            }}
+                                        />
+                                    );
+                                })()}
+                            </SwipeableMessageBubble>
                         )}
                         renderInputToolbar={(props: any) => (
-                            <View style={[styles.toolbarRow, { backgroundColor }]}>
+                            <View>
+                                {replyingTo && (
+                                    <View style={[styles.replyPreviewContainer, { backgroundColor: cardColor, borderColor }]}>
+                                        <View style={[styles.replyPreviewBar, { backgroundColor: primaryColor }]} />
+                                        <View style={styles.replyPreviewContent}>
+                                            <Text style={[styles.replyPreviewName, { color: primaryColor }]}>
+                                                {replyingTo.user.name}
+                                            </Text>
+                                            <Text style={[styles.replyPreviewMessage, { color: subtextColor }]} numberOfLines={1}>
+                                                {replyingTo.text}
+                                            </Text>
+                                        </View>
+                                        <TouchableOpacity 
+                                            onPress={() => setReplyingTo(null)}
+                                            style={styles.replyPreviewClose}
+                                        >
+                                            <IconSymbol name="xmark.circle.fill" size={20} color={subtextColor} />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                                <View style={[styles.toolbarRow, { backgroundColor }]}>
                                 {chatAccess?.isCaptain ? (
                                     <TouchableOpacity
                                         onPress={handleShareCurrentLocation}
@@ -708,6 +838,7 @@ export default function TripChatScreen() {
                                     />
                                 </TouchableOpacity>
                             </View>
+                        </View>
                         )}
                         renderSend={() => null}
                         renderChatEmpty={() => (
@@ -868,5 +999,59 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 6,
+    },
+    replyPreviewContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderTopWidth: 1,
+    },
+    replyPreviewBar: {
+        width: 4,
+        borderRadius: 2,
+        marginRight: 8,
+    },
+    replyPreviewContent: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    replyPreviewName: {
+        fontSize: 13,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    replyPreviewMessage: {
+        fontSize: 13,
+    },
+    replyPreviewClose: {
+        padding: 4,
+        justifyContent: 'center',
+    },
+    replyBubbleView: {
+        flexDirection: 'row',
+        borderRadius: 8,
+        marginHorizontal: 8,
+        marginTop: 6,
+        marginBottom: 2,
+        paddingRight: 8,
+        overflow: 'hidden',
+        minWidth: 140,
+    },
+    replyBubbleBar: {
+        width: 4,
+        marginRight: 8,
+    },
+    replyBubbleContent: {
+        paddingVertical: 8,
+        paddingRight: 6,
+        flex: 1,
+    },
+    replyBubbleName: {
+        fontSize: 12,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    replyBubbleMessage: {
+        fontSize: 12,
     },
 });
