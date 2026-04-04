@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
+import { AppState, Linking, Platform, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -212,6 +212,7 @@ export default function TripChatScreen() {
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+    const [activeMessageMenuId, setActiveMessageMenuId] = useState<string | null>(null);
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportTarget, setReportTarget] = useState<{ userId: number; userName: string } | null>(null);
     const [isSendingLocation, setIsSendingLocation] = useState(false);
@@ -295,6 +296,7 @@ export default function TripChatScreen() {
     const cardColor = useThemeColor({}, 'card');
     const borderColor = useThemeColor({}, 'border');
     const primaryColor = useThemeColor({}, 'primary');
+    const dangerColor = useThemeColor({}, 'danger');
     const headerHeight = insets.top + 60;
 
     const { data: chatAccess, isLoading: isLoadingAccess } = useQuery({
@@ -523,6 +525,7 @@ export default function TripChatScreen() {
 
         const currentReplyTo = replyingTo;
         setReplyingTo(null);
+        setActiveMessageMenuId(null);
 
         const optimisticMessage = fromGiftedMessage(
             {
@@ -679,6 +682,7 @@ export default function TripChatScreen() {
             userId: senderId,
             userName: message.user.name || 'Rider',
         });
+        setActiveMessageMenuId(null);
         setShowReportModal(true);
     };
 
@@ -687,27 +691,8 @@ export default function TripChatScreen() {
     };
 
     const handleOpenMessageActions = (message: ExtendedMessage) => {
-        const isOwnMessage = Number(message.user._id) === user?.id;
-
-        Alert.alert(
-            'Message actions',
-            undefined,
-            [
-                {
-                    text: 'Reply',
-                    onPress: () => setReplyingTo(message),
-                },
-                ...(!isOwnMessage ? [{
-                    text: 'Report user',
-                    style: 'destructive' as const,
-                    onPress: () => handleOpenReport(message),
-                }] : []),
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-            ]
-        );
+        const messageId = String(message._id);
+        setActiveMessageMenuId((current) => current === messageId ? null : messageId);
     };
 
     return (
@@ -725,6 +710,7 @@ export default function TripChatScreen() {
                     reporterUserId={user?.id}
                     tripDocumentId={tripId}
                     source="trip"
+                    context="message"
                 />
             ) : null}
 
@@ -864,16 +850,58 @@ export default function TripChatScreen() {
                                 }
                             }
                         }}
-                        renderBubble={(props: any) => (
-                            <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
-                                {(() => {
-                                    const locationPayload = parseLocationMessage(props.currentMessage?.text || '');
+                        renderBubble={(props: any) => {
+                            const currentMessage = props.currentMessage as ExtendedMessage;
+                            const messageId = String(currentMessage?._id);
+                            const locationPayload = parseLocationMessage(currentMessage?.text || '');
+                            const isCurrentUser = String(currentMessage?.user?._id) === String(user?.id);
+                            const isHighlighted = messageId === highlightedMessageId;
+                            const isMenuOpen = messageId === activeMessageMenuId;
 
-                                    if (locationPayload) {
-                                        const isCurrentUser = String(props.currentMessage?.user?._id) === String(user?.id);
-                                        const isHighlighted = String(props.currentMessage?._id) === highlightedMessageId;
-
-                                        return (
+                            return (
+                                <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
+                                    <View style={[styles.messageActionWrap, { alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }]}>
+                                        {isMenuOpen ? (
+                                            <View style={[
+                                                styles.messageActionMenu,
+                                                {
+                                                    backgroundColor: cardColor,
+                                                    borderColor,
+                                                    alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                },
+                                            ]}>
+                                                <TouchableOpacity
+                                                    activeOpacity={0.8}
+                                                    style={styles.messageActionItem}
+                                                    onPress={() => {
+                                                        setReplyingTo(currentMessage);
+                                                        setActiveMessageMenuId(null);
+                                                    }}
+                                                >
+                                                    <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
+                                                    <Text style={[styles.messageActionText, { color: textColor }]}>Reply</Text>
+                                                </TouchableOpacity>
+                                                {!isCurrentUser ? (
+                                                    <TouchableOpacity
+                                                        activeOpacity={0.8}
+                                                        style={styles.messageActionItem}
+                                                        onPress={() => handleOpenReport(currentMessage)}
+                                                    >
+                                                        <IconSymbol name="exclamationmark.bubble.fill" size={16} color={dangerColor} />
+                                                        <Text style={[styles.messageActionText, { color: dangerColor }]}>Report user</Text>
+                                                    </TouchableOpacity>
+                                                ) : null}
+                                                <TouchableOpacity
+                                                    activeOpacity={0.8}
+                                                    style={styles.messageActionItem}
+                                                    onPress={() => setActiveMessageMenuId(null)}
+                                                >
+                                                    <IconSymbol name="xmark" size={15} color={subtextColor} />
+                                                    <Text style={[styles.messageActionText, { color: subtextColor }]}>Close</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        ) : null}
+                                        {locationPayload ? (
                                             <TouchableOpacity
                                                 activeOpacity={0.85}
                                                 onPress={() => openSharedLocation(locationPayload)}
@@ -913,35 +941,31 @@ export default function TripChatScreen() {
                                                     Tap to open in Google Maps
                                                 </Text>
                                             </TouchableOpacity>
-                                        );
-                                    }
-
-                                    const isHighlighted = String(props.currentMessage?._id) === highlightedMessageId;
-
-                                    return (
-                                        <Bubble
-                                            {...props}
-                                            wrapperStyle={{
-                                                right: {
-                                                    backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
-                                                    borderWidth: isHighlighted ? 2 : 0,
-                                                    borderColor: '#DCF8C6',
-                                                },
-                                                left: {
-                                                    backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
-                                                    borderWidth: isHighlighted ? 2 : 1,
-                                                    borderColor: isHighlighted ? primaryColor : borderColor,
-                                                },
-                                            }}
-                                            textStyle={{
-                                                right: { color: '#FFFFFF' },
-                                                left: { color: textColor },
-                                            }}
-                                        />
-                                    );
-                                })()}
-                            </SwipeableMessageBubble>
-                        )}
+                                        ) : (
+                                            <Bubble
+                                                {...props}
+                                                wrapperStyle={{
+                                                    right: {
+                                                        backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
+                                                        borderWidth: isHighlighted ? 2 : 0,
+                                                        borderColor: '#DCF8C6',
+                                                    },
+                                                    left: {
+                                                        backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
+                                                        borderWidth: isHighlighted ? 2 : 1,
+                                                        borderColor: isHighlighted ? primaryColor : borderColor,
+                                                    },
+                                                }}
+                                                textStyle={{
+                                                    right: { color: '#FFFFFF' },
+                                                    left: { color: textColor },
+                                                }}
+                                            />
+                                        )}
+                                    </View>
+                                </SwipeableMessageBubble>
+                            );
+                        }}
                         renderInputToolbar={(props: any) => (
                             <View>
                                 {replyingTo && (
@@ -1128,6 +1152,27 @@ const styles = StyleSheet.create({
     locationBubbleSubtitle: {
         fontSize: 13,
         lineHeight: 18,
+    },
+    messageActionWrap: {
+        maxWidth: '100%',
+    },
+    messageActionMenu: {
+        borderWidth: 1,
+        borderRadius: 16,
+        paddingVertical: 6,
+        minWidth: 150,
+        marginBottom: 8,
+    },
+    messageActionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    messageActionText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     typingText: {
         fontSize: 13,

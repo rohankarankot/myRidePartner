@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     TextInput,
     ScrollView,
-    Dimensions,
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
@@ -15,7 +14,7 @@ import {
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-const REPORT_REASONS = [
+const USER_REPORT_REASONS = [
     { id: 'harassment', label: 'Harassment or bullying', icon: 'exclamationmark.bubble.fill' },
     { id: 'fake_profile', label: 'Fake profile or impersonation', icon: 'person.fill.questionmark' },
     { id: 'scam', label: 'Scam or fraud', icon: 'indianrupeesign.circle.fill' },
@@ -24,7 +23,19 @@ const REPORT_REASONS = [
     { id: 'other', label: 'Other', icon: 'ellipsis.circle.fill' },
 ] as const;
 
-type ReasonId = typeof REPORT_REASONS[number]['id'];
+const MESSAGE_REPORT_REASONS = [
+    { id: 'harassment', label: 'Abusive or bullying message', icon: 'exclamationmark.bubble.fill' },
+    { id: 'scam', label: 'Spam, scam, or suspicious promotion', icon: 'indianrupeesign.circle.fill' },
+    { id: 'inappropriate', label: 'Sexual or inappropriate content', icon: 'hand.raised.fill' },
+    { id: 'reselling', label: 'Reselling or commercial message', icon: 'indianrupeesign.circle.fill' },
+    { id: 'safety', label: 'Threat, intimidation, or safety risk', icon: 'shield.fill' },
+    { id: 'other', label: 'Other message issue', icon: 'ellipsis.circle.fill' },
+] as const;
+
+type ReasonId =
+    | typeof USER_REPORT_REASONS[number]['id']
+    | typeof MESSAGE_REPORT_REASONS[number]['id'];
+type ReportContext = 'user' | 'message';
 
 export interface ReportPayload {
     reasonId: ReasonId;
@@ -46,6 +57,7 @@ interface ReportModalProps {
     reporterUserId?: number | null;
     tripDocumentId?: string | null;
     source: 'trip' | 'profile';
+    context?: ReportContext;
 }
 
 export function ReportModal({
@@ -57,19 +69,31 @@ export function ReportModal({
     reporterUserId,
     tripDocumentId,
     source,
+    context = 'user',
 }: ReportModalProps) {
-    const backgroundColor = useThemeColor({}, 'background');
     const cardColor = useThemeColor({}, 'card');
     const textColor = useThemeColor({}, 'text');
     const subtextColor = useThemeColor({}, 'subtext');
     const primaryColor = useThemeColor({}, 'primary');
     const borderColor = useThemeColor({}, 'border');
     const dangerColor = useThemeColor({}, 'danger');
+    const reportReasons = context === 'message' ? MESSAGE_REPORT_REASONS : USER_REPORT_REASONS;
+    const title = context === 'message' ? 'Report Message' : 'Report User';
+    const subtitlePrefix = context === 'message' ? 'Message from' : 'Reporting';
+    const questionLabel = context === 'message'
+        ? 'WHAT IS WRONG WITH THIS MESSAGE?'
+        : 'WHY ARE YOU REPORTING THIS USER?';
+    const detailsPlaceholder = context === 'message'
+        ? 'Tell us what was wrong with this message...'
+        : 'Describe what happened...';
 
     const [selectedReason, setSelectedReason] = useState<ReasonId | null>(null);
     const [details, setDetails] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
+    const isOtherReason = selectedReason === 'other';
+    const trimmedDetails = details.trim();
+    const isDetailsRequiredMissing = isOtherReason && !trimmedDetails;
 
     const reset = () => {
         setSelectedReason(null);
@@ -84,14 +108,14 @@ export function ReportModal({
     };
 
     const handleSubmit = async () => {
-        if (!selectedReason) return;
-        const reason = REPORT_REASONS.find(r => r.id === selectedReason)!;
+        if (!selectedReason || isDetailsRequiredMissing) return;
+        const reason = reportReasons.find(r => r.id === selectedReason)!;
         setSubmitting(true);
         try {
             await onSubmit({
                 reasonId: selectedReason,
                 reasonLabel: reason.label,
-                details: details.trim(),
+                details: trimmedDetails,
                 reportedUserId,
                 reportedUserName,
                 reporterUserId,
@@ -124,7 +148,7 @@ export function ReportModal({
                             </View>
                             <Text style={[styles.successTitle, { color: textColor }]}>Report Submitted</Text>
                             <Text style={[styles.successBody, { color: subtextColor }]}>
-                                Thank you for helping keep My Ride Partner safe. We'll review this report and take action if needed.
+                                Thank you for helping keep My Ride Partner safe. We&apos;ll review this report and take action if needed.
                             </Text>
                             <TouchableOpacity
                                 style={[styles.doneButton, { backgroundColor: primaryColor }]}
@@ -139,10 +163,10 @@ export function ReportModal({
                             {/* Header */}
                             <View style={styles.header}>
                                 <View>
-                                    <Text style={[styles.title, { color: textColor }]}>Report User</Text>
+                                    <Text style={[styles.title, { color: textColor }]}>{title}</Text>
                                     {reportedUserName ? (
                                         <Text style={[styles.subtitle, { color: subtextColor }]}>
-                                            Reporting {reportedUserName}
+                                            {subtitlePrefix} {reportedUserName}
                                         </Text>
                                     ) : null}
                                 </View>
@@ -152,11 +176,11 @@ export function ReportModal({
                             </View>
 
                             <Text style={[styles.sectionLabel, { color: subtextColor }]}>
-                                WHY ARE YOU REPORTING THIS USER?
+                                {questionLabel}
                             </Text>
 
                             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
-                                {REPORT_REASONS.map(reason => {
+                                {reportReasons.map(reason => {
                                     const active = selectedReason === reason.id;
                                     return (
                                         <TouchableOpacity
@@ -190,14 +214,18 @@ export function ReportModal({
 
                                 {/* Optional details */}
                                 <Text style={[styles.sectionLabel, { color: subtextColor, marginTop: 16 }]}>
-                                    ADDITIONAL DETAILS (OPTIONAL)
+                                    {isOtherReason ? 'ADDITIONAL DETAILS (REQUIRED)' : 'ADDITIONAL DETAILS (OPTIONAL)'}
                                 </Text>
                                 <TextInput
                                     style={[
                                         styles.detailsInput,
-                                        { borderColor, color: textColor, backgroundColor: `${subtextColor}08` },
+                                        {
+                                            borderColor: isDetailsRequiredMissing ? dangerColor : borderColor,
+                                            color: textColor,
+                                            backgroundColor: `${subtextColor}08`,
+                                        },
                                     ]}
-                                    placeholder="Describe what happened..."
+                                    placeholder={detailsPlaceholder}
                                     placeholderTextColor={subtextColor}
                                     multiline
                                     numberOfLines={4}
@@ -207,6 +235,11 @@ export function ReportModal({
                                     textAlignVertical="top"
                                 />
                                 <Text style={[styles.charCount, { color: subtextColor }]}>{details.length}/500</Text>
+                                {isDetailsRequiredMissing ? (
+                                    <Text style={[styles.validationText, { color: dangerColor }]}>
+                                        Please tell us the reason when you choose Other.
+                                    </Text>
+                                ) : null}
                             </ScrollView>
 
                             {/* Actions */}
@@ -221,11 +254,11 @@ export function ReportModal({
                                     style={[
                                         styles.submitBtn,
                                         {
-                                            backgroundColor: selectedReason ? dangerColor : `${subtextColor}30`,
+                                            backgroundColor: selectedReason && !isDetailsRequiredMissing ? dangerColor : `${subtextColor}30`,
                                         },
                                     ]}
                                     onPress={handleSubmit}
-                                    disabled={!selectedReason || submitting}
+                                    disabled={!selectedReason || isDetailsRequiredMissing || submitting}
                                 >
                                     {submitting ? (
                                         <ActivityIndicator color="#fff" />
@@ -241,8 +274,6 @@ export function ReportModal({
         </Modal>
     );
 }
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
     overlay: {
@@ -308,6 +339,11 @@ const styles = StyleSheet.create({
     charCount: {
         fontSize: 11,
         textAlign: 'right',
+        marginBottom: 8,
+    },
+    validationText: {
+        fontSize: 12,
+        lineHeight: 16,
         marginBottom: 8,
     },
     actions: {

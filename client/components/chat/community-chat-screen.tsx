@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -205,6 +205,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+    const [activeMessageMenuId, setActiveMessageMenuId] = useState<string | null>(null);
     const [showReportModal, setShowReportModal] = useState(false);
     const [reportTarget, setReportTarget] = useState<{ userId: number; userName: string } | null>(null);
     const [selectedCity, setSelectedCity] = useState<string | null>(normalizeCity(initialCity) || normalizeCity(profile?.city));
@@ -287,6 +288,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const cardColor = useThemeColor({}, 'card');
     const borderColor = useThemeColor({}, 'border');
     const primaryColor = useThemeColor({}, 'primary');
+    const dangerColor = useThemeColor({}, 'danger');
     const cityLabel = selectedCity || 'Select city';
 
     const { data: cities = [] } = useQuery({
@@ -444,6 +446,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
         );
 
         setReplyingTo(null);
+        setActiveMessageMenuId(null);
 
         queryClient.setQueryData(['public-chat-messages', selectedCity], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
             updatePaginatedMessages(oldPages, (oldMessages) => [
@@ -515,6 +518,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
             userId: senderId,
             userName: message.user.name || 'Member',
         });
+        setActiveMessageMenuId(null);
         setShowReportModal(true);
     };
 
@@ -523,27 +527,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     };
 
     const handleOpenMessageActions = (message: ExtendedMessage) => {
-        const isOwnMessage = Number(message.user._id) === user?.id;
-
-        Alert.alert(
-            'Message actions',
-            undefined,
-            [
-                {
-                    text: 'Reply',
-                    onPress: () => setReplyingTo(message),
-                },
-                ...(!isOwnMessage ? [{
-                    text: 'Report user',
-                    style: 'destructive' as const,
-                    onPress: () => handleOpenReport(message),
-                }] : []),
-                {
-                    text: 'Cancel',
-                    style: 'cancel',
-                },
-            ]
-        );
+        const messageId = String(message._id);
+        setActiveMessageMenuId((current) => current === messageId ? null : messageId);
     };
 
     return (
@@ -560,6 +545,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     reportedUserName={reportTarget.userName}
                     reporterUserId={user?.id}
                     source="profile"
+                    context="message"
                 />
             ) : null}
 
@@ -689,12 +675,56 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                 }
                             }
                         }}
-                        renderBubble={(props: any) => (
-                            <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
-                                {(() => {
-                                    const isHighlighted = String(props.currentMessage?._id) === highlightedMessageId;
+                        renderBubble={(props: any) => {
+                            const currentMessage = props.currentMessage as ExtendedMessage;
+                            const messageId = String(currentMessage?._id);
+                            const isCurrentUser = String(currentMessage?.user?._id) === String(user?.id);
+                            const isHighlighted = messageId === highlightedMessageId;
+                            const isMenuOpen = messageId === activeMessageMenuId;
 
-                                    return (
+                            return (
+                                <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
+                                    <View style={[styles.messageActionWrap, { alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }]}>
+                                        {isMenuOpen ? (
+                                            <View style={[
+                                                styles.messageActionMenu,
+                                                {
+                                                    backgroundColor: cardColor,
+                                                    borderColor,
+                                                    alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                },
+                                            ]}>
+                                                <TouchableOpacity
+                                                    activeOpacity={0.8}
+                                                    style={styles.messageActionItem}
+                                                    onPress={() => {
+                                                        setReplyingTo(currentMessage);
+                                                        setActiveMessageMenuId(null);
+                                                    }}
+                                                >
+                                                    <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
+                                                    <Text style={[styles.messageActionText, { color: textColor }]}>Reply</Text>
+                                                </TouchableOpacity>
+                                                {!isCurrentUser ? (
+                                                    <TouchableOpacity
+                                                        activeOpacity={0.8}
+                                                        style={styles.messageActionItem}
+                                                        onPress={() => handleOpenReport(currentMessage)}
+                                                    >
+                                                        <IconSymbol name="exclamationmark.bubble.fill" size={16} color={dangerColor} />
+                                                        <Text style={[styles.messageActionText, { color: dangerColor }]}>Report user</Text>
+                                                    </TouchableOpacity>
+                                                ) : null}
+                                                <TouchableOpacity
+                                                    activeOpacity={0.8}
+                                                    style={styles.messageActionItem}
+                                                    onPress={() => setActiveMessageMenuId(null)}
+                                                >
+                                                    <IconSymbol name="xmark" size={15} color={subtextColor} />
+                                                    <Text style={[styles.messageActionText, { color: subtextColor }]}>Close</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        ) : null}
                                         <Bubble
                                             {...props}
                                             wrapperStyle={{
@@ -714,10 +744,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                                 left: { color: textColor },
                                             }}
                                         />
-                                    );
-                                })()}
-                            </SwipeableMessageBubble>
-                        )}
+                                    </View>
+                                </SwipeableMessageBubble>
+                            );
+                        }}
                         onLongPressMessage={(_: any, message: ExtendedMessage) => handleOpenMessageActions(message)}
                         renderCustomView={(props: any) => {
                             const { currentMessage, position } = props;
@@ -1085,6 +1115,27 @@ const styles = StyleSheet.create({
     replyBubbleMessage: {
         fontSize: 13,
         lineHeight: 18,
+    },
+    messageActionWrap: {
+        maxWidth: '100%',
+    },
+    messageActionMenu: {
+        borderWidth: 1,
+        borderRadius: 16,
+        paddingVertical: 6,
+        minWidth: 150,
+        marginBottom: 8,
+    },
+    messageActionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    messageActionText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     sheetHeader: {
         paddingHorizontal: 20,
