@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
-import { InfiniteData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Bubble,
     GiftedChat,
@@ -9,6 +9,13 @@ import {
     InputToolbar,
 } from 'react-native-gifted-chat';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+    BottomSheetBackdrop,
+    BottomSheetFlatList,
+    BottomSheetModal,
+    BottomSheetTextInput,
+    BottomSheetView,
+} from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { AppLoader } from '@/components/app-loader';
@@ -18,8 +25,20 @@ import { publicChatService } from '@/services/public-chat-service';
 import { socketService } from '@/services/socket-service';
 import { PaginatedPublicChatMessages, PublicChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
+import { userService } from '@/services/user-service';
+import { useUserStore } from '@/store/user-store';
 
 const MESSAGE_PAGE_SIZE = 40;
+
+const normalizeCity = (value?: string | null) => {
+    const normalized = value?.trim().replace(/\s+/g, ' ');
+    return normalized || null;
+};
+
+const getCityKey = (value?: string | null) => {
+    const normalized = normalizeCity(value);
+    return normalized?.toLowerCase() || null;
+};
 
 interface ExtendedMessage extends IMessage {
     replyTo?: {
@@ -175,6 +194,7 @@ const updatePaginatedMessages = (
 
 export function CommunityChatScreen() {
     const { user } = useAuth();
+    const { profile } = useUserStore();
     const queryClient = useQueryClient();
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -183,8 +203,11 @@ export function CommunityChatScreen() {
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+    const [selectedCity, setSelectedCity] = useState<string | null>(normalizeCity(profile?.city));
+    const [citySearch, setCitySearch] = useState('');
     const flatListRef = useRef<FlatList<any>>(null);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const citySheetRef = useRef<BottomSheetModal>(null);
 
     const flashMessageHighlight = (messageId: string) => {
         if (highlightTimeoutRef.current) {
@@ -251,6 +274,41 @@ export function CommunityChatScreen() {
     const cardColor = useThemeColor({}, 'card');
     const borderColor = useThemeColor({}, 'border');
     const primaryColor = useThemeColor({}, 'primary');
+    const cityLabel = selectedCity || 'Select city';
+
+    const { data: cities = [] } = useQuery({
+        queryKey: ['community-member-cities'],
+        queryFn: () => userService.getCommunityMemberCities(),
+    });
+
+    useEffect(() => {
+        if (!selectedCity && profile?.city) {
+            setSelectedCity(normalizeCity(profile.city));
+        }
+    }, [profile?.city, selectedCity]);
+
+    const cityOptions = useMemo(() => {
+        const unique = new Set<string>();
+        if (profile?.city) {
+            unique.add(profile.city.trim());
+        }
+        cities.forEach((city) => unique.add(city.trim()));
+        return Array.from(unique).filter(Boolean).sort((a, b) => a.localeCompare(b));
+    }, [cities, profile?.city]);
+
+    const filteredCities = useMemo(
+        () => cityOptions.filter((city) => city.toLowerCase().includes(citySearch.trim().toLowerCase())),
+        [cityOptions, citySearch]
+    );
+
+    const renderBackdrop = (props: any) => (
+        <BottomSheetBackdrop
+            {...props}
+            disappearsOnIndex={-1}
+            appearsOnIndex={0}
+            opacity={0.5}
+        />
+    );
 
     const {
         data: paginatedMessages,
@@ -259,10 +317,15 @@ export function CommunityChatScreen() {
         hasNextPage,
         isFetchingNextPage,
     } = useInfiniteQuery({
-        queryKey: ['public-chat-messages'],
-        queryFn: ({ pageParam }) => publicChatService.getMessages({ cursor: pageParam, limit: MESSAGE_PAGE_SIZE }),
+        queryKey: ['public-chat-messages', selectedCity],
+        queryFn: ({ pageParam }) => publicChatService.getMessages({
+            cursor: pageParam,
+            limit: MESSAGE_PAGE_SIZE,
+            city: selectedCity,
+        }),
         initialPageParam: null as string | null,
         getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
+        enabled: Boolean(selectedCity),
     });
 
     const messages = useMemo(
@@ -271,8 +334,16 @@ export function CommunityChatScreen() {
     );
 
     useEffect(() => {
+        if (!selectedCity) {
+            return;
+        }
+
         const handleCreated = (message: PublicChatMessage) => {
-            queryClient.setQueryData(['public-chat-messages'], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
+            if (getCityKey(message.city) !== getCityKey(selectedCity)) {
+                return;
+            }
+
+            queryClient.setQueryData(['public-chat-messages', selectedCity], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) => {
                     if (oldMessages.some((item) => item.documentId === message.documentId)) {
                         return oldMessages;
@@ -294,14 +365,14 @@ export function CommunityChatScreen() {
             );
         };
 
-        socketService.joinPublicChat();
+        socketService.joinPublicChat(selectedCity);
         socketService.on('public_chat_message_created', handleCreated);
 
         return () => {
             socketService.off('public_chat_message_created', handleCreated);
-            socketService.leavePublicChat();
+            socketService.leavePublicChat(selectedCity);
         };
-    }, [queryClient]);
+    }, [queryClient, selectedCity]);
 
     useEffect(() => () => {
         if (highlightTimeoutRef.current) {
@@ -322,6 +393,15 @@ export function CommunityChatScreen() {
         const trimmedMessage = outgoing?.text?.trim();
 
         if (!user || !trimmedMessage || isSending) {
+            return;
+        }
+
+        if (!selectedCity) {
+            Toast.show({
+                type: 'info',
+                text1: 'Select a city',
+                text2: 'Choose a city room before sending a community message.',
+            });
             return;
         }
 
@@ -349,7 +429,7 @@ export function CommunityChatScreen() {
 
         setReplyingTo(null);
 
-        queryClient.setQueryData(['public-chat-messages'], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
+        queryClient.setQueryData(['public-chat-messages', selectedCity], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
             updatePaginatedMessages(oldPages, (oldMessages) => [
                 optimisticMessage,
                 ...oldMessages,
@@ -361,9 +441,10 @@ export function CommunityChatScreen() {
 
         try {
             const createdMessage = await publicChatService.sendMessage(trimmedMessage, {
+                city: selectedCity,
                 replyToDocumentId: currentReplyState ? String(currentReplyState._id) : undefined,
             });
-            queryClient.setQueryData(['public-chat-messages'], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
+            queryClient.setQueryData(['public-chat-messages', selectedCity], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
                     oldMessages.map((item) =>
                         item.documentId === optimisticMessage.documentId ? createdMessage : item
@@ -371,7 +452,7 @@ export function CommunityChatScreen() {
                 )
             );
         } catch {
-            queryClient.setQueryData(['public-chat-messages'], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
+            queryClient.setQueryData(['public-chat-messages', selectedCity], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
                     oldMessages.filter((item) => item.documentId !== optimisticMessage.documentId)
                 )
@@ -427,9 +508,19 @@ export function CommunityChatScreen() {
                     <IconSymbol name="chevron.left" size={22} color={textColor} />
                 </TouchableOpacity>
 
-                <View style={styles.headerTitleWrap}>
+                <TouchableOpacity
+                    activeOpacity={0.85}
+                    style={styles.headerTitleWrap}
+                    onPress={() => citySheetRef.current?.present()}
+                >
                     <Text style={[styles.headerTitle, { color: textColor }]}>Community Chat</Text>
-                </View>
+                    <View style={[styles.cityPill, { backgroundColor: `${primaryColor}14` }]}>
+                        <IconSymbol name="mappin.circle.fill" size={14} color={primaryColor} />
+                        <Text style={[styles.cityPillText, { color: primaryColor }]} numberOfLines={1}>
+                            {cityLabel}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                     onPress={() => router.push('/community-info')}
@@ -442,6 +533,23 @@ export function CommunityChatScreen() {
             {isLoading ? (
                 <View style={[styles.center, { backgroundColor, paddingTop: headerHeight }]}>
                     <AppLoader />
+                </View>
+            ) : !selectedCity ? (
+                <View style={[styles.center, { backgroundColor, paddingHorizontal: 24, paddingTop: headerHeight }]}>
+                    <View style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}14` }]}>
+                        <IconSymbol name="mappin.and.ellipse" size={34} color={primaryColor} />
+                    </View>
+                    <Text style={[styles.emptyTitle, { color: textColor }]}>Choose your city room</Text>
+                    <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
+                        Pick a city to join its community chat room and see local conversations.
+                    </Text>
+                    <TouchableOpacity
+                        activeOpacity={0.88}
+                        onPress={() => citySheetRef.current?.present()}
+                        style={[styles.selectCityButton, { backgroundColor: primaryColor }]}
+                    >
+                        <Text style={styles.selectCityButtonText}>Select city</Text>
+                    </TouchableOpacity>
                 </View>
             ) : (
                 <View style={[styles.chatWrapper, { paddingTop: headerHeight }]}>
@@ -475,6 +583,7 @@ export function CommunityChatScreen() {
                         textInputProps={{
                             onChangeText: setComposerText,
                             placeholder: 'Say something to the community',
+                            editable: Boolean(selectedCity),
                             placeholderTextColor: subtextColor,
                             style: [
                                 styles.input,
@@ -510,25 +619,25 @@ export function CommunityChatScreen() {
                                     const isHighlighted = String(props.currentMessage?._id) === highlightedMessageId;
 
                                     return (
-                                <Bubble
-                                    {...props}
-                                    wrapperStyle={{
-                                        right: {
-                                            backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
-                                            borderWidth: isHighlighted ? 2 : 0,
-                                            borderColor: '#DCF8C6',
-                                        },
-                                        left: {
-                                            backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
-                                            borderWidth: isHighlighted ? 2 : 1,
-                                            borderColor: isHighlighted ? primaryColor : borderColor,
-                                        },
-                                    }}
-                                    textStyle={{
-                                        right: { color: '#FFFFFF' },
-                                        left: { color: textColor },
-                                    }}
-                                />
+                                        <Bubble
+                                            {...props}
+                                            wrapperStyle={{
+                                                right: {
+                                                    backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
+                                                    borderWidth: isHighlighted ? 2 : 0,
+                                                    borderColor: '#DCF8C6',
+                                                },
+                                                left: {
+                                                    backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
+                                                    borderWidth: isHighlighted ? 2 : 1,
+                                                    borderColor: isHighlighted ? primaryColor : borderColor,
+                                                },
+                                            }}
+                                            textStyle={{
+                                                right: { color: '#FFFFFF' },
+                                                left: { color: textColor },
+                                            }}
+                                        />
                                     );
                                 })()}
                             </SwipeableMessageBubble>
@@ -612,15 +721,109 @@ export function CommunityChatScreen() {
                                 <View style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}14` }]}>
                                     <IconSymbol name="person.2.fill" size={34} color={primaryColor} />
                                 </View>
-                                <Text style={[styles.emptyTitle, { color: textColor }]}>Community chat is open</Text>
+                                <Text style={[styles.emptyTitle, { color: textColor }]}>{cityLabel} room is open</Text>
                                 <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
-                                    Introduce yourself, ask about routes, and chat with other riders across the app.
+                                    Introduce yourself, ask about routes, and chat with riders around {cityLabel}.
                                 </Text>
                             </View>
                         )}
                     />
                 </View>
             )}
+
+            <BottomSheetModal
+                ref={citySheetRef}
+                snapPoints={['74%']}
+                backdropComponent={renderBackdrop}
+                backgroundStyle={{ backgroundColor: cardColor }}
+                handleIndicatorStyle={{ backgroundColor: subtextColor }}
+                enablePanDownToClose
+                keyboardBehavior="fillParent"
+                keyboardBlurBehavior="restore"
+                onDismiss={() => setCitySearch('')}
+            >
+                <BottomSheetFlatList
+                    data={filteredCities}
+                    keyExtractor={(item: string) => item}
+                    ListHeaderComponent={
+                        <View style={styles.sheetHeader}>
+                            <View style={styles.sheetHeaderCopy}>
+                                <Text style={[styles.sheetTitle, { color: textColor }]}>Select City Room</Text>
+                                <Text style={[styles.sheetSubtitle, { color: subtextColor }]}>
+                                    Join the community room for a specific city.
+                                </Text>
+                            </View>
+                            <View style={[styles.sheetSearchBox, { backgroundColor: `${subtextColor}10` }]}>
+                                <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
+                                <BottomSheetTextInput
+                                    placeholder="Search city..."
+                                    placeholderTextColor={subtextColor}
+                                    style={[styles.sheetSearchInput, { color: textColor }]}
+                                    value={citySearch}
+                                    onChangeText={setCitySearch}
+                                    autoCorrect={false}
+                                    autoCapitalize="words"
+                                />
+                            </View>
+                        </View>
+                    }
+                    renderItem={({ item }: { item: string }) => {
+                        const isActive = selectedCity === item;
+
+                        return (
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                style={[
+                                    styles.cityRow,
+                                    {
+                                        backgroundColor: isActive ? `${primaryColor}10` : 'transparent',
+                                        borderColor: isActive ? primaryColor : 'transparent',
+                                    },
+                                ]}
+                                onPress={() => {
+                                    setSelectedCity(item);
+                                    setCitySearch('');
+                                    setReplyingTo(null);
+                                    citySheetRef.current?.dismiss();
+                                }}
+                            >
+                                <View style={styles.cityRowLeft}>
+                                    <View
+                                        style={[
+                                            styles.cityRowIcon,
+                                            { backgroundColor: isActive ? primaryColor : `${subtextColor}15` },
+                                        ]}
+                                    >
+                                        <IconSymbol
+                                            name="mappin.circle.fill"
+                                            size={20}
+                                            color={isActive ? '#FFFFFF' : subtextColor}
+                                        />
+                                    </View>
+                                    <Text style={[styles.cityRowTitle, { color: isActive ? primaryColor : textColor }]}>
+                                        {item}
+                                    </Text>
+                                </View>
+                                {isActive ? (
+                                    <View style={[styles.cityRowCheck, { backgroundColor: primaryColor }]}>
+                                        <IconSymbol name="checkmark" size={14} color="#FFFFFF" />
+                                    </View>
+                                ) : null}
+                            </TouchableOpacity>
+                        );
+                    }}
+                    ListEmptyComponent={
+                        <BottomSheetView style={styles.sheetEmptyState}>
+                            <Text style={[styles.sheetEmptyTitle, { color: textColor }]}>No matching city</Text>
+                            <Text style={[styles.sheetEmptySubtitle, { color: subtextColor }]}>
+                                Try another search keyword or update your profile city.
+                            </Text>
+                        </BottomSheetView>
+                    }
+                    contentContainerStyle={styles.sheetListContent}
+                    showsVerticalScrollIndicator={false}
+                />
+            </BottomSheetModal>
         </SafeAreaView>
     );
 }
@@ -655,6 +858,20 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 18,
+        fontWeight: '700',
+    },
+    cityPill: {
+        marginTop: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        maxWidth: 170,
+    },
+    cityPillText: {
+        fontSize: 12,
         fontWeight: '700',
     },
     chatWrapper: {
@@ -692,6 +909,17 @@ const styles = StyleSheet.create({
         fontSize: 15,
         lineHeight: 22,
         textAlign: 'center',
+    },
+    selectCityButton: {
+        marginTop: 20,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderRadius: 999,
+    },
+    selectCityButtonText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
     },
     toolbarRow: {
         flexDirection: 'row',
@@ -780,5 +1008,89 @@ const styles = StyleSheet.create({
     replyBubbleMessage: {
         fontSize: 13,
         lineHeight: 18,
+    },
+    sheetHeader: {
+        paddingHorizontal: 20,
+        paddingTop: 8,
+        paddingBottom: 18,
+        gap: 16,
+    },
+    sheetHeaderCopy: {
+        gap: 4,
+    },
+    sheetTitle: {
+        fontSize: 22,
+        fontWeight: '700',
+    },
+    sheetSubtitle: {
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    sheetSearchBox: {
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        gap: 8,
+    },
+    sheetSearchInput: {
+        flex: 1,
+        fontSize: 15,
+        paddingVertical: 0,
+    },
+    sheetListContent: {
+        paddingHorizontal: 16,
+        paddingBottom: 24,
+    },
+    cityRow: {
+        borderWidth: 1,
+        borderRadius: 18,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        marginBottom: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    cityRowLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        flex: 1,
+    },
+    cityRowIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cityRowTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    cityRowCheck: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 12,
+    },
+    sheetEmptyState: {
+        alignItems: 'center',
+        paddingVertical: 32,
+        paddingHorizontal: 24,
+    },
+    sheetEmptyTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        marginBottom: 6,
+    },
+    sheetEmptySubtitle: {
+        fontSize: 14,
+        lineHeight: 20,
+        textAlign: 'center',
     },
 });

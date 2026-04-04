@@ -79,12 +79,12 @@ class SocketService {
     this.emit('chat_screen_state', { tripDocumentId: tripId, isActive });
   }
 
-  joinPublicChat() {
-    this.emit('join_public_chat', {});
+  joinPublicChat(city?: string | null) {
+    this.emit('join_public_chat', { city });
   }
 
-  leavePublicChat() {
-    this.emit('leave_public_chat', {});
+  leavePublicChat(city?: string | null) {
+    this.emit('leave_public_chat', { city });
   }
 
   isConnected() {

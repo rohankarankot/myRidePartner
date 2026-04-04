@@ -12,6 +12,7 @@ import { Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { JoinRequestStatus } from '@prisma/client';
+import { buildPublicChatRoomName, normalizePublicChatCity } from '../public-chat/public-chat-room.util';
 
 @WebSocketGateway({
   cors: {
@@ -191,23 +192,61 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('join_public_chat')
-  handleJoinPublicChat(@ConnectedSocket() client: Socket) {
-    if (!client.data.userId) {
+  async handleJoinPublicChat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { city?: string } | string,
+  ) {
+    const userId = client.data.userId as number | undefined;
+    if (!userId) {
       return { status: 'error', message: 'Missing user context' };
     }
 
-    const room = 'public_chat';
+    const requestedCity = typeof data === 'string' ? data : data?.city;
+    const city = await this.resolvePublicChatCity(userId, requestedCity);
+    if (!city) {
+      return { status: 'error', message: 'Select a city before entering community chat' };
+    }
+    const room = buildPublicChatRoomName(city);
+    const joinedPublicChatRooms =
+      (client.data.joinedPublicChatRooms as Set<string> | undefined) ?? new Set<string>();
+
+    for (const joinedRoom of joinedPublicChatRooms) {
+      client.leave(joinedRoom);
+    }
+
+    joinedPublicChatRooms.clear();
     client.join(room);
+    joinedPublicChatRooms.add(room);
+    client.data.joinedPublicChatRooms = joinedPublicChatRooms;
     this.logger.log(`Client ${client.id} joined public chat room ${room}`);
-    return { status: 'joined', room };
+    return { status: 'joined', room, city };
   }
 
   @SubscribeMessage('leave_public_chat')
-  handleLeavePublicChat(@ConnectedSocket() client: Socket) {
-    const room = 'public_chat';
-    client.leave(room);
-    this.logger.log(`Client ${client.id} left public chat room ${room}`);
-    return { status: 'left', room };
+  handleLeavePublicChat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data?: { city?: string } | string,
+  ) {
+    const requestedCity = typeof data === 'string' ? data : data?.city;
+    const normalizedCity = normalizePublicChatCity(requestedCity);
+    const joinedPublicChatRooms =
+      (client.data.joinedPublicChatRooms as Set<string> | undefined) ?? new Set<string>();
+
+    if (normalizedCity) {
+      const room = buildPublicChatRoomName(normalizedCity);
+      client.leave(room);
+      joinedPublicChatRooms.delete(room);
+      this.logger.log(`Client ${client.id} left public chat room ${room}`);
+      return { status: 'left', room, city: normalizedCity };
+    }
+
+    for (const room of joinedPublicChatRooms) {
+      client.leave(room);
+      this.logger.log(`Client ${client.id} left public chat room ${room}`);
+    }
+    joinedPublicChatRooms.clear();
+    client.data.joinedPublicChatRooms = joinedPublicChatRooms;
+    return { status: 'left' };
   }
 
   @SubscribeMessage('chat_typing')
@@ -325,10 +364,29 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Emitting ${event} to chat room ${room}`);
   }
 
-  emitToPublicChatRoom(event: string, data: any) {
-    const room = 'public_chat';
+  emitToPublicChatRoom(city: string, event: string, data: any) {
+    const room = buildPublicChatRoomName(city);
     this.server.to(room).emit(event, data);
     this.logger.log(`Emitting ${event} to public chat room ${room}`);
+  }
+
+  private async resolvePublicChatCity(userId: number, requestedCity?: string) {
+    const normalizedRequested = normalizePublicChatCity(requestedCity);
+    if (normalizedRequested) {
+      return normalizedRequested;
+    }
+
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId },
+      select: { city: true },
+    });
+
+    const profileCity = normalizePublicChatCity(profile?.city);
+    if (profileCity) {
+      return profileCity;
+    }
+
+    return null;
   }
 
   isUserActivelyViewingChat(tripDocumentId: string, userId: number) {

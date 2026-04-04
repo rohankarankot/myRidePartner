@@ -7,6 +7,11 @@ export class CreatePublicChatMessageDto {
   @IsString()
   message: string;
 
+  @ApiPropertyOptional({ example: 'Bengaluru' })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
   @ApiPropertyOptional({ example: '123e4567-e89b-12d3-a456-426614174000' })
   @IsOptional()
   @IsString()
@@ -26,4 +31,9 @@ export class GetPublicChatMessagesQueryDto {
   @Min(1)
   @Max(100)
   limit?: number;
+
+  @ApiPropertyOptional({ example: 'Bengaluru' })
+  @IsOptional()
+  @IsString()
+  city?: string;
 }

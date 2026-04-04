@@ -265,6 +265,7 @@ model PublicChatMessage {
   id         Int      @id @default(autoincrement())
   documentId String   @unique @default(uuid())
   message    String
+  city       String?
 
   senderId   Int
   sender     User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -277,6 +278,7 @@ model PublicChatMessage {
   updatedAt  DateTime @updatedAt
 
   @@index([createdAt])
+  @@index([city, createdAt])
   @@index([senderId])
   @@index([replyToId])
 }

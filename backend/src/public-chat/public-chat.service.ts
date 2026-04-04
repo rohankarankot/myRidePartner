@@ -6,6 +6,7 @@ import {
   CreatePublicChatMessageDto,
   GetPublicChatMessagesQueryDto,
 } from './dto/public-chat.dto';
+import { normalizePublicChatCity } from './public-chat-room.util';
 
 const publicChatSenderSelect = {
   id: true,
@@ -28,12 +29,13 @@ export class PublicChatService {
 
   async getMessages(userId: number, query?: GetPublicChatMessagesQueryDto) {
     await this.assertUserExists(userId);
+    const city = await this.resolveChatCity(userId, query?.city);
 
     const limit = Math.min(Math.max(Number(query?.limit ?? 40), 1), 100);
     const cursor = query?.cursor;
     const cursorMessage = cursor
-      ? await this.prisma.publicChatMessage.findUnique({
-          where: { documentId: cursor },
+      ? await this.prisma.publicChatMessage.findFirst({
+          where: { documentId: cursor, city },
           select: { id: true, createdAt: true },
         })
       : null;
@@ -41,6 +43,7 @@ export class PublicChatService {
     const messages = await this.prisma.publicChatMessage.findMany({
       where: cursorMessage
         ? {
+            city,
             OR: [
               { createdAt: { lt: cursorMessage.createdAt } },
               {
@@ -49,7 +52,7 @@ export class PublicChatService {
               },
             ],
           }
-        : undefined,
+        : { city },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
       include: {
@@ -74,17 +77,20 @@ export class PublicChatService {
         id: message.id,
         documentId: message.documentId,
         message: message.message,
+        city: message.city,
         createdAt: message.createdAt,
         sender: message.sender,
         replyTo: message.replyTo,
       })),
       hasMore,
       nextCursor: selectedMessages[0]?.documentId ?? null,
+      city,
     };
   }
 
   async createMessage(userId: number, body: CreatePublicChatMessageDto) {
     await this.assertUserExists(userId);
+    const city = await this.resolveChatCity(userId, body?.city);
 
     if (typeof body?.message !== 'string') {
       throw new BadRequestException('Message is required');
@@ -97,8 +103,8 @@ export class PublicChatService {
 
     let replyToId: number | undefined;
     if (body.replyToDocumentId) {
-      const referencedMessage = await this.prisma.publicChatMessage.findUnique({
-        where: { documentId: body.replyToDocumentId },
+      const referencedMessage = await this.prisma.publicChatMessage.findFirst({
+        where: { documentId: body.replyToDocumentId, city },
         select: { id: true },
       });
       if (referencedMessage) {
@@ -110,6 +116,7 @@ export class PublicChatService {
       data: {
         senderId: userId,
         message: trimmedMessage,
+        city,
         replyToId,
       },
       include: {
@@ -130,14 +137,34 @@ export class PublicChatService {
       id: message.id,
       documentId: message.documentId,
       message: message.message,
+      city: message.city,
       createdAt: message.createdAt,
       sender: message.sender,
       replyTo: message.replyTo,
     };
 
-    this.eventsGateway.emitToPublicChatRoom('public_chat_message_created', payload);
+    this.eventsGateway.emitToPublicChatRoom(city, 'public_chat_message_created', payload);
 
     return payload;
+  }
+
+  private async resolveChatCity(userId: number, requestedCity?: string) {
+    const requested = normalizePublicChatCity(requestedCity);
+    if (requested) {
+      return requested;
+    }
+
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId },
+      select: { city: true },
+    });
+
+    const profileCity = normalizePublicChatCity(profile?.city);
+    if (profileCity) {
+      return profileCity;
+    }
+
+    throw new BadRequestException('Select a city before entering community chat');
   }
 
   private async assertUserExists(userId: number) {

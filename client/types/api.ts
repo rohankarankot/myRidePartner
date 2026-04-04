@@ -261,6 +261,7 @@ export interface PublicChatMessage {
     id: number;
     documentId: string;
     message: string;
+    city?: string | null;
     sender: User & {
         userProfile?: {
             avatar?: string | { url: string; formats?: any };
@@ -285,6 +286,7 @@ export interface PaginatedPublicChatMessages {
     messages: PublicChatMessage[];
     hasMore: boolean;
     nextCursor: string | null;
+    city?: string | null;
 }
 
 export interface CommunityMember {
