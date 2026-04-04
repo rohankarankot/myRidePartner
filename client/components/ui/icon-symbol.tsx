@@ -77,6 +77,7 @@ const MAPPING = {
   'person.crop.circle.badge.xmark': 'person-remove',
   'chevron.down': 'expand-more',
   'message.fill': 'message',
+  'globe': 'public',
 } as IconMapping;
 
 /**

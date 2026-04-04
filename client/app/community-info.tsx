@@ -34,6 +34,22 @@ export default function CommunityInfoScreen() {
 
                 <TouchableOpacity
                     style={[styles.optionCard, { backgroundColor: cardColor, borderColor }]}
+                    onPress={() => router.push('/community-chat')}
+                >
+                    <View style={[styles.iconWrap, { backgroundColor: `${primaryColor}14` }]}>
+                        <IconSymbol name="message.fill" size={22} color={primaryColor} />
+                    </View>
+                    <View style={styles.optionContent}>
+                        <Text style={[styles.optionTitle, { color: textColor }]}>Chat Room</Text>
+                        <Text style={[styles.optionSubtitle, { color: subtextColor }]}>
+                            Open the public community chat in a dedicated screen.
+                        </Text>
+                    </View>
+                    <IconSymbol name="chevron.right" size={18} color={subtextColor} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.optionCard, { backgroundColor: cardColor, borderColor }]}
                     onPress={() => router.push('/community-members')}
                 >
                     <View style={[styles.iconWrap, { backgroundColor: `${primaryColor}14` }]}>

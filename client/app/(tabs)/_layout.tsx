@@ -113,6 +113,7 @@ export default function TabLayout() {
       screenOptions={() => ({
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
         headerShown: true,
         headerStyle: {
           backgroundColor: currentColors.card,
