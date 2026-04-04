@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { InfiniteData, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Bubble,
@@ -7,7 +8,6 @@ import {
     IMessage,
     InputToolbar,
 } from 'react-native-gifted-chat';
-import { useHeaderHeight } from '@react-navigation/elements';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -94,8 +94,9 @@ const updatePaginatedMessages = (
 export function CommunityChatScreen() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const router = useRouter();
     const insets = useSafeAreaInsets();
-    const headerHeight = useHeaderHeight();
+    const headerHeight = insets.top + 60;
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
 
@@ -241,12 +242,42 @@ export function CommunityChatScreen() {
 
     return (
         <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
+            <View
+                style={[
+                    styles.customHeader,
+                    {
+                        backgroundColor,
+                        borderBottomColor: borderColor,
+                        paddingTop: insets.top + 8,
+                        height: headerHeight,
+                    },
+                ]}
+            >
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.headerIconButton}
+                >
+                    <IconSymbol name="chevron.left" size={22} color={textColor} />
+                </TouchableOpacity>
+
+                <View style={styles.headerTitleWrap}>
+                    <Text style={[styles.headerTitle, { color: textColor }]}>Community Chat</Text>
+                </View>
+
+                <TouchableOpacity
+                    onPress={() => router.push('/community-info')}
+                    style={styles.headerIconButton}
+                >
+                    <IconSymbol name="info.circle.fill" size={22} color={primaryColor} />
+                </TouchableOpacity>
+            </View>
+
             {isLoading ? (
-                <View style={[styles.center, { backgroundColor }]}>
+                <View style={[styles.center, { backgroundColor, paddingTop: headerHeight }]}>
                     <AppLoader />
                 </View>
             ) : (
-                <View style={styles.chatWrapper}>
+                <View style={[styles.chatWrapper, { paddingTop: headerHeight }]}>
                     <GiftedChat
                         messages={giftedMessages}
                         onSend={handleSend}
@@ -349,6 +380,34 @@ export function CommunityChatScreen() {
 const styles = StyleSheet.create({
     safe: {
         flex: 1,
+    },
+    customHeader: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    headerIconButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerTitleWrap: {
+        flex: 1,
+        alignItems: 'center',
+        paddingHorizontal: 12,
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
     },
     chatWrapper: {
         flex: 1,

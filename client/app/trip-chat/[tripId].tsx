@@ -11,7 +11,6 @@ import {
     IMessage,
     InputToolbar,
 } from 'react-native-gifted-chat';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppLoader } from '@/components/app-loader';
@@ -557,11 +556,7 @@ export default function TripChatScreen() {
                     </Text>
                 </View>
             ) : (
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'translate-with-padding'}
-                    keyboardVerticalOffset={0}
-                    style={[styles.chatWrapper, { paddingTop: headerHeight }]}
-                >
+                <View style={[styles.chatWrapper, { paddingTop: headerHeight }]}>
                     <GiftedChat
                         messages={giftedMessages}
                         onSend={handleSend}
@@ -575,6 +570,7 @@ export default function TripChatScreen() {
                         renderAvatarOnTop
                         keyboardShouldPersistTaps="handled"
                         minInputToolbarHeight={60}
+                        keyboardAvoidingViewProps={{ keyboardVerticalOffset: headerHeight }}
                         loadEarlier={Boolean(hasNextPage)}
                         onLoadEarlier={() => {
                             if (!isFetchingNextPage) {
@@ -582,7 +578,6 @@ export default function TripChatScreen() {
                             }
                         }}
                         isLoadingEarlier={isFetchingNextPage}
-                        keyboardAvoidingViewProps={{ keyboardVerticalOffset: 0 }}
                         timeTextStyle={{
                             right: { color: 'rgba(255,255,255,0.75)' },
                             left: { color: subtextColor },
@@ -731,7 +726,7 @@ export default function TripChatScreen() {
                             </View>
                         ) : null}
                     />
-                </KeyboardAvoidingView>
+                </View>
             )}
         </SafeAreaView>
     );

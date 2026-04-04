@@ -15,20 +15,7 @@ export default function CommunityChatRoute() {
         <>
             <Stack.Screen
                 options={{
-                    title: 'Community Chat',
-                    headerShown: true,
-                    headerStyle: { backgroundColor },
-                    headerTintColor: textColor,
-                    headerShadowVisible: false,
-                    headerBackTitle: 'Community',
-                    headerRight: () => (
-                        <TouchableOpacity
-                            onPress={() => router.push('/community-info')}
-                            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-                        >
-                            <IconSymbol name="info.circle.fill" size={20} color={primaryColor} />
-                        </TouchableOpacity>
-                    ),
+                    headerShown: false,
                 }}
             />
             <CommunityChatScreen />
