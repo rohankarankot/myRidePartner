@@ -182,7 +182,21 @@ export function CommunityChatScreen() {
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
+    const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
     const flatListRef = useRef<FlatList<any>>(null);
+    const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const flashMessageHighlight = (messageId: string) => {
+        if (highlightTimeoutRef.current) {
+            clearTimeout(highlightTimeoutRef.current);
+        }
+
+        setHighlightedMessageId(messageId);
+        highlightTimeoutRef.current = setTimeout(() => {
+            setHighlightedMessageId((current) => current === messageId ? null : current);
+            highlightTimeoutRef.current = null;
+        }, 1500);
+    };
 
     const scrollToMessage = (messageId: string) => {
         const index = giftedMessages.findIndex((m) => String(m._id) === String(messageId));
@@ -197,6 +211,7 @@ export function CommunityChatScreen() {
         }
 
         const list: any = flatListRef.current;
+
         if (!list) {
             Toast.show({
                 type: 'error',
@@ -215,6 +230,7 @@ export function CommunityChatScreen() {
         if (actualList) {
             try {
                 actualList.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+                flashMessageHighlight(String(messageId));
             } catch (e) {
                 console.log('Failed to scroll:', e);
                 Toast.show({ type: 'error', text1: 'Scroll Error', text2: 'Item is not measured yet.' });
@@ -286,6 +302,12 @@ export function CommunityChatScreen() {
             socketService.leavePublicChat();
         };
     }, [queryClient]);
+
+    useEffect(() => () => {
+        if (highlightTimeoutRef.current) {
+            clearTimeout(highlightTimeoutRef.current);
+        }
+    }, []);
 
     const giftedMessages = useMemo(
         () =>
@@ -432,6 +454,7 @@ export function CommunityChatScreen() {
                         }}
                         text={composerText}
                         scrollToBottom
+                        messagesContainerRef={flatListRef as any}
                         bottomOffset={insets.bottom}
                         keyboardAvoidingViewProps={{ keyboardVerticalOffset: headerHeight }}
                         messagesContainerStyle={{ backgroundColor }}
@@ -462,7 +485,7 @@ export function CommunityChatScreen() {
                                 },
                             ],
                         }}
-                        listViewProps={{
+                        listProps={{
                             ref: (r: any) => {
                                 if (r) {
                                     flatListRef.current = r;
@@ -483,17 +506,31 @@ export function CommunityChatScreen() {
                         }}
                         renderBubble={(props: any) => (
                             <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
+                                {(() => {
+                                    const isHighlighted = String(props.currentMessage?._id) === highlightedMessageId;
+
+                                    return (
                                 <Bubble
                                     {...props}
                                     wrapperStyle={{
-                                        right: { backgroundColor: primaryColor },
-                                        left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
+                                        right: {
+                                            backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
+                                            borderWidth: isHighlighted ? 2 : 0,
+                                            borderColor: '#DCF8C6',
+                                        },
+                                        left: {
+                                            backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
+                                            borderWidth: isHighlighted ? 2 : 1,
+                                            borderColor: isHighlighted ? primaryColor : borderColor,
+                                        },
                                     }}
                                     textStyle={{
                                         right: { color: '#FFFFFF' },
                                         left: { color: textColor },
                                     }}
                                 />
+                                    );
+                                })()}
                             </SwipeableMessageBubble>
                         )}
                         renderCustomView={(props: any) => {
@@ -745,5 +782,3 @@ const styles = StyleSheet.create({
         lineHeight: 18,
     },
 });
-
-

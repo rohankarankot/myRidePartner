@@ -209,12 +209,26 @@ export default function TripChatScreen() {
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
+    const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
     const [isSendingLocation, setIsSendingLocation] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Array<{ userId: number; userName: string }>>([]);
     const isTypingRef = useRef(false);
     const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isChatScreenActiveRef = useRef(false);
     const flatListRef = useRef<FlatList<any>>(null);
+    const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const flashMessageHighlight = (messageId: string) => {
+        if (highlightTimeoutRef.current) {
+            clearTimeout(highlightTimeoutRef.current);
+        }
+
+        setHighlightedMessageId(messageId);
+        highlightTimeoutRef.current = setTimeout(() => {
+            setHighlightedMessageId((current) => current === messageId ? null : current);
+            highlightTimeoutRef.current = null;
+        }, 1500);
+    };
 
     const scrollToMessage = (messageId: string) => {
         const index = giftedMessages.findIndex((m) => String(m._id) === String(messageId));
@@ -247,6 +261,7 @@ export default function TripChatScreen() {
         if (actualList) {
             try {
                 actualList.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+                flashMessageHighlight(String(messageId));
             } catch (e) {
                 console.log('Failed to scroll:', e);
                 Toast.show({ type: 'error', text1: 'Scroll Error', text2: 'Item is not measured yet.' });
@@ -349,6 +364,9 @@ export default function TripChatScreen() {
         return () => {
             if (stopTypingTimeoutRef.current) {
                 clearTimeout(stopTypingTimeoutRef.current);
+            }
+            if (highlightTimeoutRef.current) {
+                clearTimeout(highlightTimeoutRef.current);
             }
             if (isTypingRef.current) {
                 socketService.setChatTyping(tripId, false);
@@ -754,7 +772,8 @@ export default function TripChatScreen() {
                                 },
                             ],
                         }}
-                        listViewProps={{
+                        messagesContainerRef={flatListRef as any}
+                        listProps={{
                             ref: (r: any) => {
                                 if (r) {
                                     flatListRef.current = r;
@@ -780,6 +799,7 @@ export default function TripChatScreen() {
 
                                     if (locationPayload) {
                                         const isCurrentUser = String(props.currentMessage?.user?._id) === String(user?.id);
+                                        const isHighlighted = String(props.currentMessage?._id) === highlightedMessageId;
 
                                         return (
                                             <TouchableOpacity
@@ -789,8 +809,11 @@ export default function TripChatScreen() {
                                                     styles.locationBubble,
                                                     {
                                                         alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                                                        backgroundColor: isCurrentUser ? primaryColor : cardColor,
-                                                        borderColor,
+                                                        backgroundColor: isHighlighted
+                                                            ? (isCurrentUser ? '#2FBF71' : `${primaryColor}14`)
+                                                            : (isCurrentUser ? primaryColor : cardColor),
+                                                        borderColor: isHighlighted ? primaryColor : borderColor,
+                                                        borderWidth: isHighlighted ? 2 : 1,
                                                     },
                                                 ]}
                                             >
@@ -821,12 +844,22 @@ export default function TripChatScreen() {
                                         );
                                     }
 
+                                    const isHighlighted = String(props.currentMessage?._id) === highlightedMessageId;
+
                                     return (
                                         <Bubble
                                             {...props}
                                             wrapperStyle={{
-                                                right: { backgroundColor: primaryColor },
-                                                left: { backgroundColor: cardColor, borderWidth: 1, borderColor },
+                                                right: {
+                                                    backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
+                                                    borderWidth: isHighlighted ? 2 : 0,
+                                                    borderColor: '#DCF8C6',
+                                                },
+                                                left: {
+                                                    backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
+                                                    borderWidth: isHighlighted ? 2 : 1,
+                                                    borderColor: isHighlighted ? primaryColor : borderColor,
+                                                },
                                             }}
                                             textStyle={{
                                                 right: { color: '#FFFFFF' },
