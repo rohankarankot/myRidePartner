@@ -5,19 +5,19 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { Trip, GenderPreference } from '@/types/api';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter, useNavigation, Tabs } from 'expo-router';
 import { isToday, isTomorrow, format } from 'date-fns';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
 import { useUserStore } from '@/store/user-store';
-import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetTextInput, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetBackdrop, BottomSheetTextInput, BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { CITIES } from '@/constants/cities';
 import { FilterBottomSheet } from '@/components/FilterBottomSheet';
-import { Tabs } from 'expo-router';
 import { notificationService } from '@/services/notification-service';
 import { useScrollToTop } from '@react-navigation/native';
 import { DiscoveryBannerAd } from '@/features/ads/components/discovery-banner-ad';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
+import { FindRidesSkeleton } from '@/features/trips/components/FindRidesSkeleton';
 
 const LAST_SELECTED_CITY_KEY = 'find_rides_last_selected_city';
 
@@ -73,6 +73,7 @@ const CitySheetHeader = React.memo(({ citySearch, setCitySearch, textColor, subt
     </View>
   </View>
 ));
+CitySheetHeader.displayName = 'CitySheetHeader';
 
 // Reusable component matching the Activity screen card style
 const TripCard = ({ documentId, from, to, date, time, price, isCalculated, status, genderPreference, avatarUrl, captainName, onPress }: {
@@ -241,7 +242,7 @@ export default function FindRidesScreen() {
     []
   );
 
-  const { data: unreadCount = 0 } = useQuery({
+  useQuery({
     queryKey: ['unread-notifications-count', user?.id],
     queryFn: () => notificationService.getUnreadCount(user!.id),
     enabled: !!user?.id,
@@ -406,44 +407,48 @@ export default function FindRidesScreen() {
         }}
       />
       <View style={[styles.safe, { backgroundColor }]} >
-        <FlatList
-          ref={ref}
-          data={trips}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TripCard
-              documentId={item.documentId}
-              from={item.startingPoint}
-              to={item.destination}
-              date={item.date}
-              time={item.time}
-              price={item.pricePerSeat?.toString()}
-              isCalculated={item.isPriceCalculated}
-              status={item.status}
-              genderPreference={item.genderPreference}
-              avatarUrl={
-                typeof item.creator?.userProfile?.avatar === 'string'
-                  ? item.creator.userProfile.avatar
-                  : (item.creator?.userProfile?.avatar as any)?.url
+        {loading ? (
+          <FindRidesSkeleton />
+        ) : (
+          <FlatList
+            ref={ref}
+            data={trips}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => (
+              <TripCard
+                documentId={item.documentId}
+                from={item.startingPoint}
+                to={item.destination}
+                date={item.date}
+                time={item.time}
+                price={item.pricePerSeat?.toString()}
+                isCalculated={item.isPriceCalculated}
+                status={item.status}
+                genderPreference={item.genderPreference}
+                avatarUrl={
+                  typeof item.creator?.userProfile?.avatar === 'string'
+                    ? item.creator.userProfile.avatar
+                    : (item.creator?.userProfile?.avatar as any)?.url
+                }
+                captainName={item.creator?.userProfile?.fullName || item.creator?.username}
+                onPress={(id) => router.push(`/trip/${id}`)}
+              />
+            )}
+            ListHeaderComponent={renderHeader}
+            ListFooterComponent={renderFooter}
+            ListEmptyComponent={renderEmpty}
+            contentContainerStyle={styles.container}
+            onEndReached={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                fetchNextPage();
               }
-              captainName={item.creator?.userProfile?.fullName || item.creator?.username}
-              onPress={(id) => router.push(`/trip/${id}`)}
-            />
-          )}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
-          ListEmptyComponent={renderEmpty}
-          contentContainerStyle={styles.container}
-          onEndReached={() => {
-            if (hasNextPage && !isFetchingNextPage) {
-              fetchNextPage();
+            }}
+            onEndReachedThreshold={0.5}
+            refreshControl={
+              <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
             }
-          }}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
-          }
-        />
+          />
+        )}
       </View>
 
       {/* Custom FAB */}
