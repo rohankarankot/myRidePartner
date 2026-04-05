@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     Image,
     RefreshControl,
@@ -13,11 +12,10 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { AppLoader } from '@/components/app-loader';
 import { useAuth } from '@/context/auth-context';
 import { tripService } from '@/services/trip-service';
 import { joinRequestService } from '@/services/join-request-service';
-import { JoinRequest, Trip } from '@/types/api';
+import { ChatsTabSkeleton } from '@/features/chats/components/ChatsTabSkeleton';
 
 type ChatRide = {
     tripDocumentId: string;
@@ -111,11 +109,7 @@ export default function ChatsTabScreen() {
     const isRefetching = isRefetchingTrips || isRefetchingRequests;
 
     if (isLoading && !isRefetching) {
-        return (
-            <View style={[styles.center, { backgroundColor }]}>
-                <AppLoader />
-            </View>
-        );
+        return <ChatsTabSkeleton />;
     }
 
     return (
