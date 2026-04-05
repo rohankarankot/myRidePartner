@@ -8,7 +8,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { userService } from '@/services/user-service';
 import { joinRequestService } from '@/services/join-request-service';
-import { Trip, UserProfile, JoinRequest, TripStatus, Rating } from '@/types/api';
+import { Trip, JoinRequest, TripStatus } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
@@ -16,13 +16,13 @@ import { ratingService } from '@/services/rating-service';
 import { socketService } from '@/services/socket-service';
 import { useUserStore } from '@/store/user-store';
 import { CustomAlert } from '@/components/CustomAlert';
-import { AppLoader } from '@/components/app-loader';
 import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
 import { tripChatService } from '@/services/trip-chat-service';
 import { maskPhoneNumber } from '@/utils/phone';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 import { saveReport } from '@/features/safety/report-service';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { TripDetailsSkeleton } from '@/features/trips/components/TripDetailsSkeleton';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -530,9 +530,7 @@ export default function TripDetailsScreen() {
             />
 
             {loading ? (
-                <View style={[styles.center, { backgroundColor }]}>
-                    <AppLoader />
-                </View>
+                <TripDetailsSkeleton />
             ) : !trip ? (
                 <View style={[styles.center, { backgroundColor }]}>
                     <Text style={{ color: subtextColor }}>Trip not found.</Text>
@@ -611,7 +609,7 @@ export default function TripDetailsScreen() {
                                 {/* Description / Captain's Note */}
                                 {trip.description && (
                                     <View style={[styles.card, { backgroundColor: cardColor }]}>
-                                        <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8 }]}>Captain's Note</Text>
+                                        <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8 }]}>Captain&apos;s Note</Text>
                                         <Text style={{ color: subtextColor, fontSize: 14, lineHeight: 20 }}>
                                             {trip.description}
                                         </Text>
@@ -725,7 +723,7 @@ export default function TripDetailsScreen() {
 
                                                     {request.message ? (
                                                         <View style={[styles.requestMessageContainer, { backgroundColor: `${subtextColor}15` }]}>
-                                                            <Text style={[styles.requestMessageText, { color: textColor }]}>"{request.message}"</Text>
+                                                            <Text style={[styles.requestMessageText, { color: textColor }]}>&quot;{request.message}&quot;</Text>
                                                         </View>
                                                     ) : null}
 
