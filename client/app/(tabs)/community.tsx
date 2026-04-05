@@ -15,16 +15,22 @@ export default function CommunityTabScreen() {
     const primaryColor = useThemeColor({}, 'primary');
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['top', 'left', 'right', 'bottom']}>
+        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
             <View style={styles.container}>
-                <View style={styles.heroBlock}>
-                    <View style={[styles.heroIconWrap, { backgroundColor: `${primaryColor}14` }]}>
+                <View style={[styles.appBar, { backgroundColor: cardColor, borderColor }]}>
+                    <View style={styles.appBarCopy}>
+                        <View style={[styles.appBarPill, { backgroundColor: `${primaryColor}14` }]}>
+                            <IconSymbol name="bubble.left.and.bubble.right.fill" size={14} color={primaryColor} />
+                            <Text style={[styles.appBarPillText, { color: primaryColor }]}>City community</Text>
+                        </View>
+                        <Text style={[styles.title, { color: textColor }]}>Travellers Community</Text>
+                        <Text style={[styles.subtitle, { color: subtextColor }]}>
+                            Talk routes, connect with nearby riders, and keep local travel conversations in one place.
+                        </Text>
+                    </View>
+                    <View style={[styles.appBarIconWrap, { backgroundColor: `${primaryColor}12` }]}>
                         <IconSymbol name="person.2.fill" size={28} color={primaryColor} />
                     </View>
-                    <Text style={[styles.title, { color: textColor }]}>Community</Text>
-                    <Text style={[styles.subtitle, { color: subtextColor }]}>
-                        A public space where all riders can connect, talk about routes, and help each other.
-                    </Text>
                 </View>
 
                 <TouchableOpacity
@@ -71,26 +77,46 @@ const styles = StyleSheet.create({
         padding: 20,
         gap: 14,
     },
-    heroBlock: {
-        paddingTop: 8,
-        paddingBottom: 8,
+    appBar: {
+        borderWidth: 1,
+        borderRadius: 24,
+        padding: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
     },
-    heroIconWrap: {
+    appBarCopy: {
+        flex: 1,
+    },
+    appBarPill: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 10,
+        paddingVertical: 7,
+        borderRadius: 999,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 12,
+    },
+    appBarPillText: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    appBarIconWrap: {
         width: 56,
         height: 56,
-        borderRadius: 28,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 16,
     },
     title: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: '800',
         marginBottom: 8,
     },
     subtitle: {
-        fontSize: 15,
-        lineHeight: 22,
+        fontSize: 14,
+        lineHeight: 21,
     },
     optionCard: {
         borderWidth: 1,

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ActivityIndicator,
     FlatList,
     Image,
     StyleSheet,
@@ -132,7 +131,7 @@ export default function TripChatMembersScreen() {
 
         const handlePresenceUpdated = (payload?: {
             tripDocumentId?: string;
-            onlineUsers?: Array<{ userId: number; userName: string }>;
+            onlineUsers?: { userId: number; userName: string }[];
         }) => {
             if (payload?.tripDocumentId !== tripId) {
                 return;
@@ -179,6 +178,29 @@ export default function TripChatMembersScreen() {
                             <Text style={[styles.headerSubtitle, { color: subtextColor }]}>
                                 {titleText}
                             </Text>
+                            <TouchableOpacity
+                                style={[styles.tripDetailsCard, { backgroundColor: cardColor, borderColor: `${primaryColor}28` }]}
+                                onPress={() => router.push(`/trip/${tripId}`)}
+                                activeOpacity={0.85}
+                            >
+                                <View style={[styles.tripDetailsIconWrap, { backgroundColor: `${primaryColor}14` }]}>
+                                    <IconSymbol name="car.fill" size={18} color={primaryColor} />
+                                </View>
+                                <View style={styles.tripDetailsCopy}>
+                                    <Text style={[styles.tripDetailsEyebrow, { color: primaryColor }]}>
+                                        Ride Overview
+                                    </Text>
+                                    <Text style={[styles.tripDetailsTitle, { color: textColor }]}>
+                                        View trip details
+                                    </Text>
+                                    <Text style={[styles.tripDetailsSubtitle, { color: subtextColor }]}>
+                                        Check route, timing, seats, and ride status
+                                    </Text>
+                                </View>
+                                <View style={[styles.tripDetailsArrowWrap, { backgroundColor: `${primaryColor}10` }]}>
+                                    <IconSymbol name="chevron.right" size={16} color={primaryColor} />
+                                </View>
+                            </TouchableOpacity>
                         </View>
                     }
                     renderItem={({ item }) => (
@@ -289,6 +311,53 @@ const styles = StyleSheet.create({
     headerSubtitle: {
         fontSize: 14,
         lineHeight: 20,
+    },
+    tripDetailsCard: {
+        marginTop: 14,
+        borderRadius: 18,
+        borderWidth: 1,
+        paddingHorizontal: 14,
+        paddingVertical: 14,
+        alignItems: 'center',
+        flexDirection: 'row',
+        gap: 12,
+    },
+    tripDetailsIconWrap: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tripDetailsCopy: {
+        flex: 1,
+    },
+    tripDetailsEyebrow: {
+        fontSize: 11,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        marginBottom: 4,
+    },
+    tripDetailsTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        marginBottom: 2,
+    },
+    tripDetailsSubtitle: {
+        fontSize: 13,
+        lineHeight: 18,
+    },
+    tripDetailsArrowWrap: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tripDetailsButtonText: {
+        fontSize: 14,
+        fontWeight: '700',
     },
     card: {
         borderWidth: 1,

@@ -274,7 +274,7 @@ export default function FindRidesScreen() {
     },
     initialPageParam: 1,
     select: (data) => {
-      const todayString = new Date().toISOString().split('T')[0];
+      const todayString = format(new Date(), 'yyyy-MM-dd');
       const allFetchedTrips = data.pages.flatMap(page => page.data);
 
       return allFetchedTrips

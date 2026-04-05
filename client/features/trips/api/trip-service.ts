@@ -14,15 +14,36 @@ export interface CreateTripInput {
   date: string;
   time: string;
   availableSeats: number;
-  pricePerSeat?: number;
+  pricePerSeat?: number | null;
   isPriceCalculated: boolean;
   genderPreference: string;
   creator: number;
+  city?: string;
+}
+
+export interface UpdateTripInput {
+  description?: string;
+  startingPoint: string;
+  destination: string;
+  date: string;
+  time: string;
+  availableSeats: number;
+  pricePerSeat?: number | null;
+  isPriceCalculated: boolean;
+  genderPreference: string;
+  city?: string;
 }
 
 class TripService {
   async createTrip(tripData: CreateTripInput): Promise<Trip> {
     const { data } = await apiClient.post<{ data: Trip }>('/trips', {
+      data: tripData,
+    });
+    return data.data;
+  }
+
+  async updateTrip(documentId: string, tripData: UpdateTripInput): Promise<Trip> {
+    const { data } = await apiClient.put<{ data: Trip }>(`/trips/${documentId}`, {
       data: tripData,
     });
     return data.data;

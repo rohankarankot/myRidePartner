@@ -25,11 +25,11 @@ import Animated, {
     useAnimatedStyle,
     withRepeat,
     withSequence,
-    withTiming,
-    withDelay
+    withTiming
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import Toast from 'react-native-toast-message';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,7 +56,7 @@ export default function LoginScreen() {
             -1,
             true
         );
-    }, []);
+    }, [floatValue]);
 
     const animatedLogoStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: floatValue.value }],
@@ -75,7 +75,6 @@ export default function LoginScreen() {
         setIsLoggingIn(true);
         try {
             await GoogleSignin.hasPlayServices();
-            await GoogleSignin.signOut();
             await GoogleSignin.signIn();
             const tokens = await GoogleSignin.getTokens();
             if (!tokens.idToken) {
@@ -96,10 +95,31 @@ export default function LoginScreen() {
                 console.log('User cancelled the login flow');
             } else if (error.code === statusCodes.IN_PROGRESS) {
                 console.log('Signin in progress');
+                Toast.show({
+                    type: 'info',
+                    text1: 'Google Sign-In in progress',
+                    text2: 'Please wait for the current sign-in attempt to finish.',
+                });
             } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
                 console.log('Play services not available or outdated');
+                Toast.show({
+                    type: 'error',
+                    text1: 'Google Play Services unavailable',
+                    text2: 'Use an Android emulator with Google Play and make sure Play Services is updated.',
+                });
             } else {
                 console.error('Google Sign-In Error', error);
+                const isNetworkError =
+                    error?.code === 'NETWORK_ERROR' ||
+                    error?.message?.includes('NETWORK_ERROR');
+
+                Toast.show({
+                    type: 'error',
+                    text1: isNetworkError ? 'Google Sign-In failed on emulator' : 'Google Sign-In failed',
+                    text2: isNetworkError
+                        ? 'Check that the emulator has Google Play, internet access, and a signed-in Google account.'
+                        : 'Please try again. If this keeps happening, restart the app or emulator.',
+                });
             }
         } finally {
             setIsLoggingIn(false);

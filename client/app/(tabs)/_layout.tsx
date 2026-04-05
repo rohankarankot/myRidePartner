@@ -164,7 +164,6 @@ export default function TabLayout() {
         name="community"
         options={{
           title: 'Community',
-          headerShown: false,
           tabBarIcon: ({ color }) => (
             <IconSymbol name="person.2.fill" size={28} color={color} />
           ),

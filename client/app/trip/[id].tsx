@@ -23,6 +23,7 @@ import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 import { saveReport } from '@/features/safety/report-service';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { TripDetailsSkeleton } from '@/features/trips/components/TripDetailsSkeleton';
+import { buildTripStartDateTime, canCaptainEditTrip, hasApprovedPassengers } from '@/features/trips/utils/trip-editability';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -177,9 +178,37 @@ export default function TripDetailsScreen() {
     console.log(trip);
     const creatorProfile = tripDetails?.creatorProfile || null;
     const joinRequests = tripDetails?.requests || [];
+    const approvedPassengerCount = joinRequests.filter((request) => request.status === 'APPROVED').length;
     const userJoinRequest = user ? joinRequests.find(r => r.passenger.id === user.id) || null : null;
     const isCreatorBlocked = isBlocked(trip?.creator?.id);
     const canOpenChat = Boolean(user && trip && !isCreatorBlocked && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED' && chatAccess?.canAccess);
+    const tripStartDateTime = trip ? buildTripStartDateTime(trip.date, trip.time) : null;
+    const hasTripStartedByTime = tripStartDateTime ? tripStartDateTime.getTime() <= Date.now() : false;
+    const canEditTrip = canCaptainEditTrip({
+        trip,
+        joinRequests,
+        currentUserId: user?.id,
+    });
+
+    const getEditTripBlockedReason = () => {
+        if (!trip || user?.id !== trip.creator?.id) {
+            return '';
+        }
+
+        if (trip.status !== 'PUBLISHED') {
+            return 'Editing is only available while the ride is still published.';
+        }
+
+        if (hasApprovedPassengers(joinRequests)) {
+            return `Editing is locked once passengers have been approved for this ride${approvedPassengerCount > 0 ? ` (${approvedPassengerCount} approved)` : ''}.`;
+        }
+
+        if (hasTripStartedByTime) {
+            return 'Editing is no longer available after the scheduled start time.';
+        }
+
+        return '';
+    };
 
     const getAvatarUrl = (profile: any) => {
         if (!profile?.avatar) return null;
@@ -416,6 +445,14 @@ export default function TripDetailsScreen() {
     const handleOpenChat = () => {
         if (!documentId || !canOpenChat) return;
         router.push(`/trip-chat/${documentId}`);
+    };
+
+    const handleEditTrip = () => {
+        if (!trip || !canEditTrip) return;
+        router.push({
+            pathname: '/(tabs)/create',
+            params: { editTripId: trip.documentId },
+        });
     };
 
     const handleReportSubmit = async (payload: ReportPayload) => {
@@ -745,6 +782,25 @@ export default function TripDetailsScreen() {
                                                     )}
                                                 </View>
                                             ))
+                                        )}
+
+                                        {trip.status === 'PUBLISHED' && (
+                                            canEditTrip ? (
+                                                <TouchableOpacity
+                                                    style={[styles.editTripButton, { borderColor: primaryColor }]}
+                                                    onPress={handleEditTrip}
+                                                >
+                                                    <IconSymbol name="square.and.pencil" size={18} color={primaryColor} />
+                                                    <Text style={[styles.editTripButtonText, { color: primaryColor }]}>Edit Trip</Text>
+                                                </TouchableOpacity>
+                                            ) : (
+                                                <View style={[styles.editTripHintCard, { backgroundColor: `${subtextColor}10`, borderColor }]}>
+                                                    <Text style={[styles.editTripHintTitle, { color: textColor }]}>Trip editing unavailable</Text>
+                                                    <Text style={[styles.editTripHintText, { color: subtextColor }]}>
+                                                        {getEditTripBlockedReason()}
+                                                    </Text>
+                                                </View>
+                                            )
                                         )}
 
                                         {trip.status === 'PUBLISHED' && (
@@ -1346,6 +1402,36 @@ const styles = StyleSheet.create({
     },
     creatorActions: {
         marginTop: 8,
+    },
+    editTripButton: {
+        minHeight: 50,
+        borderRadius: 14,
+        borderWidth: 1,
+        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    editTripButtonText: {
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    editTripHintCard: {
+        borderRadius: 14,
+        borderWidth: 1,
+        padding: 14,
+        gap: 4,
+        marginBottom: 12,
+    },
+    editTripHintTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    editTripHintText: {
+        fontSize: 13,
+        lineHeight: 18,
     },
     safetyBanner: {
         borderRadius: 14,

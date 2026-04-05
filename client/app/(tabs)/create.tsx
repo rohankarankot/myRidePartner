@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Platform, Switch, KeyboardAvoidingView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Switch, KeyboardAvoidingView } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/context/auth-context';
 import { tripService } from '@/services/trip-service';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Toast from 'react-native-toast-message';
 import { LocationSearchModal } from '@/components/LocationSearchModal';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUserStore } from '@/store/user-store';
-import { useFocusEffect } from 'expo-router';
 import { CustomAlert } from '@/components/CustomAlert';
+import { format } from 'date-fns';
+import { joinRequestService } from '@/services/join-request-service';
+import { buildTripStartDateTime, canCaptainEditTrip } from '@/features/trips/utils/trip-editability';
 
 type FormErrors = Partial<Record<'from' | 'to' | 'date' | 'time' | 'seats' | 'price' | 'description', string>>;
 
@@ -74,6 +76,8 @@ const FormField = ({ label, placeholder, icon, value, onChangeText, keyboardType
 };
 
 export default function CreateScreen() {
+    const { editTripId } = useLocalSearchParams<{ editTripId?: string }>();
+    const isEditing = typeof editTripId === 'string' && editTripId.length > 0;
     const today = getStartOfDay(new Date());
     const maxTripDate = addDays(today, 2);
 
@@ -94,6 +98,7 @@ export default function CreateScreen() {
     const [showToPicker, setShowToPicker] = useState(false);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
+    const [hasLoadedEditTrip, setHasLoadedEditTrip] = useState(false);
 
     const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
         const currentDate = getStartOfDay(selectedDate || date);
@@ -110,7 +115,7 @@ export default function CreateScreen() {
     };
 
     const formatDate = (date: Date) => {
-        return date.toISOString().split('T')[0];
+        return format(date, 'yyyy-MM-dd');
     };
 
     const formatTime = (date: Date) => {
@@ -199,31 +204,92 @@ export default function CreateScreen() {
     const cardColor = useThemeColor({}, 'card');
     const borderColor = useThemeColor({}, 'border');
 
+    const { data: editableTripData, isLoading: isEditTripLoading } = useQuery({
+        queryKey: ['editable-trip', editTripId, user?.id],
+        enabled: isEditing && !!editTripId && !!user,
+        queryFn: async () => {
+            const [trip, requests] = await Promise.all([
+                tripService.getTripById(editTripId as string),
+                joinRequestService.getJoinRequestsForTrip(editTripId as string),
+            ]);
+
+            return { trip, requests };
+        },
+    });
+
+    useEffect(() => {
+        if (!isEditing || !editableTripData || hasLoadedEditTrip) {
+            return;
+        }
+
+        const { trip, requests } = editableTripData;
+        const canEditTrip = canCaptainEditTrip({
+            trip,
+            joinRequests: requests,
+            currentUserId: user?.id,
+        });
+
+        if (!canEditTrip) {
+            Toast.show({
+                type: 'error',
+                text1: 'Trip can’t be edited',
+                text2: 'Editing is only allowed before the trip starts and before any passenger is approved.',
+            });
+            router.replace(`/trip/${editTripId}`);
+            return;
+        }
+
+        setFrom(trip.startingPoint);
+        setTo(trip.destination);
+        setDate(getStartOfDay(new Date(`${trip.date}T00:00:00`)));
+        setTime(buildTripStartDateTime(trip.date, trip.time));
+        setSeats(String(trip.availableSeats));
+        setPrice(trip.pricePerSeat != null ? String(trip.pricePerSeat) : '');
+        setDescription(trip.description || '');
+        setIsPriceCalculated(trip.isPriceCalculated);
+        setGenderPreference(trip.genderPreference);
+        setErrors({});
+        setHasLoadedEditTrip(true);
+    }, [editableTripData, editTripId, hasLoadedEditTrip, isEditing, router, user?.id]);
+
     const publishMutation = useMutation({
-        mutationFn: (tripData: any) => tripService.createTrip(tripData),
-        onSuccess: () => {
+        mutationFn: async (tripData: any) => (
+            isEditing
+                ? tripService.updateTrip(editTripId as string, tripData)
+                : tripService.createTrip(tripData)
+        ),
+        onSuccess: (savedTrip) => {
             queryClient.invalidateQueries({ queryKey: ['trips', user?.id] });
+            queryClient.invalidateQueries({ queryKey: ['all-trips-paged'] });
+            if (isEditing && editTripId) {
+                queryClient.invalidateQueries({ queryKey: ['trip-details', editTripId] });
+            }
+
             Toast.show({
                 type: 'success',
-                text1: 'Ride Published! 🚗',
-                text2: 'Your ride has been successfully published.'
+                text1: isEditing ? 'Ride Updated' : 'Ride Published! 🚗',
+                text2: isEditing ? 'Your ride changes have been saved.' : 'Your ride has been successfully published.'
             });
 
             setTimeout(() => {
-                router.push('/(tabs)/activity');
+                router.push(isEditing ? `/trip/${savedTrip.documentId}` : '/(tabs)/activity');
             }, 1000);
 
-            resetForm();
+            if (!isEditing) {
+                resetForm();
+            }
         },
         onError: (error) => {
-            console.error('Publish error:', error);
+            console.error(isEditing ? 'Update trip error:' : 'Publish error:', error);
             const apiMessage =
                 (error as any)?.response?.data?.message;
             const fallbackMessage = Array.isArray(apiMessage)
                 ? apiMessage[0]
                 : typeof apiMessage === 'string'
                     ? apiMessage
-                    : 'Failed to publish ride. Please try again.';
+                    : isEditing
+                        ? 'Failed to update ride. Please try again.'
+                        : 'Failed to publish ride. Please try again.';
             Toast.show({
                 type: 'error',
                 text1: 'Error',
@@ -256,12 +322,12 @@ export default function CreateScreen() {
             Toast.show({
                 type: 'error',
                 text1: 'Please fix the highlighted fields',
-                text2: 'Your ride details need a few corrections before publishing.'
+                text2: `Your ride details need a few corrections before ${isEditing ? 'saving' : 'publishing'}.`
             });
             return;
         }
 
-        publishMutation.mutate({
+        const tripPayload = {
             startingPoint: from.trim(),
             destination: to.trim(),
             date: formatDate(date),
@@ -269,11 +335,13 @@ export default function CreateScreen() {
             description: description.trim() || undefined,
             availableSeats: parseInt(seats),
             city: profile?.city,
-            pricePerSeat: isPriceCalculated ? undefined : parseFloat(price),
+            pricePerSeat: isPriceCalculated ? null : parseFloat(price),
             isPriceCalculated: isPriceCalculated,
             genderPreference: genderPreference,
-            creator: user.id
-        });
+            ...(isEditing ? {} : { creator: user.id }),
+        };
+
+        publishMutation.mutate(tripPayload);
     };
 
     const resetForm = () => {
@@ -284,10 +352,19 @@ export default function CreateScreen() {
         setSeats('');
         setPrice('');
         setDescription('');
-        setIsPriceCalculated(false);
+        setIsPriceCalculated(true);
         setGenderPreference('both');
         setErrors({});
     };
+
+    if (isEditing && isEditTripLoading && !hasLoadedEditTrip) {
+        return (
+            <View style={[styles.loadingState, { backgroundColor }]}>
+                <ActivityIndicator color={primaryColor} />
+                <Text style={[styles.loadingText, { color: subtextColor }]}>Loading trip details…</Text>
+            </View>
+        );
+    }
 
     return (
         <>
@@ -312,7 +389,7 @@ export default function CreateScreen() {
             <CustomAlert
                 visible={showProfileAlert}
                 title="Complete Your Profile"
-                message="You need to provide your Name, Phone Number, Gender, and City before you can publish a ride."
+                message={`You need to provide your Name, Phone Number, Gender, and City before you can ${isEditing ? 'edit' : 'publish'} a ride.`}
                 primaryButton={{
                     text: "Go to Profile",
                     onPress: () => {
@@ -331,6 +408,14 @@ export default function CreateScreen() {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
                 <ScrollView contentContainerStyle={styles.container}>
+                    <Text style={[styles.screenTitle, { color: textColor }]}>
+                        {isEditing ? 'Edit Ride' : 'Publish Ride'}
+                    </Text>
+                    <Text style={[styles.screenSubtitle, { color: subtextColor }]}>
+                        {isEditing
+                            ? 'You can update this trip until it starts, as long as no passenger has been approved yet.'
+                            : 'Share your route and timing so riders can request to join.'}
+                    </Text>
 
                     <View style={[styles.card, { backgroundColor: cardColor }]}>
                         <FormField
@@ -413,7 +498,13 @@ export default function CreateScreen() {
                                 </Text>
                                 <Switch
                                     value={isPriceCalculated}
-                                    onValueChange={setIsPriceCalculated}
+                                    onValueChange={(value) => {
+                                        setIsPriceCalculated(value);
+                                        if (value) {
+                                            setPrice('');
+                                            setErrors((current) => ({ ...current, price: undefined }));
+                                        }
+                                    }}
                                     trackColor={{ false: borderColor, true: primaryColor }}
                                 />
                             </View>
@@ -479,7 +570,9 @@ export default function CreateScreen() {
                         </View>
                     </View>
                     <Text style={[styles.disclaimer, { color: subtextColor }]}>
-                        By publishing, you agree to share the ride cost fairly with co-passengers.
+                        {isEditing
+                            ? 'Changes stay editable only until the ride starts and before any passenger is approved.'
+                            : 'By publishing, you agree to share the ride cost fairly with co-passengers.'}
                     </Text>
                     <TouchableOpacity
                         style={[styles.publishButton, { backgroundColor: primaryColor, opacity: publishMutation.isPending ? 0.7 : 1 }]}
@@ -489,7 +582,7 @@ export default function CreateScreen() {
                         {publishMutation.isPending ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.publishButtonText}>Create Trip</Text>
+                            <Text style={styles.publishButtonText}>{isEditing ? 'Save Changes' : 'Create Trip'}</Text>
                         )}
                     </TouchableOpacity>
 
@@ -501,6 +594,16 @@ export default function CreateScreen() {
 }
 
 const styles = StyleSheet.create({
+    loadingState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        paddingHorizontal: 24,
+    },
+    loadingText: {
+        fontSize: 14,
+    },
     safe: {
         flex: 1,
         paddingTop: 20,
@@ -509,6 +612,16 @@ const styles = StyleSheet.create({
         paddingRight: 20,
         paddingLeft: 20,
         paddingBottom: 50,
+    },
+    screenTitle: {
+        fontSize: 28,
+        fontWeight: '700',
+        marginBottom: 8,
+    },
+    screenSubtitle: {
+        fontSize: 14,
+        lineHeight: 20,
+        marginBottom: 20,
     },
     title: {
         fontSize: 28,
