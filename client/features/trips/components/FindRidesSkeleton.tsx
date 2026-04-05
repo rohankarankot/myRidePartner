@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Skeleton } from '@/components/skeleton';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { AppCard } from '@/components/ui/app-card';
+import { Radius, Spacing } from '@/constants/ui';
 
 export function FindRidesSkeleton() {
   const backgroundColor = useThemeColor({}, 'background');
@@ -21,9 +23,9 @@ export function FindRidesSkeleton() {
         <Skeleton width="100%" height={78} borderRadius={18} style={styles.banner} />
 
         {Array.from({ length: 4 }).map((_, index) => (
-          <View
+          <AppCard
             key={index}
-            style={[styles.tripCard, { backgroundColor: cardColor }]}
+            style={styles.tripCard}
           >
             <View style={styles.cardHeader}>
               <Skeleton width={44} height={44} borderRadius={22} />
@@ -55,7 +57,7 @@ export function FindRidesSkeleton() {
               </View>
               <Skeleton width={64} height={18} borderRadius={9} />
             </View>
-          </View>
+          </AppCard>
         ))}
       </View>
     </View>
@@ -76,7 +78,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 15,
     height: 54,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     borderWidth: 1,
   },
   sectionTitle: {
@@ -87,19 +89,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tripCard: {
-    borderRadius: 16,
-    padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
     gap: 12,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: Spacing.md,
   },
   captainInfo: {
     justifyContent: 'center',
@@ -114,7 +110,7 @@ const styles = StyleSheet.create({
   },
   iconColumn: {
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: Spacing.md,
     paddingVertical: 4,
     gap: 4,
   },

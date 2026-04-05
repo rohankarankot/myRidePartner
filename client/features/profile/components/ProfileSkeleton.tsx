@@ -2,10 +2,11 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Skeleton } from '@/components/skeleton';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { AppCard } from '@/components/ui/app-card';
+import { Spacing } from '@/constants/ui';
 
 export function ProfileSkeleton() {
   const backgroundColor = useThemeColor({}, 'background');
-  const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
 
   return (
@@ -19,7 +20,7 @@ export function ProfileSkeleton() {
           <Skeleton width={112} height={28} borderRadius={14} style={styles.badge} />
         </View>
 
-        <View style={[styles.card, { backgroundColor: cardColor }]}>
+        <AppCard style={styles.card}>
           <Skeleton width={84} height={18} borderRadius={9} />
           <View style={[styles.row, { borderBottomColor: borderColor }]}>
             <Skeleton width="36%" height={14} borderRadius={7} />
@@ -29,9 +30,9 @@ export function ProfileSkeleton() {
             <Skeleton width="44%" height={14} borderRadius={7} />
             <Skeleton width={34} height={18} borderRadius={9} />
           </View>
-        </View>
+        </AppCard>
 
-        <View style={[styles.card, { backgroundColor: cardColor }]}>
+        <AppCard style={styles.card}>
           <Skeleton width={150} height={18} borderRadius={9} />
           {Array.from({ length: 5 }).map((_, index) => (
             <View
@@ -45,9 +46,9 @@ export function ProfileSkeleton() {
               <Skeleton width={index === 0 ? 92 : index === 3 ? 140 : 84} height={16} borderRadius={8} />
             </View>
           ))}
-        </View>
+        </AppCard>
 
-        <View style={[styles.card, { backgroundColor: cardColor }]}>
+        <AppCard style={styles.card}>
           {Array.from({ length: 4 }).map((_, index) => (
             <View
               key={index}
@@ -63,7 +64,7 @@ export function ProfileSkeleton() {
               <Skeleton width={14} height={14} borderRadius={7} />
             </View>
           ))}
-        </View>
+        </AppCard>
       </View>
     </View>
   );
@@ -90,23 +91,17 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   card: {
-    borderRadius: 14,
-    padding: 16,
     marginBottom: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
   row: {
-    paddingVertical: 14,
+    paddingVertical: Spacing.md + 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   actionRow: {
-    paddingVertical: 14,
+    paddingVertical: Spacing.md + 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -115,6 +110,6 @@ const styles = StyleSheet.create({
   actionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: Spacing.md,
   },
 });
