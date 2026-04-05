@@ -29,7 +29,7 @@ import {
     BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { CITIES } from '@/constants/cities';
-import { AppLoader } from '@/components/app-loader';
+import { ProfileSkeleton } from '@/features/profile/components/ProfileSkeleton';
 
 const DUMMY_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 
@@ -244,9 +244,7 @@ export default function ProfileScreen() {
 
     if (isLoading) {
         return (
-            <View style={[styles.loadingContainer, { backgroundColor }]}>
-                <AppLoader />
-            </View>
+            <ProfileSkeleton />
         );
     }
 
