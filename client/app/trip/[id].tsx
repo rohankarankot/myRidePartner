@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, RefreshControl, KeyboardAvoidingView, Platform, Keyboard, BackHandler, Image } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, RefreshControl, KeyboardAvoidingView, Platform, Keyboard, BackHandler, Image, Share } from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +24,7 @@ import { saveReport } from '@/features/safety/report-service';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { TripDetailsSkeleton } from '@/features/trips/components/TripDetailsSkeleton';
 import { buildTripStartDateTime, canCaptainEditTrip, hasApprovedPassengers } from '@/features/trips/utils/trip-editability';
+import { buildTripShareMessage } from '@/features/trips/utils/trip-share';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -455,6 +456,23 @@ export default function TripDetailsScreen() {
         });
     };
 
+    const handleShareTrip = async () => {
+        if (!trip) return;
+
+        try {
+            await Share.share({
+                message: buildTripShareMessage(trip),
+            });
+        } catch (error) {
+            console.error('Trip share failed:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Share failed',
+                text2: 'Unable to open the share sheet right now.',
+            });
+        }
+    };
+
     const handleReportSubmit = async (payload: ReportPayload) => {
         await saveReport(payload);
         Toast.show({
@@ -563,6 +581,17 @@ export default function TripDetailsScreen() {
                     headerTintColor: textColor,
                     headerShadowVisible: false,
                     headerBackTitle: 'Back',
+                    headerRight: () =>
+                        trip && user?.id === trip.creator?.id ? (
+                            <TouchableOpacity
+                                onPress={handleShareTrip}
+                                style={styles.headerActionButton}
+                                accessibilityRole="button"
+                                accessibilityLabel="Share trip"
+                            >
+                                <IconSymbol name="square.and.arrow.up" size={20} color={primaryColor} />
+                            </TouchableOpacity>
+                        ) : null,
                 }}
             />
 
@@ -640,6 +669,16 @@ export default function TripDetailsScreen() {
                                     >
                                         <IconSymbol name="message.fill" size={18} color="#fff" />
                                         <Text style={styles.chatButtonText}>Open Ride Chat</Text>
+                                    </TouchableOpacity>
+                                )}
+
+                                {isCreator && (
+                                    <TouchableOpacity
+                                        style={[styles.shareButton, { borderColor: primaryColor, backgroundColor: `${primaryColor}10` }]}
+                                        onPress={handleShareTrip}
+                                    >
+                                        <IconSymbol name="square.and.arrow.up" size={18} color={primaryColor} />
+                                        <Text style={[styles.shareButtonText, { color: primaryColor }]}>Share Ride Link</Text>
                                     </TouchableOpacity>
                                 )}
 
@@ -1281,6 +1320,12 @@ const styles = StyleSheet.create({
     safe: {
         flex: 1,
     },
+    headerActionButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     container: {
         padding: 16,
     },
@@ -1562,6 +1607,21 @@ const styles = StyleSheet.create({
     },
     chatButtonText: {
         color: '#fff',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    shareButton: {
+        borderRadius: 16,
+        borderWidth: 1,
+        paddingVertical: 15,
+        paddingHorizontal: 18,
+        marginBottom: 16,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 10,
+    },
+    shareButtonText: {
         fontSize: 16,
         fontWeight: '700',
     },

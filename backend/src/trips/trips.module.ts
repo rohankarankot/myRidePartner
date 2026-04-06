@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PublicTripsController } from './public-trips.controller';
 import { TripsController } from './trips.controller';
 import { TripsService } from './trips.service';
 import { PrismaService } from '../prisma.service';
@@ -7,7 +8,7 @@ import { TripChatsModule } from '../trip-chats/trip-chats.module';
 
 @Module({
   imports: [NotificationsModule, TripChatsModule],
-  controllers: [TripsController],
+  controllers: [TripsController, PublicTripsController],
   providers: [TripsService, PrismaService],
   exports: [TripsService],
 })

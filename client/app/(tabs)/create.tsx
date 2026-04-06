@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Switch, KeyboardAvoidingView } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Platform, Switch, KeyboardAvoidingView, Linking, Share } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/context/auth-context';
@@ -14,6 +14,8 @@ import { CustomAlert } from '@/components/CustomAlert';
 import { format } from 'date-fns';
 import { joinRequestService } from '@/services/join-request-service';
 import { buildTripStartDateTime, canCaptainEditTrip } from '@/features/trips/utils/trip-editability';
+import { buildTripShareMessage } from '@/features/trips/utils/trip-share';
+import { Trip } from '@/types/api';
 
 type FormErrors = Partial<Record<'from' | 'to' | 'date' | 'time' | 'seats' | 'price' | 'description', string>>;
 
@@ -97,6 +99,8 @@ export default function CreateScreen() {
     const [showFromPicker, setShowFromPicker] = useState(false);
     const [showToPicker, setShowToPicker] = useState(false);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
+    const [showSharePrompt, setShowSharePrompt] = useState(false);
+    const [publishedTrip, setPublishedTrip] = useState<Trip | null>(null);
     const [errors, setErrors] = useState<FormErrors>({});
     const [hasLoadedEditTrip, setHasLoadedEditTrip] = useState(false);
 
@@ -261,9 +265,7 @@ export default function CreateScreen() {
         onSuccess: (savedTrip) => {
             queryClient.invalidateQueries({ queryKey: ['trips', user?.id] });
             queryClient.invalidateQueries({ queryKey: ['all-trips-paged'] });
-            if (isEditing && editTripId) {
-                queryClient.invalidateQueries({ queryKey: ['trip-details', editTripId] });
-            }
+            queryClient.invalidateQueries({ queryKey: ['trip-details', savedTrip.documentId] });
 
             Toast.show({
                 type: 'success',
@@ -271,9 +273,15 @@ export default function CreateScreen() {
                 text2: isEditing ? 'Your ride changes have been saved.' : 'Your ride has been successfully published.'
             });
 
-            setTimeout(() => {
-                router.push(isEditing ? `/trip/${savedTrip.documentId}` : '/(tabs)/activity');
-            }, 1000);
+            if (isEditing) {
+                setTimeout(() => {
+                    router.replace(`/trip/${savedTrip.documentId}`);
+                }, 1000);
+                return;
+            }
+
+            setPublishedTrip(savedTrip);
+            setShowSharePrompt(true);
 
             if (!isEditing) {
                 resetForm();
@@ -344,6 +352,67 @@ export default function CreateScreen() {
         publishMutation.mutate(tripPayload);
     };
 
+    const navigateToPublishedTrip = (tripDocumentId?: string) => {
+        setShowSharePrompt(false);
+        const targetTripId = tripDocumentId || publishedTrip?.documentId;
+        if (targetTripId) {
+            router.replace(`/trip/${targetTripId}`);
+        } else {
+            router.replace('/(tabs)/activity');
+        }
+    };
+
+    const shareViaWhatsApp = async () => {
+        if (!publishedTrip) return;
+
+        const message = buildTripShareMessage(publishedTrip);
+        const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+        try {
+            const canOpen = await Linking.canOpenURL(whatsappUrl);
+            if (canOpen) {
+                await Linking.openURL(whatsappUrl);
+            } else {
+                await Share.share({ message });
+                Toast.show({
+                    type: 'info',
+                    text1: 'WhatsApp not available',
+                    text2: 'Opened the regular share sheet instead.',
+                });
+            }
+        } catch (error) {
+            console.error('WhatsApp share failed:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Share failed',
+                text2: 'Unable to open WhatsApp right now.',
+            });
+        } finally {
+            navigateToPublishedTrip(publishedTrip.documentId);
+        }
+    };
+
+    const shareViaText = async () => {
+        if (!publishedTrip) return;
+
+        const message = buildTripShareMessage(publishedTrip);
+        const smsSeparator = Platform.OS === 'ios' ? '&' : '?';
+        const smsUrl = `sms:${smsSeparator}body=${encodeURIComponent(message)}`;
+
+        try {
+            await Linking.openURL(smsUrl);
+        } catch (error) {
+            console.error('SMS share failed:', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Text share failed',
+                text2: 'Unable to open your messaging app right now.',
+            });
+        } finally {
+            navigateToPublishedTrip(publishedTrip.documentId);
+        }
+    };
+
     const resetForm = () => {
         setFrom('');
         setTo('');
@@ -401,6 +470,27 @@ export default function CreateScreen() {
                 onClose={() => setShowProfileAlert(false)}
                 icon="person.crop.circle.badge.exclamationmark"
                 dismissible={false}
+            />
+            <CustomAlert
+                visible={showSharePrompt}
+                title="Share This Ride"
+                message={publishedTrip
+                    ? `Your ride from ${publishedTrip.startingPoint} to ${publishedTrip.destination} is live. Share it now through WhatsApp or text.`
+                    : 'Your ride is live. Share it now through WhatsApp or text.'}
+                primaryButton={{
+                    text: 'WhatsApp',
+                    onPress: shareViaWhatsApp,
+                }}
+                secondaryButton={{
+                    text: 'Later',
+                    onPress: () => navigateToPublishedTrip(),
+                }}
+                tertiaryButton={{
+                    text: 'Text',
+                    onPress: shareViaText,
+                }}
+                onClose={() => navigateToPublishedTrip()}
+                icon="paperplane.fill"
             />
             <KeyboardAvoidingView
                 style={[styles.safe, { backgroundColor }]}

@@ -198,6 +198,80 @@ export class TripsService {
     return { data: trip };
   }
 
+  async findPublicByDocumentId(documentId: string) {
+    const trip = await this.prisma.trip.findFirst({
+      where: {
+        documentId,
+        status: {
+          in: [TripStatus.PUBLISHED, TripStatus.STARTED],
+        },
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                avatar: true,
+                city: true,
+                rating: true,
+                ratingsCount: true,
+                completedTripsCount: true,
+                governmentIdVerified: true,
+              },
+            },
+          },
+        },
+        joinRequests: {
+          select: {
+            status: true,
+            requestedSeats: true,
+          },
+        },
+      },
+    });
+
+    if (!trip) {
+      throw new NotFoundException(`Trip not found`);
+    }
+
+    const approvedRequests = trip.joinRequests.filter((request) => request.status === 'APPROVED');
+    const seatsBooked = approvedRequests.reduce((sum, request) => sum + request.requestedSeats, 0);
+
+    return {
+      data: {
+        documentId: trip.documentId,
+        description: trip.description,
+        startingPoint: trip.startingPoint,
+        destination: trip.destination,
+        date: trip.date,
+        time: trip.time,
+        city: trip.city,
+        availableSeats: trip.availableSeats,
+        seatsBooked,
+        seatsRemaining: Math.max(trip.availableSeats - seatsBooked, 0),
+        pricePerSeat: trip.pricePerSeat,
+        isPriceCalculated: trip.isPriceCalculated,
+        genderPreference: trip.genderPreference,
+        status: trip.status,
+        createdAt: trip.createdAt,
+        creator: {
+          id: trip.creator.id,
+          username: trip.creator.username,
+          fullName: trip.creator.userProfile?.fullName ?? null,
+          avatar: trip.creator.userProfile?.avatar ?? null,
+          city: trip.creator.userProfile?.city ?? null,
+          rating: trip.creator.userProfile?.rating ?? null,
+          ratingsCount: trip.creator.userProfile?.ratingsCount ?? 0,
+          completedTripsCount: trip.creator.userProfile?.completedTripsCount ?? 0,
+          governmentIdVerified: trip.creator.userProfile?.governmentIdVerified ?? false,
+        },
+      },
+    };
+  }
+
   /**
    * Get all trips created by a specific user.
    */

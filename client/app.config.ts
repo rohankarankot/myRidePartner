@@ -4,6 +4,8 @@ const androidAppId =
   process.env.ADMOB_ANDROID_APP_ID || 'ca-app-pub-3940256099942544~3347511713';
 const iosAppId =
   process.env.ADMOB_IOS_APP_ID || 'ca-app-pub-3940256099942544~1458002511';
+const shareBaseUrl = process.env.EXPO_PUBLIC_SHARE_BASE_URL || 'https://myridepartner.in';
+const shareHost = new URL(shareBaseUrl).host;
 
 const config: ExpoConfig = {
   name: 'My Ride Partner',
@@ -23,7 +25,11 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.rohankarankot.myridepartner',
-    googleServiceFile: './GoogleService-Info.plist',
+    googleServicesFile: './GoogleService-Info.plist',
+    associatedDomains: [`applinks:${shareHost}`],
+    infoPlist: {
+      LSApplicationQueriesSchemes: ['whatsapp'],
+    },
   },
   android: {
     adaptiveIcon: {
@@ -38,6 +44,20 @@ const config: ExpoConfig = {
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.ACCESS_FINE_LOCATION',
+    ],
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: [
+          {
+            scheme: 'https',
+            host: shareHost,
+            pathPrefix: '/trip',
+          },
+        ],
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
     ],
   },
   web: {
