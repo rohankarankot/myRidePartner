@@ -4,7 +4,8 @@ const androidAppId =
   process.env.ADMOB_ANDROID_APP_ID || 'ca-app-pub-3940256099942544~3347511713';
 const iosAppId =
   process.env.ADMOB_IOS_APP_ID || 'ca-app-pub-3940256099942544~1458002511';
-const shareBaseUrl = process.env.EXPO_PUBLIC_SHARE_BASE_URL || 'https://myridepartner.in';
+const shareBaseUrl =
+  process.env.EXPO_PUBLIC_SHARE_BASE_URL || 'https://my-ride-partner.vercel.app';
 const shareHost = new URL(shareBaseUrl).host;
 
 const config: ExpoConfig = {
