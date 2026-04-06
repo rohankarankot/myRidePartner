@@ -28,7 +28,7 @@ type ChatRide = {
 
 const ACTIVE_STATUSES = ['PUBLISHED', 'STARTED'] as const;
 
-export default function ChatsTabScreen() {
+export function ChatsScreen() {
     const { user } = useAuth();
     const router = useRouter();
 
@@ -201,11 +201,6 @@ const styles = StyleSheet.create({
     safe: {
         flex: 1,
     },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     container: {
         padding: 16,
         gap: 12,
@@ -263,21 +258,23 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
+        flex: 1,
+        marginRight: 8,
     },
     roleText: {
         fontSize: 12,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     emptyState: {
         alignItems: 'center',
         paddingHorizontal: 24,
     },
     emptyIconWrap: {
-        width: 74,
-        height: 74,
-        borderRadius: 37,
-        justifyContent: 'center',
+        width: 72,
+        height: 72,
+        borderRadius: 24,
         alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: 18,
     },
     emptyTitle: {
@@ -287,9 +284,8 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     emptySubtitle: {
-        fontSize: 15,
-        lineHeight: 22,
+        fontSize: 14,
+        lineHeight: 21,
         textAlign: 'center',
-        maxWidth: 320,
     },
 });

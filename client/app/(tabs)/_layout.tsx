@@ -17,7 +17,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUserStore } from '@/store/user-store';
 import FindOutlineIcon from '@/assets/tab-icons/find-outline.svg';
 import FindFilledIcon from '@/assets/tab-icons/find-filled.svg';
-import ChatsOutlineIcon from '@/assets/tab-icons/chats-outline.svg';
 import ChatsFilledIcon from '@/assets/tab-icons/chats-filled.svg';
 import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
 import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
@@ -140,13 +139,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="chats"
+        name="activity"
         options={{
-          title: 'Chats',
-          tabBarIcon: ({ color, focused }) =>
-            focused
-              ? <ChatsFilledIcon width={30} height={30} color={color} />
-              : <ChatsOutlineIcon width={30} height={30} color={color} />,
+          title: 'Activity',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => router.push('/chats')}
+              style={styles.headerActionButton}
+              activeOpacity={0.7}
+            >
+              <ChatsFilledIcon width={24} height={24} color={currentColors.text} />
+            </TouchableOpacity>
+          ),
+          tabBarIcon: ({ color }) => (
+            <IconSymbol name="list.bullet" size={28} color={color} />
+          ),
         }}
       />
 
@@ -169,12 +176,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="activity"
-        options={{
-          href: null,
-        }}
-      />
+
 
       <Tabs.Screen
         name="profile"
@@ -251,6 +253,12 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
+  },
+  headerActionButton: {
+    marginRight: 16,
+    padding: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileTabFallback: {
     width: 28,

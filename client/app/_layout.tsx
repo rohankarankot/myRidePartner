@@ -36,6 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="profile-analytics" options={{ title: 'Your Analytics', headerBackTitle: 'Profile' }} />
         <Stack.Screen name="my-activity" options={{ title: 'My Activity', headerBackTitle: 'Profile' }} />
         <Stack.Screen name="terms" options={{ title: 'Terms & Privacy', headerBackTitle: 'Back', headerShown: true }} />
+        <Stack.Screen name="chats" options={{ title: 'Chats', headerBackTitle: 'Activity' }} />
         <Stack.Screen name="trip-chat/[tripId]" options={{ title: 'Ride Chat', headerBackTitle: 'Trip', headerShown: false }} />
         <Stack.Screen name="trip-chat-members/[tripId]" options={{ title: 'Ride Members', headerBackTitle: 'Chat' }} />
         <Stack.Screen name="community-info" options={{ title: 'Community Info', headerBackTitle: 'Community' }} />
