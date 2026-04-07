@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   ScrollView,
@@ -67,6 +67,7 @@ function FormField({
   multiline = false,
   numberOfLines = 1,
   error,
+  onFocus,
 }: {
   label: string;
   placeholder: string;
@@ -79,6 +80,7 @@ function FormField({
   multiline?: boolean;
   numberOfLines?: number;
   error?: string;
+  onFocus?: () => void;
 }) {
   const textColor = useThemeColor({}, 'text');
   const subtextColor = useThemeColor({}, 'subtext');
@@ -128,6 +130,7 @@ function FormField({
           pointerEvents={onPress ? 'none' : 'auto'}
           multiline={multiline}
           numberOfLines={numberOfLines}
+          onFocus={onFocus}
         />
       </TouchableOpacity>
       {error ? (
@@ -163,6 +166,7 @@ export default function CreateScreen() {
   const [publishedTrip, setPublishedTrip] = useState<Trip | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [hasLoadedEditTrip, setHasLoadedEditTrip] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const onDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
     const currentDate = getStartOfDay(selectedDate || date);
@@ -182,6 +186,14 @@ export default function CreateScreen() {
 
   const formatTime = (value: Date) =>
     value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const handleDescriptionFocus = () => {
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, Platform.OS === 'ios' ? 250 : 150);
+    });
+  };
 
   const validateForm = () => {
     const nextErrors: FormErrors = {};
@@ -566,7 +578,12 @@ export default function CreateScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        >
           <VStack space="sm">
             <Text className="text-3xl font-bold" style={{ color: textColor }}>
               {isEditing ? 'Edit Ride' : 'Publish Ride'}
@@ -702,6 +719,7 @@ export default function CreateScreen() {
               }}
               multiline
               numberOfLines={5}
+              onFocus={handleDescriptionFocus}
             />
 
             <VStack space="sm" style={styles.fieldContainer}>
@@ -755,7 +773,9 @@ export default function CreateScreen() {
             {publishMutation.isPending ? (
               <Spinner color="#fff" />
             ) : (
-              <ButtonText>{isEditing ? 'Save Changes' : 'Create Trip'}</ButtonText>
+              <ButtonText style={{ color: '#FFFFFF' }}>
+                {isEditing ? 'Save Changes' : 'Create Trip'}
+              </ButtonText>
             )}
           </Button>
 
@@ -774,7 +794,7 @@ const styles = StyleSheet.create({
   container: {
     paddingLeft: 20,
     paddingRight: 20,
-    paddingBottom: 50,
+    paddingBottom: 96,
   },
   cardShadow: {
     shadowColor: '#000',
