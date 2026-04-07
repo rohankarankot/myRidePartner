@@ -1,83 +1,75 @@
 import React from 'react';
-import { StyleSheet, ScrollView, View, Text } from 'react-native';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { ScrollView, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+
+const SECTIONS = [
+  {
+    title: '1. Acceptance of Terms',
+    body: 'By using My Ride Partner, you agree to these terms. If you do not agree, please do not use the service.',
+  },
+  {
+    title: '2. User Responsibilities',
+    body: 'Users are responsible for their own safety and behavior. My Ride Partner is a platform to connect riders and captains.',
+  },
+  {
+    title: '3. Privacy Policy',
+    body: 'We value your privacy. Your data is used only to facilitate ride sharing and improve our services.',
+  },
+  {
+    title: '4. Verification',
+    body: "While we strive for a safe community, users should verify each other's identity before starting a ride.",
+  },
+];
+
 export default function TermsScreen() {
-    const backgroundColor = useThemeColor({}, 'background');
-    const textColor = useThemeColor({}, 'text');
-    const subtextColor = useThemeColor({}, 'subtext');
-    const cardColor = useThemeColor({}, 'card');
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const subtextColor = useThemeColor({}, 'subtext');
+  const cardColor = useThemeColor({}, 'card');
 
-    return (
-        <ScrollView style={[styles.container, { backgroundColor }]}>
-            <Stack.Screen options={{ title: 'Terms & Privacy', headerBackTitle: 'Back', headerRight: () => null }} />
-            <View style={styles.content}>
-                <View style={[styles.section, { backgroundColor: cardColor }]}>
-                    <Text style={[styles.sectionTitle, { color: textColor }]}>1. Acceptance of Terms</Text>
-                    <Text style={[styles.text, { color: subtextColor }]}>
-                        By using My Ride Partner, you agree to these terms. If you do not agree, please do not use the service.
-                    </Text>
+  return (
+    <ScrollView style={[styles.container, { backgroundColor }]}>
+      <Stack.Screen options={{ title: 'Terms & Privacy', headerBackTitle: 'Back', headerRight: () => null }} />
+      <Box className="p-5">
+        <Box className="rounded-3xl p-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+          <VStack space="lg">
+            {SECTIONS.map((section) => (
+              <VStack key={section.title} space="sm">
+                <Text className="text-xl font-bold" style={{ color: textColor }}>
+                  {section.title}
+                </Text>
+                <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+                  {section.body}
+                </Text>
+              </VStack>
+            ))}
+          </VStack>
+        </Box>
 
-                    <Text style={[styles.sectionTitle, { color: textColor }]}>2. User Responsibilities</Text>
-                    <Text style={[styles.text, { color: subtextColor }]}>
-                        Users are responsible for their own safety and behavior. My Ride Partner is a platform to connect riders and captains.
-                    </Text>
-
-                    <Text style={[styles.sectionTitle, { color: textColor }]}>3. Privacy Policy</Text>
-                    <Text style={[styles.text, { color: subtextColor }]}>
-                        We value your privacy. Your data is used only to facilitate ride sharing and improve our services.
-                    </Text>
-
-                    <Text style={[styles.sectionTitle, { color: textColor }]}>4. Verification</Text>
-                    <Text style={[styles.text, { color: subtextColor }]}>
-                        While we strive for a safe community, users should verify each other's identity before starting a ride.
-                    </Text>
-                </View>
-
-                <View style={styles.footer}>
-                    <Text style={[styles.footerText, { color: subtextColor }]}>
-                        Last updated: March, 2026
-                    </Text>
-                </View>
-            </View>
-        </ScrollView>
-    );
+        <Box className="items-center pt-10 pb-10">
+          <Text className="text-xs" style={{ color: subtextColor }}>
+            Last updated: March, 2026
+          </Text>
+        </Box>
+      </Box>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    content: {
-        padding: 20,
-    },
-    section: {
-        padding: 20,
-        borderRadius: 20,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 10,
-        marginTop: 15,
-    },
-    text: {
-        fontSize: 15,
-        lineHeight: 22,
-        marginBottom: 10,
-    },
-    footer: {
-        marginTop: 40,
-        alignItems: 'center',
-        paddingBottom: 40,
-    },
-    footerText: {
-        fontSize: 13,
-        opacity: 0.6,
-    },
+  container: {
+    flex: 1,
+  },
+  cardShadow: {
+    shadowColor: '#2A120B',
+    shadowOpacity: 0.05,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
 });

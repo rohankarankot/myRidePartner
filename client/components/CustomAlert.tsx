@@ -4,11 +4,11 @@ import {
     View,
     Text,
     Modal,
-    TouchableOpacity,
     Dimensions,
 } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from './ui/icon-symbol';
+import { Pressable } from '@/components/ui/pressable';
 
 interface CustomAlertProps {
     visible: boolean;
@@ -71,33 +71,37 @@ export function CustomAlert({
 
                     <View style={styles.buttonContainer}>
                         {tertiaryButton && (
-                            <TouchableOpacity
+                            <Pressable
                                 style={[styles.button, styles.secondaryButton, { borderColor }]}
                                 onPress={tertiaryButton.onPress}
                             >
                                 <Text style={[styles.buttonText, { color: textColor }]}>
                                     {tertiaryButton.text}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                         {secondaryButton && (
-                            <TouchableOpacity
+                            <Pressable
                                 style={[styles.button, styles.secondaryButton, { borderColor }]}
                                 onPress={secondaryButton.onPress}
                             >
                                 <Text style={[styles.buttonText, { color: textColor }]}>
                                     {secondaryButton.text}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
-                        <TouchableOpacity
-                            style={[styles.button, styles.primaryButton, { backgroundColor: primaryColor }]}
+                        <Pressable
+                            style={[
+                                styles.button,
+                                styles.primaryButton,
+                                { backgroundColor: primaryColor, borderColor: `${primaryColor}66` },
+                            ]}
                             onPress={primaryButton.onPress}
                         >
                             <Text style={[styles.buttonText, styles.primaryButtonText]}>
                                 {primaryButton.text}
                             </Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             </View>
@@ -158,7 +162,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     primaryButton: {
-        // Background color from props
+        borderWidth: 1,
     },
     primaryButtonText: {
         color: '#fff',

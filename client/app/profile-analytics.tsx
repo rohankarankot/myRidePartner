@@ -1,13 +1,15 @@
 import React from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 
 import { userService } from '@/features/auth/api/user-service';
 import { useAuth } from '@/context/auth-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { AppLoader } from '@/components/app-loader';
 import { ProfileAnalyticsCard } from '@/components/profile-analytics-card';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function ProfileAnalyticsScreen() {
   const { user } = useAuth();
@@ -24,21 +26,23 @@ export default function ProfileAnalyticsScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor }]}>
-        <AppLoader />
-      </View>
+      <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
+        <Spinner size="large" color={primaryColor} />
+      </Box>
     );
   }
 
   if (error || !data) {
     return (
-      <View style={[styles.errorContainer, { backgroundColor }]}>
+      <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor }}>
         <Stack.Screen options={{ title: 'Your Analytics', headerBackTitle: 'Profile' }} />
-        <Text style={[styles.errorTitle, { color: textColor }]}>Analytics unavailable</Text>
-        <Text style={[styles.errorCopy, { color: subtextColor }]}>
+        <Text className="text-xl font-bold text-center" style={{ color: textColor }}>
+          Analytics unavailable
+        </Text>
+        <Text className="text-sm leading-6 text-center mt-2" style={{ color: subtextColor }}>
           We could not load your ride insights right now. Pull to refresh and try again.
         </Text>
-      </View>
+      </Box>
     );
   }
 
@@ -47,12 +51,7 @@ export default function ProfileAnalyticsScreen() {
       style={[styles.container, { backgroundColor }]}
       contentContainerStyle={styles.content}
       refreshControl={
-        <RefreshControl
-          refreshing={isRefetching}
-          onRefresh={refetch}
-          tintColor={primaryColor}
-          colors={[primaryColor]}
-        />
+        <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={primaryColor} colors={[primaryColor]} />
       }
     >
       <Stack.Screen options={{ title: 'Your Analytics', headerBackTitle: 'Profile' }} />
@@ -68,26 +67,5 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 32,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  errorCopy: {
-    marginTop: 8,
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
   },
 });

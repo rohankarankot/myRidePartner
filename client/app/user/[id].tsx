@@ -1,474 +1,316 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
+
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { AppLoader } from '@/components/app-loader';
-import { useQuery } from '@tanstack/react-query';
 import { userService } from '@/services/user-service';
 import { useAuth } from '@/context/auth-context';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 import { saveReport } from '@/features/safety/report-service';
-import Toast from 'react-native-toast-message';
 import { CustomAlert } from '@/components/CustomAlert';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { HStack } from '@/components/ui/hstack';
+import { VStack } from '@/components/ui/vstack';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function UserProfileScreen() {
-    const { id } = useLocalSearchParams();
-    const userId = Number(id);
-    const router = useRouter();
-    const { user } = useAuth();
+  const { id } = useLocalSearchParams();
+  const userId = Number(id);
+  const router = useRouter();
+  const { user } = useAuth();
 
-    const backgroundColor = useThemeColor({}, 'background');
-    const textColor = useThemeColor({}, 'text');
-    const subtextColor = useThemeColor({}, 'subtext');
-    const cardColor = useThemeColor({}, 'card');
-    const primaryColor = useThemeColor({}, 'primary');
-    const borderColor = useThemeColor({}, 'border');
-    const dangerColor = useThemeColor({}, 'danger');
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const subtextColor = useThemeColor({}, 'subtext');
+  const cardColor = useThemeColor({}, 'card');
+  const primaryColor = useThemeColor({}, 'primary');
+  const borderColor = useThemeColor({}, 'border');
+  const dangerColor = useThemeColor({}, 'danger');
 
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    const [showBlockAlert, setShowBlockAlert] = useState(false);
-    const [showReportModal, setShowReportModal] = useState(false);
-    const { isBlocked, blockUser, unblockUser, isBlocking, isUnblocking } = useBlockedUsers();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showBlockAlert, setShowBlockAlert] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const { isBlocked, blockUser, unblockUser, isBlocking, isUnblocking } = useBlockedUsers();
 
-    const { data: profile, isLoading, error, refetch } = useQuery({
-        queryKey: ['user-profile', userId],
-        queryFn: () => userService.getUserProfile(userId),
-        enabled: !isNaN(userId),
+  const { data: profile, isLoading, error, refetch } = useQuery({
+    queryKey: ['user-profile', userId],
+    queryFn: () => userService.getUserProfile(userId),
+    enabled: !Number.isNaN(userId),
+  });
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
+
+  const avatarUrl =
+    !profile?.avatar ? null : typeof profile.avatar === 'string' ? profile.avatar : profile.avatar.url;
+  const blocked = isBlocked(userId);
+  const isOwnProfile = user?.id === userId;
+
+  const handleReportSubmit = async (payload: ReportPayload) => {
+    await saveReport(payload);
+    Toast.show({
+      type: 'success',
+      text1: 'Report submitted',
+      text2: 'We will review this and take action if needed.',
     });
+  };
 
-    const handleRefresh = useCallback(async () => {
-        setIsRefreshing(true);
-        await refetch();
-        setIsRefreshing(false);
-    }, [refetch]);
-
-    const getAvatarUrl = () => {
-        if (!profile?.avatar) return null;
-        if (typeof profile.avatar === 'string') return profile.avatar;
-        return profile.avatar.url;
-    };
-
-    const avatarUrl = getAvatarUrl();
-    const blocked = isBlocked(userId);
-    const isOwnProfile = user?.id === userId;
-
-    const handleReportSubmit = async (payload: ReportPayload) => {
-        await saveReport(payload);
+  const handleConfirmBlock = async () => {
+    try {
+      if (blocked) {
+        await unblockUser(userId);
         Toast.show({
-            type: 'success',
-            text1: 'Report submitted',
-            text2: 'We will review this and take action if needed.',
+          type: 'success',
+          text1: 'User unblocked',
+          text2: 'Their rides can appear again in discovery.',
         });
-    };
-
-    const handleConfirmBlock = async () => {
-        try {
-            if (blocked) {
-                await unblockUser(userId);
-                Toast.show({
-                    type: 'success',
-                    text1: 'User unblocked',
-                    text2: 'Their rides can appear again in discovery.',
-                });
-            } else {
-                await blockUser(userId);
-                Toast.show({
-                    type: 'success',
-                    text1: 'User blocked',
-                    text2: 'You will no longer see their rides in discovery on this device.',
-                });
-            }
-        } catch {
-            Toast.show({
-                type: 'error',
-                text1: 'Action failed',
-                text2: 'Please try again.',
-            });
-        } finally {
-            setShowBlockAlert(false);
-        }
-    };
-
-    if (isLoading && !isRefreshing) {
-        return (
-            <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
-                <Stack.Screen options={{ title: 'Profile', headerShown: true, headerStyle: { backgroundColor }, headerTintColor: textColor, headerShadowVisible: false, headerBackTitle: 'Back' }} />
-                <View style={styles.center}>
-                    <AppLoader />
-                </View>
-            </SafeAreaView>
-        );
+      } else {
+        await blockUser(userId);
+        Toast.show({
+          type: 'success',
+          text1: 'User blocked',
+          text2: 'You will no longer see their rides in discovery on this device.',
+        });
+      }
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: 'Action failed',
+        text2: 'Please try again.',
+      });
+    } finally {
+      setShowBlockAlert(false);
     }
+  };
 
-    if (error || !profile) {
-        return (
-            <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
-                <Stack.Screen options={{ title: 'Profile', headerShown: true, headerStyle: { backgroundColor }, headerTintColor: textColor, headerShadowVisible: false, headerBackTitle: 'Back' }} />
-                <View style={styles.center}>
-                    <IconSymbol name="person.fill" size={64} color={subtextColor} style={{ marginBottom: 16 }} />
-                    <Text style={[styles.errorText, { color: textColor }]}>User profile not found.</Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
+  const screenOptions = {
+    title: profile?.fullName || 'Profile',
+    headerShown: true,
+    headerStyle: { backgroundColor },
+    headerTintColor: textColor,
+    headerShadowVisible: false,
+    headerBackTitle: 'Back',
+  };
 
+  if (isLoading && !isRefreshing) {
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
-            <ReportModal
-                visible={showReportModal}
-                onClose={() => setShowReportModal(false)}
-                onSubmit={handleReportSubmit}
-                reportedUserId={userId}
-                reportedUserName={profile?.fullName}
-                reporterUserId={user?.id}
-                source="profile"
-            />
-            <CustomAlert
-                visible={showBlockAlert}
-                title={blocked ? 'Unblock user?' : 'Block user?'}
-                message={
-                    blocked
-                        ? 'This will allow their rides to appear in discovery again on this device.'
-                        : 'You will hide this user’s rides from discovery on this device. You can undo this later.'
-                }
-                primaryButton={{
-                    text: blocked ? 'Unblock' : 'Block',
-                    onPress: handleConfirmBlock,
-                }}
-                secondaryButton={{
-                    text: 'Cancel',
-                    onPress: () => setShowBlockAlert(false),
-                }}
-                onClose={() => setShowBlockAlert(false)}
-                icon={blocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
-            />
-            <Stack.Screen
-                options={{
-                    title: profile.fullName || 'User Profile',
-                    headerShown: true,
-                    headerTransparent: false,
-                    headerStyle: { backgroundColor },
-                    headerTintColor: textColor,
-                    headerShadowVisible: false,
-                    headerBackTitle: 'Back',
-                }}
-            />
-
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                refreshControl={
-                    <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={primaryColor} />
-                }
-            >
-                {/* Header Section */}
-                <View style={[styles.headerCard, { backgroundColor: cardColor, borderColor }]}>
-                    <View style={styles.avatarContainer}>
-                        {avatarUrl ? (
-                            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-                        ) : (
-                            <View style={[styles.avatarPlaceholder, { backgroundColor: primaryColor }]}>
-                                <Text style={styles.avatarPlaceholderText}>
-                                    {(profile.fullName || '?').charAt(0).toUpperCase()}
-                                </Text>
-                            </View>
-                        )}
-                        {profile.isVerified && (
-                            <View style={[styles.verifiedBadge, { backgroundColor: '#10B981', borderColor: cardColor }]}>
-                                <IconSymbol name="checkmark" size={12} color="#fff" />
-                            </View>
-                        )}
-                    </View>
-
-                    <Text style={[styles.userName, { color: textColor }]}>{profile.fullName || 'Unknown User'}</Text>
-                    <Text style={[styles.userHandle, { color: subtextColor }]}>Ride Leader</Text>
-
-                    {!isOwnProfile && (
-                        <>
-                            <View style={styles.safetyActions}>
-                                <TouchableOpacity
-                                    style={[styles.safetyButton, { borderColor, backgroundColor: blocked ? `${dangerColor}10` : cardColor }]}
-                                    onPress={() => setShowBlockAlert(true)}
-                                    disabled={isBlocking || isUnblocking}
-                                >
-                                    <IconSymbol
-                                        name={blocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
-                                        size={16}
-                                        color={blocked ? dangerColor : textColor}
-                                    />
-                                    <Text style={[styles.safetyButtonText, { color: blocked ? dangerColor : textColor }]}>
-                                        {blocked ? 'Unblock User' : 'Block User'}
-                                    </Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.safetyButton, { borderColor, backgroundColor: cardColor }]}
-                                    onPress={() => setShowReportModal(true)}
-                                >
-                                    <IconSymbol name="flag.fill" size={16} color="#F59E0B" />
-                                    <Text style={[styles.safetyButtonText, { color: textColor }]}>Report User</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                        </>
-                    )}
-
-                    {/* Quick Stats */}
-                    <View style={styles.statsRow}>
-                        <TouchableOpacity
-                            style={styles.statItem}
-                            onPress={() => router.push(`/ratings?userId=${userId}`)}
-                        >
-                            <View style={[styles.statIconContainer, { backgroundColor: `${primaryColor}15` }]}>
-                                <IconSymbol name="star.fill" size={20} color="#F59E0B" />
-                            </View>
-                            <Text style={[styles.statValue, { color: textColor }]}>
-                                {profile.rating ? Number(profile.rating).toFixed(1) : 'New'}
-                            </Text>
-                            <Text style={[styles.statLabel, { color: subtextColor }]}>Rating</Text>
-                        </TouchableOpacity>
-
-                        <View style={styles.statDivider} />
-
-                        <View style={styles.statItem}>
-                            <View style={[styles.statIconContainer, { backgroundColor: `${primaryColor}15` }]}>
-                                <IconSymbol name="car.fill" size={20} color={primaryColor} />
-                            </View>
-                            <Text style={[styles.statValue, { color: textColor }]}>
-                                {profile.completedTripsCount || 0}
-                            </Text>
-                            <Text style={[styles.statLabel, { color: subtextColor }]}>Completed Rides</Text>
-                        </View>
-
-                        <View style={styles.statDivider} />
-
-                        <TouchableOpacity
-                            style={styles.statItem}
-                            onPress={() => router.push(`/ratings?userId=${userId}`)}
-                        >
-                            <View style={[styles.statIconContainer, { backgroundColor: '#6366F115' }]}>
-                                <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
-                            </View>
-                            <Text style={[styles.statValue, { color: textColor }]}>
-                                {profile.ratingsCount || 0}
-                            </Text>
-                            <Text style={[styles.statLabel, { color: subtextColor }]}>Reviews</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* Info Section */}
-                <Text style={[styles.sectionTitle, { color: subtextColor, marginTop: 24 }]}>ABOUT</Text>
-                <View style={[styles.infoCard, { backgroundColor: cardColor }]}>
-                    <View style={styles.infoRow}>
-                        <View style={[styles.infoIcon, { backgroundColor: profile.gender === 'men' ? '#3B82F615' : profile.gender === 'women' ? '#EC489915' : '#94A3B815' }]}>
-                            <IconSymbol
-                                name="person.fill"
-                                size={20}
-                                color={profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' : '#94A3B8'}
-                            />
-                        </View>
-                        <View style={styles.infoContent}>
-                            <Text style={[styles.infoLabel, { color: subtextColor }]}>Gender</Text>
-                            <Text style={[styles.infoValue, { color: textColor }]}>
-                                {profile.gender === 'men' ? 'Male' : profile.gender === 'women' ? 'Female' : 'Not specified'}
-                            </Text>
-                        </View>
-                    </View>
-
-                    {profile.city && (
-                        <>
-                            <View style={{ height: 1, backgroundColor: borderColor, marginVertical: 12, marginLeft: 56, opacity: 0.5 }} />
-                            <View style={styles.infoRow}>
-                                <View style={[styles.infoIcon, { backgroundColor: '#F59E0B15' }]}>
-                                    <IconSymbol name="mappin.circle.fill" size={20} color="#F59E0B" />
-                                </View>
-                                <View style={styles.infoContent}>
-                                    <Text style={[styles.infoLabel, { color: subtextColor }]}>City</Text>
-                                    <Text style={[styles.infoValue, { color: textColor }]}>
-                                        {profile.city}
-                                    </Text>
-                                </View>
-                            </View>
-                        </>
-                    )}
-                </View>
-
-            </ScrollView>
-        </SafeAreaView>
+      <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+        <Stack.Screen options={screenOptions} />
+        <Box className="flex-1 items-center justify-center">
+          <Spinner size="large" color={primaryColor} />
+        </Box>
+      </SafeAreaView>
     );
+  }
+
+  if (error || !profile) {
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+        <Stack.Screen options={screenOptions} />
+        <Box className="flex-1 items-center justify-center px-8">
+          <IconSymbol name="person.fill" size={64} color={subtextColor} />
+          <Text className="text-base font-medium mt-4 text-center" style={{ color: textColor }}>
+            User profile not found.
+          </Text>
+        </Box>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+      <ReportModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onSubmit={handleReportSubmit}
+        reportedUserId={userId}
+        reportedUserName={profile?.fullName}
+        reporterUserId={user?.id}
+        source="profile"
+      />
+
+      <CustomAlert
+        visible={showBlockAlert}
+        title={blocked ? 'Unblock user?' : 'Block user?'}
+        message={
+          blocked
+            ? 'This will allow their rides to appear in discovery again on this device.'
+            : 'You will hide this user’s rides from discovery on this device. You can undo this later.'
+        }
+        primaryButton={{ text: blocked ? 'Unblock' : 'Block', onPress: handleConfirmBlock }}
+        secondaryButton={{ text: 'Cancel', onPress: () => setShowBlockAlert(false) }}
+        onClose={() => setShowBlockAlert(false)}
+        icon={blocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
+      />
+
+      <Stack.Screen options={screenOptions} />
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={primaryColor} />}
+      >
+        <Box className="rounded-3xl p-6 items-center" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+          <Box className="relative mb-4">
+            <Avatar size="2xl">
+              <AvatarFallbackText>{profile.fullName || '?'}</AvatarFallbackText>
+              {avatarUrl ? <AvatarImage source={{ uri: avatarUrl }} alt={profile.fullName || 'User'} /> : null}
+            </Avatar>
+            {profile.isVerified ? (
+              <Box className="absolute bottom-0 right-0 w-7 h-7 rounded-full items-center justify-center border-[3px]" style={{ backgroundColor: '#10B981', borderColor: cardColor }}>
+                <IconSymbol name="checkmark" size={12} color="#fff" />
+              </Box>
+            ) : null}
+          </Box>
+
+          <Text className="text-2xl font-bold mb-1 text-center" style={{ color: textColor }}>
+            {profile.fullName || 'Unknown User'}
+          </Text>
+          <Text className="text-sm mb-6" style={{ color: subtextColor }}>
+            Ride Leader
+          </Text>
+
+          {!isOwnProfile ? (
+            <VStack className="w-full mb-5" space="sm">
+              <Pressable
+                className="rounded-2xl min-h-[46px] px-4 flex-row items-center justify-center"
+                style={{ backgroundColor: blocked ? `${dangerColor}10` : cardColor, borderColor, borderWidth: 1 }}
+                onPress={() => setShowBlockAlert(true)}
+                disabled={isBlocking || isUnblocking}
+              >
+                <IconSymbol
+                  name={blocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
+                  size={16}
+                  color={blocked ? dangerColor : textColor}
+                />
+                <Text className="text-sm font-semibold ml-2" style={{ color: blocked ? dangerColor : textColor }}>
+                  {blocked ? 'Unblock User' : 'Block User'}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                className="rounded-2xl min-h-[46px] px-4 flex-row items-center justify-center"
+                style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}
+                onPress={() => setShowReportModal(true)}
+              >
+                <IconSymbol name="flag.fill" size={16} color="#F59E0B" />
+                <Text className="text-sm font-semibold ml-2" style={{ color: textColor }}>
+                  Report User
+                </Text>
+              </Pressable>
+            </VStack>
+          ) : null}
+
+          <HStack className="w-full items-center justify-center pt-5" style={{ borderTopColor: 'rgba(150,150,150,0.1)', borderTopWidth: 1 }}>
+            <Pressable className="flex-1 items-center" onPress={() => router.push(`/ratings?userId=${userId}`)}>
+              <Box className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: `${primaryColor}15` }}>
+                <IconSymbol name="star.fill" size={20} color="#F59E0B" />
+              </Box>
+              <Text className="text-lg font-bold mb-0.5" style={{ color: textColor }}>
+                {profile.rating ? Number(profile.rating).toFixed(1) : 'New'}
+              </Text>
+              <Text className="text-xs text-center" style={{ color: subtextColor }}>
+                Rating
+              </Text>
+            </Pressable>
+
+            <Box className="w-px h-10" style={{ backgroundColor: 'rgba(150,150,150,0.2)' }} />
+
+            <Box className="flex-1 items-center">
+              <Box className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: `${primaryColor}15` }}>
+                <IconSymbol name="car.fill" size={20} color={primaryColor} />
+              </Box>
+              <Text className="text-lg font-bold mb-0.5" style={{ color: textColor }}>
+                {profile.completedTripsCount || 0}
+              </Text>
+              <Text className="text-xs text-center" style={{ color: subtextColor }}>
+                Completed Rides
+              </Text>
+            </Box>
+
+            <Box className="w-px h-10" style={{ backgroundColor: 'rgba(150,150,150,0.2)' }} />
+
+            <Pressable className="flex-1 items-center" onPress={() => router.push(`/ratings?userId=${userId}`)}>
+              <Box className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#6366F115' }}>
+                <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
+              </Box>
+              <Text className="text-lg font-bold mb-0.5" style={{ color: textColor }}>
+                {profile.ratingsCount || 0}
+              </Text>
+              <Text className="text-xs text-center" style={{ color: subtextColor }}>
+                Reviews
+              </Text>
+            </Pressable>
+          </HStack>
+        </Box>
+
+        <Text className="text-xs font-semibold ml-4 mt-6 mb-2 uppercase" style={{ color: subtextColor }}>
+          About
+        </Text>
+        <Box className="rounded-3xl p-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+          <HStack className="items-center">
+            <Box
+              className="w-10 h-10 rounded-full items-center justify-center mr-4"
+              style={{ backgroundColor: profile.gender === 'men' ? '#3B82F615' : profile.gender === 'women' ? '#EC489915' : '#94A3B815' }}
+            >
+              <IconSymbol
+                name="person.fill"
+                size={20}
+                color={profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' : '#94A3B8'}
+              />
+            </Box>
+            <VStack className="flex-1">
+              <Text className="text-xs mb-0.5" style={{ color: subtextColor }}>
+                Gender
+              </Text>
+              <Text className="text-base font-medium" style={{ color: textColor }}>
+                {profile.gender === 'men' ? 'Male' : profile.gender === 'women' ? 'Female' : 'Not specified'}
+              </Text>
+            </VStack>
+          </HStack>
+
+          {profile.city ? (
+            <>
+              <Box className="h-px my-3 ml-14" style={{ backgroundColor: borderColor, opacity: 0.5 }} />
+              <HStack className="items-center">
+                <Box className="w-10 h-10 rounded-full items-center justify-center mr-4" style={{ backgroundColor: '#F59E0B15' }}>
+                  <IconSymbol name="mappin.circle.fill" size={20} color="#F59E0B" />
+                </Box>
+                <VStack className="flex-1">
+                  <Text className="text-xs mb-0.5" style={{ color: subtextColor }}>
+                    City
+                  </Text>
+                  <Text className="text-base font-medium" style={{ color: textColor }}>
+                    {profile.city}
+                  </Text>
+                </VStack>
+              </HStack>
+            </>
+          ) : null}
+        </Box>
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    errorText: {
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    scrollContent: {
-        padding: 16,
-        paddingBottom: 40,
-    },
-    headerCard: {
-        borderRadius: 24,
-        padding: 24,
-        alignItems: 'center',
-        borderWidth: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 2,
-    },
-    avatarContainer: {
-        position: 'relative',
-        marginBottom: 16,
-    },
-    avatarImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-    },
-    avatarPlaceholder: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarPlaceholderText: {
-        fontSize: 36,
-        fontWeight: 'bold',
-        color: '#ffffff',
-    },
-    verifiedBadge: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        borderWidth: 3,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    userName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 4,
-    },
-    userHandle: {
-        fontSize: 15,
-        marginBottom: 24,
-    },
-    safetyActions: {
-        width: '100%',
-        gap: 12,
-        marginBottom: 20,
-    },
-    safetyButton: {
-        borderWidth: 1,
-        borderRadius: 14,
-        minHeight: 46,
-        paddingHorizontal: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    safetyButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    blockedBanner: {
-        width: '100%',
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        marginBottom: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    blockedBannerText: {
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    statsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        paddingTop: 20,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(150,150,150,0.1)',
-    },
-    statItem: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    statDivider: {
-        width: 1,
-        height: 40,
-        backgroundColor: 'rgba(150,150,150,0.2)',
-    },
-    statIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    statValue: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 2,
-    },
-    statLabel: {
-        fontSize: 12,
-    },
-    sectionTitle: {
-        fontSize: 13,
-        fontWeight: '600',
-        marginLeft: 16,
-        marginBottom: 8,
-        letterSpacing: 0.5,
-    },
-    infoCard: {
-        borderRadius: 16,
-        padding: 16,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    infoIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    infoContent: {
-        flex: 1,
-    },
-    infoLabel: {
-        fontSize: 12,
-        marginBottom: 2,
-    },
-    infoValue: {
-        fontSize: 16,
-        fontWeight: '500',
-    },
+  safe: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  cardShadow: {
+    shadowColor: '#2A120B',
+    shadowOpacity: 0.05,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
 });

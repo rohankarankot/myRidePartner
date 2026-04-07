@@ -29,7 +29,7 @@ export const useThemeStore = create<ThemeState>()(
     persist(
         (set) => ({
             theme: 'system',
-            palette: 'ember',
+            palette: 'blue',
             setTheme: (theme) => set({ theme }),
             setPalette: (palette) => set({ palette }),
         }),

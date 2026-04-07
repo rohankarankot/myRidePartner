@@ -10,7 +10,7 @@ import { useThemeStore, ThemeMode } from '@/store/theme-store';
 import { useAuth } from '@/context/auth-context';
 import { userService } from '@/services/user-service';
 import { CustomAlert } from '@/components/CustomAlert';
-import { ThemePalette } from '@/constants/theme';
+import { PaletteOptions } from '@/constants/theme';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
@@ -155,17 +155,13 @@ export default function SettingsScreen() {
         </Text>
 
         <HStack space="sm" className="mb-4 mt-1">
-          {(
-            [
-              { id: 'blue', label: 'Blue', swatch: '#2563EB' },
-              { id: 'ember', label: 'Orange', swatch: '#F06539' },
-            ] as { id: ThemePalette; label: string; swatch: string }[]
-          ).map((option) => {
+          {PaletteOptions.map((option) => {
             const active = palette === option.id;
             return (
               <Pressable
                 key={option.id}
-                className="flex-1 rounded-2xl px-3 py-3"
+                accessibilityLabel={option.label}
+                className="h-12 flex-1 items-center justify-center rounded-2xl"
                 style={{
                   backgroundColor: active ? cardColor : 'transparent',
                   borderColor: active ? primaryColor : borderColor,
@@ -173,18 +169,10 @@ export default function SettingsScreen() {
                 }}
                 onPress={() => setPalette(option.id)}
               >
-                <HStack className="items-center justify-center" space="sm">
-                  <Box
-                    className="h-3.5 w-3.5 rounded-full"
-                    style={{ backgroundColor: option.swatch }}
-                  />
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{ color: active ? textColor : subtextColor }}
-                  >
-                    {option.label}
-                  </Text>
-                </HStack>
+                <Box
+                  className="h-4 w-4 rounded-full"
+                  style={{ backgroundColor: option.swatch }}
+                />
               </Pressable>
             );
           })}

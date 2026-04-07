@@ -1,287 +1,110 @@
 'use client';
+
 import { vars } from 'nativewind';
 
-export const config = {
-  light: vars({
-    '--color-primary-0': '255 244 238',
-    '--color-primary-50': '255 233 225',
-    '--color-primary-100': '255 214 199',
-    '--color-primary-200': '255 192 171',
-    '--color-primary-300': '255 161 133',
-    '--color-primary-400': '248 130 87',
-    '--color-primary-500': '240 101 57',
-    '--color-primary-600': '219 84 41',
-    '--color-primary-700': '186 66 30',
-    '--color-primary-800': '143 50 24',
-    '--color-primary-900': '104 36 19',
-    '--color-primary-950': '72 24 13',
+import { getThemeColors, ThemePalette } from '@/constants/theme';
 
-    '--color-secondary-0': '255 250 240',
-    '--color-secondary-50': '255 243 220',
-    '--color-secondary-100': '255 231 187',
-    '--color-secondary-200': '255 215 153',
-    '--color-secondary-300': '246 193 112',
-    '--color-secondary-400': '224 170 76',
-    '--color-secondary-500': '201 139 44',
-    '--color-secondary-600': '171 116 33',
-    '--color-secondary-700': '136 92 27',
-    '--color-secondary-800': '101 68 21',
-    '--color-secondary-900': '74 50 16',
-    '--color-secondary-950': '51 35 12',
+type RGB = { r: number; g: number; b: number };
 
-    '--color-tertiary-0': '255 241 239',
-    '--color-tertiary-50': '255 228 224',
-    '--color-tertiary-100': '255 204 198',
-    '--color-tertiary-200': '255 179 172',
-    '--color-tertiary-300': '245 146 135',
-    '--color-tertiary-400': '228 111 97',
-    '--color-tertiary-500': '217 107 91',
-    '--color-tertiary-600': '184 83 71',
-    '--color-tertiary-700': '147 63 56',
-    '--color-tertiary-800': '112 48 43',
-    '--color-tertiary-900': '82 34 31',
-    '--color-tertiary-950': '58 24 22',
+const SHADE_STOPS = [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
 
-    '--color-error-0': '255 241 239',
-    '--color-error-50': '255 228 224',
-    '--color-error-100': '255 204 198',
-    '--color-error-200': '255 179 172',
-    '--color-error-300': '245 146 135',
-    '--color-error-400': '228 111 97',
-    '--color-error-500': '217 107 91',
-    '--color-error-600': '184 83 71',
-    '--color-error-700': '147 63 56',
-    '--color-error-800': '112 48 43',
-    '--color-error-900': '82 34 31',
-    '--color-error-950': '58 24 22',
+const LIGHT_TINTS = [0.94, 0.88, 0.76, 0.64, 0.48, 0.22, 0, 0.12, 0.26, 0.42, 0.58, 0.74] as const;
+const DARK_TINTS = [0.74, 0.58, 0.42, 0.26, 0.12, 0, 0.22, 0.48, 0.64, 0.76, 0.88, 0.94] as const;
 
-    '--color-success-0': '255 250 240',
-    '--color-success-50': '255 243 220',
-    '--color-success-100': '255 231 187',
-    '--color-success-200': '255 215 153',
-    '--color-success-300': '246 193 112',
-    '--color-success-400': '224 170 76',
-    '--color-success-500': '201 139 44',
-    '--color-success-600': '171 116 33',
-    '--color-success-700': '136 92 27',
-    '--color-success-800': '101 68 21',
-    '--color-success-900': '74 50 16',
-    '--color-success-950': '51 35 12',
+function clampChannel(value: number) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
 
-    '--color-warning-0': '255 250 240',
-    '--color-warning-50': '255 243 220',
-    '--color-warning-100': '255 231 187',
-    '--color-warning-200': '255 215 153',
-    '--color-warning-300': '246 193 112',
-    '--color-warning-400': '224 170 76',
-    '--color-warning-500': '201 139 44',
-    '--color-warning-600': '171 116 33',
-    '--color-warning-700': '136 92 27',
-    '--color-warning-800': '101 68 21',
-    '--color-warning-900': '74 50 16',
-    '--color-warning-950': '51 35 12',
+function hexToRgb(hex: string): RGB {
+  const normalized = hex.replace('#', '');
+  const value =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => char + char)
+          .join('')
+      : normalized;
 
-    '--color-info-0': '241 235 232',
-    '--color-info-50': '226 216 210',
-    '--color-info-100': '205 191 183',
-    '--color-info-200': '180 162 154',
-    '--color-info-300': '152 133 126',
-    '--color-info-400': '124 106 100',
-    '--color-info-500': '98 82 77',
-    '--color-info-600': '80 66 62',
-    '--color-info-700': '65 54 50',
-    '--color-info-800': '50 42 39',
-    '--color-info-900': '38 31 29',
-    '--color-info-950': '27 22 20',
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16),
+  };
+}
 
-    '--color-typography-0': '255 250 246',
-    '--color-typography-50': '244 231 222',
-    '--color-typography-100': '223 204 197',
-    '--color-typography-200': '197 172 164',
-    '--color-typography-300': '167 139 130',
-    '--color-typography-400': '126 103 96',
-    '--color-typography-500': '94 74 68',
-    '--color-typography-600': '71 56 51',
-    '--color-typography-700': '47 35 32',
-    '--color-typography-800': '34 25 22',
-    '--color-typography-900': '25 18 16',
-    '--color-typography-950': '18 13 12',
+function mixColors(a: string, b: string, weight: number) {
+  const start = hexToRgb(a);
+  const end = hexToRgb(b);
 
-    '--color-outline-0': '255 248 245',
-    '--color-outline-50': '241 232 226',
-    '--color-outline-100': '226 213 206',
-    '--color-outline-200': '205 189 181',
-    '--color-outline-300': '182 163 155',
-    '--color-outline-400': '148 129 122',
-    '--color-outline-500': '111 88 80',
-    '--color-outline-600': '92 72 66',
-    '--color-outline-700': '72 56 51',
-    '--color-outline-800': '54 42 38',
-    '--color-outline-900': '39 30 27',
-    '--color-outline-950': '27 21 19',
+  return {
+    r: clampChannel(start.r * (1 - weight) + end.r * weight),
+    g: clampChannel(start.g * (1 - weight) + end.g * weight),
+    b: clampChannel(start.b * (1 - weight) + end.b * weight),
+  };
+}
 
-    '--color-background-0': '255 250 246',
-    '--color-background-50': '250 241 235',
-    '--color-background-100': '244 231 222',
-    '--color-background-200': '229 214 206',
-    '--color-background-300': '208 188 179',
-    '--color-background-400': '175 153 145',
-    '--color-background-500': '142 120 113',
-    '--color-background-600': '109 90 84',
-    '--color-background-700': '82 66 61',
-    '--color-background-800': '62 50 46',
-    '--color-background-900': '41 32 29',
-    '--color-background-950': '23 18 16',
+function toRgbString(color: RGB) {
+  return `${color.r} ${color.g} ${color.b}`;
+}
 
-    '--color-background-error': '255 241 239',
-    '--color-background-warning': '255 243 220',
-    '--color-background-success': '255 243 220',
-    '--color-background-muted': '250 241 235',
-    '--color-background-info': '241 235 232',
+function buildScale(prefix: string, base: string, isDark: boolean): Record<string, string> {
+  const stops = isDark ? DARK_TINTS : LIGHT_TINTS;
 
-    '--color-indicator-primary': '240 101 57',
-    '--color-indicator-info': '98 82 77',
-    '--color-indicator-error': '217 107 91',
-  }),
-  dark: vars({
-    '--color-primary-0': '72 24 13',
-    '--color-primary-50': '104 36 19',
-    '--color-primary-100': '143 50 24',
-    '--color-primary-200': '186 66 30',
-    '--color-primary-300': '219 84 41',
-    '--color-primary-400': '240 101 57',
-    '--color-primary-500': '248 130 87',
-    '--color-primary-600': '255 161 133',
-    '--color-primary-700': '255 192 171',
-    '--color-primary-800': '255 214 199',
-    '--color-primary-900': '255 233 225',
-    '--color-primary-950': '255 244 238',
+  return Object.fromEntries(
+    SHADE_STOPS.map((stop, index) => {
+      const mixWith = index <= 5 ? '#FFFFFF' : '#000000';
+      const value = toRgbString(mixColors(base, mixWith, stops[index]));
+      return [`--color-${prefix}-${stop}`, value];
+    })
+  );
+}
 
-    '--color-secondary-0': '51 35 12',
-    '--color-secondary-50': '74 50 16',
-    '--color-secondary-100': '101 68 21',
-    '--color-secondary-200': '136 92 27',
-    '--color-secondary-300': '171 116 33',
-    '--color-secondary-400': '201 139 44',
-    '--color-secondary-500': '224 170 76',
-    '--color-secondary-600': '246 193 112',
-    '--color-secondary-700': '255 215 153',
-    '--color-secondary-800': '255 231 187',
-    '--color-secondary-900': '255 243 220',
-    '--color-secondary-950': '255 250 240',
+function buildNeutralScale(prefix: string, base: string, contrast: string, isDark: boolean) {
+  const mixTargets = isDark
+    ? ['#000000', '#000000', '#000000', '#000000', '#000000', '#000000', contrast, contrast, contrast, contrast, contrast, '#FFFFFF']
+    : ['#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#FFFFFF', '#000000', '#000000', '#000000', '#000000', contrast, '#000000'];
 
-    '--color-tertiary-0': '58 24 22',
-    '--color-tertiary-50': '82 34 31',
-    '--color-tertiary-100': '112 48 43',
-    '--color-tertiary-200': '147 63 56',
-    '--color-tertiary-300': '184 83 71',
-    '--color-tertiary-400': '217 107 91',
-    '--color-tertiary-500': '228 111 97',
-    '--color-tertiary-600': '245 146 135',
-    '--color-tertiary-700': '255 179 172',
-    '--color-tertiary-800': '255 204 198',
-    '--color-tertiary-900': '255 228 224',
-    '--color-tertiary-950': '255 241 239',
+  const stops = isDark ? DARK_TINTS : LIGHT_TINTS;
 
-    '--color-error-0': '58 24 22',
-    '--color-error-50': '82 34 31',
-    '--color-error-100': '112 48 43',
-    '--color-error-200': '147 63 56',
-    '--color-error-300': '184 83 71',
-    '--color-error-400': '217 107 91',
-    '--color-error-500': '228 111 97',
-    '--color-error-600': '245 146 135',
-    '--color-error-700': '255 179 172',
-    '--color-error-800': '255 204 198',
-    '--color-error-900': '255 228 224',
-    '--color-error-950': '255 241 239',
+  return Object.fromEntries(
+    SHADE_STOPS.map((stop, index) => {
+      const value = toRgbString(mixColors(base, mixTargets[index], stops[index]));
+      return [`--color-${prefix}-${stop}`, value];
+    })
+  );
+}
 
-    '--color-success-0': '51 35 12',
-    '--color-success-50': '74 50 16',
-    '--color-success-100': '101 68 21',
-    '--color-success-200': '136 92 27',
-    '--color-success-300': '171 116 33',
-    '--color-success-400': '201 139 44',
-    '--color-success-500': '224 170 76',
-    '--color-success-600': '246 193 112',
-    '--color-success-700': '255 215 153',
-    '--color-success-800': '255 231 187',
-    '--color-success-900': '255 243 220',
-    '--color-success-950': '255 250 240',
+function paletteVars(palette: ThemePalette, mode: 'light' | 'dark') {
+  const colors = getThemeColors(palette)[mode];
+  const isDark = mode === 'dark';
 
-    '--color-warning-0': '51 35 12',
-    '--color-warning-50': '74 50 16',
-    '--color-warning-100': '101 68 21',
-    '--color-warning-200': '136 92 27',
-    '--color-warning-300': '171 116 33',
-    '--color-warning-400': '201 139 44',
-    '--color-warning-500': '224 170 76',
-    '--color-warning-600': '246 193 112',
-    '--color-warning-700': '255 215 153',
-    '--color-warning-800': '255 231 187',
-    '--color-warning-900': '255 243 220',
-    '--color-warning-950': '255 250 240',
+  return vars({
+    ...buildScale('primary', colors.primary, isDark),
+    ...buildScale('secondary', colors.secondary, isDark),
+    ...buildScale('tertiary', colors.tertiary, isDark),
+    ...buildScale('error', colors.danger, isDark),
+    ...buildScale('success', colors.success, isDark),
+    ...buildScale('warning', colors.secondary, isDark),
+    ...buildNeutralScale('info', colors.subtext, colors.text, isDark),
+    ...buildNeutralScale('typography', colors.text, colors.background, isDark),
+    ...buildNeutralScale('outline', colors.icon, colors.text, isDark),
+    ...buildNeutralScale('background', colors.surfaceContainerLow, colors.text, isDark),
 
-    '--color-info-0': '27 22 20',
-    '--color-info-50': '38 31 29',
-    '--color-info-100': '50 42 39',
-    '--color-info-200': '65 54 50',
-    '--color-info-300': '80 66 62',
-    '--color-info-400': '98 82 77',
-    '--color-info-500': '124 106 100',
-    '--color-info-600': '152 133 126',
-    '--color-info-700': '180 162 154',
-    '--color-info-800': '205 191 183',
-    '--color-info-900': '226 216 210',
-    '--color-info-950': '241 235 232',
+    '--color-background-error': toRgbString(hexToRgb(colors.danger)),
+    '--color-background-warning': toRgbString(hexToRgb(colors.secondaryContainer)),
+    '--color-background-success': toRgbString(hexToRgb(colors.secondaryContainer)),
+    '--color-background-muted': toRgbString(hexToRgb(colors.surfaceContainer)),
+    '--color-background-info': toRgbString(hexToRgb(colors.surfaceContainerHigh)),
 
-    '--color-typography-0': '18 13 12',
-    '--color-typography-50': '25 18 16',
-    '--color-typography-100': '34 25 22',
-    '--color-typography-200': '47 35 32',
-    '--color-typography-300': '71 56 51',
-    '--color-typography-400': '94 74 68',
-    '--color-typography-500': '126 103 96',
-    '--color-typography-600': '167 139 130',
-    '--color-typography-700': '197 172 164',
-    '--color-typography-800': '223 204 197',
-    '--color-typography-900': '244 231 222',
-    '--color-typography-950': '255 250 246',
+    '--color-indicator-primary': toRgbString(hexToRgb(colors.primary)),
+    '--color-indicator-info': toRgbString(hexToRgb(colors.labelAccent)),
+    '--color-indicator-error': toRgbString(hexToRgb(colors.danger)),
+  });
+}
 
-    '--color-outline-0': '27 21 19',
-    '--color-outline-50': '39 30 27',
-    '--color-outline-100': '54 42 38',
-    '--color-outline-200': '72 56 51',
-    '--color-outline-300': '92 72 66',
-    '--color-outline-400': '111 88 80',
-    '--color-outline-500': '148 129 122',
-    '--color-outline-600': '182 163 155',
-    '--color-outline-700': '205 189 181',
-    '--color-outline-800': '226 213 206',
-    '--color-outline-900': '241 232 226',
-    '--color-outline-950': '255 248 245',
-
-    '--color-background-0': '17 19 22',
-    '--color-background-50': '27 31 35',
-    '--color-background-100': '37 42 48',
-    '--color-background-200': '47 53 60',
-    '--color-background-300': '62 70 79',
-    '--color-background-400': '89 97 107',
-    '--color-background-500': '118 126 136',
-    '--color-background-600': '152 159 168',
-    '--color-background-700': '191 197 204',
-    '--color-background-800': '218 223 228',
-    '--color-background-900': '236 239 242',
-    '--color-background-950': '250 251 252',
-
-    '--color-background-error': '58 24 22',
-    '--color-background-warning': '51 35 12',
-    '--color-background-success': '51 35 12',
-    '--color-background-muted': '27 31 35',
-    '--color-background-info': '27 22 20',
-
-    '--color-indicator-primary': '255 181 159',
-    '--color-indicator-info': '180 162 154',
-    '--color-indicator-error': '255 179 172',
-  }),
-};
+export function getGluestackConfig(palette: ThemePalette) {
+  return {
+    light: paletteVars(palette, 'light'),
+    dark: paletteVars(palette, 'dark'),
+  };
+}

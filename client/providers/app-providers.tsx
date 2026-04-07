@@ -18,9 +18,10 @@ import { useThemeStore } from '@/store/theme-store';
 export function AppProviders({ children }: PropsWithChildren) {
   const colorScheme = useColorScheme();
   const themeMode = useThemeStore((state) => state.theme);
+  const palette = useThemeStore((state) => state.palette);
 
   return (
-    <GluestackUIProvider mode={themeMode}>
+    <GluestackUIProvider mode={themeMode} palette={palette}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>

@@ -1,10 +1,11 @@
 'use client';
 import React, { useEffect, useLayoutEffect } from 'react';
-import { config } from './config';
+import { getGluestackConfig } from './config';
 import { OverlayProvider } from '@gluestack-ui/core/overlay/creator';
 import { ToastProvider } from '@gluestack-ui/core/toast/creator';
 import { setFlushStyles } from '@gluestack-ui/utils/nativewind-utils';
 import { script } from './script';
+import { ThemePalette } from '@/constants/theme';
 
 export type ModeType = 'light' | 'dark' | 'system';
 
@@ -21,11 +22,14 @@ export const useSafeLayoutEffect =
 
 export function GluestackUIProvider({
   mode = 'light',
+  palette = 'ember',
   ...props
 }: {
   mode?: ModeType;
+  palette?: ThemePalette;
   children?: React.ReactNode;
 }) {
+  const config = getGluestackConfig(palette);
   let cssVariablesWithMode = ``;
   Object.keys(config).forEach((configKey) => {
     cssVariablesWithMode +=
@@ -66,19 +70,21 @@ export function GluestackUIProvider({
   }, [handleMediaQuery]);
 
   useSafeLayoutEffect(() => {
-    if (typeof window !== 'undefined') {
-      const documentElement = document.documentElement;
-      if (documentElement) {
-        const head = documentElement.querySelector('head');
-        let style = head?.querySelector(`[id='${variableStyleTagId}']`);
-        if (!style) {
-          style = createStyle(variableStyleTagId);
-          style.innerHTML = cssVariablesWithMode;
-          if (head) head.appendChild(style);
-        }
-      }
+    if (typeof window === 'undefined') return;
+
+    const documentElement = document.documentElement;
+    const head = documentElement.querySelector('head');
+    let style = head?.querySelector(`[id='${variableStyleTagId}']`) as HTMLStyleElement | null;
+
+    if (!style) {
+      style = createStyle(variableStyleTagId);
+      if (head) head.appendChild(style);
     }
-  }, []);
+
+    if (style) {
+      style.innerHTML = cssVariablesWithMode;
+    }
+  }, [cssVariablesWithMode]);
 
   return (
     <>
