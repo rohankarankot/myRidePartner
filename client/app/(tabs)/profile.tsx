@@ -2,1157 +2,1087 @@ import React, { useState, useCallback, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import TextRecognition from 'react-native-text-recognition';
 import {
-    View,
-    Text,
-    StyleSheet,
-    Image,
-    ScrollView,
-    TouchableOpacity,
-    ActivityIndicator,
-    RefreshControl,
-    Modal,
+  View,
+  Text as RNText,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, Stack } from 'expo-router';
+import {
+  BottomSheetModal,
+  BottomSheetBackdrop,
+  BottomSheetTextInput,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
+
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useAuth } from '@/context/auth-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useRouter, Stack } from 'expo-router';
 import { useUserStore } from '@/store/user-store';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '@/services/user-service';
-import Toast from 'react-native-toast-message';
-import {
-    BottomSheetModal,
-    BottomSheetBackdrop,
-    BottomSheetTextInput,
-    BottomSheetScrollView,
-} from '@gorhom/bottom-sheet';
 import { CITIES } from '@/constants/cities';
 import { ProfileSkeleton } from '@/features/profile/components/ProfileSkeleton';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Spinner } from '@/components/ui/spinner';
+import { HStack } from '@/components/ui/hstack';
+import { VStack } from '@/components/ui/vstack';
+import { Divider } from '@/components/ui/divider';
+import { Button, ButtonText } from '@/components/ui/button';
 
 const DUMMY_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 
+type ActionRowProps = {
+  icon: string;
+  label: string;
+  iconColor: string;
+  iconBackground: string;
+  textColor: string;
+  chevronColor: string;
+  onPress: () => void;
+};
+
+function ActionRow({
+  icon,
+  label,
+  iconColor,
+  iconBackground,
+  textColor,
+  chevronColor,
+  onPress,
+}: ActionRowProps) {
+  return (
+    <Pressable className="py-1" onPress={onPress}>
+      <HStack className="items-center justify-between">
+        <HStack space="md" className="items-center">
+          <Box
+            className="h-10 w-10 rounded-xl items-center justify-center"
+            style={{ backgroundColor: iconBackground }}
+          >
+            <IconSymbol name={icon as any} size={16} color={iconColor} />
+          </Box>
+          <Text className="text-base font-medium" style={{ color: textColor }}>
+            {label}
+          </Text>
+        </HStack>
+        <IconSymbol name="chevron.right" size={16} color={chevronColor} />
+      </HStack>
+    </Pressable>
+  );
+}
+
 export default function ProfileScreen() {
-    const { user: authUser, signOut } = useAuth();
-    const { profile: storedProfile, isLoading: isStoreLoading, setProfile } = useUserStore();
-    const { data: profileData, isLoading: isQueryLoading, error, refetch } = useUserProfile();
-    const router = useRouter();
-    const queryClient = useQueryClient();
+  const { user: authUser, signOut } = useAuth();
+  const {
+    profile: storedProfile,
+    isLoading: isStoreLoading,
+    setProfile,
+  } = useUserStore();
+  const {
+    data: profileData,
+    isLoading: isQueryLoading,
+    error,
+    refetch,
+  } = useUserProfile();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
-    const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [gender, setGender] = useState<'men' | 'women'>('men');
+  const [city, setCity] = useState('');
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isVerifyingGovernmentId, setIsVerifyingGovernmentId] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const [citySearch, setCitySearch] = useState('');
 
-    const handleRefresh = useCallback(async () => {
-        setIsRefreshing(true);
-        await refetch();
-        setIsRefreshing(false);
-    }, [refetch]);
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = ['90%'];
 
-    const [fullName, setFullName] = useState('');
-    const [phoneNumber, setPhoneNumber] = useState('');
-    const [gender, setGender] = useState<'men' | 'women'>('men');
-    const [city, setCity] = useState('');
-    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-    const [isVerifyingGovernmentId, setIsVerifyingGovernmentId] = useState(false);
-    const [showSignOutModal, setShowSignOutModal] = useState(false);
-    const [showCityPicker, setShowCityPicker] = useState(false);
-    const [citySearch, setCitySearch] = useState('');
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  }, [refetch]);
 
-    const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-    const snapPoints = ['90%'];
+  const profile = storedProfile || profileData;
+  const isLoading = isStoreLoading || (isQueryLoading && !storedProfile && !error);
 
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const subtextColor = useThemeColor({}, 'subtext');
+  const cardColor = useThemeColor({}, 'card');
+  const primaryColor = useThemeColor({}, 'primary');
+  const successColor = useThemeColor({}, 'success');
+  const successBgColor = useThemeColor({}, 'successBg');
+  const dangerColor = useThemeColor({}, 'danger');
+  const dangerBgColor = useThemeColor({}, 'dangerBg');
+  const borderColor = useThemeColor({}, 'border');
 
+  const createProfileMutation = useMutation({
+    mutationFn: (data: {
+      fullName: string;
+      phoneNumber: string;
+      gender: 'men' | 'women';
+      city: string;
+      userId: number;
+    }) => userService.createProfile(data),
+    onSuccess: (data) => {
+      setProfile(data);
+      queryClient.invalidateQueries({ queryKey: ['user-profile', authUser?.id] });
+      refetch();
+      bottomSheetModalRef.current?.dismiss();
+      Toast.show({
+        type: 'success',
+        text1: 'Profile Created',
+        text2: 'Your profile has been successfully set up!',
+      });
+    },
+    onError: (mutationError) => {
+      console.error('Create profile error:', mutationError);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to create profile. Please try again.',
+      });
+    },
+  });
 
-    const profile = storedProfile || profileData;
-    const isLoading = isStoreLoading || (isQueryLoading && !storedProfile && !error);
-    const backgroundColor = useThemeColor({}, 'background');
-    const textColor = useThemeColor({}, 'text');
-    const subtextColor = useThemeColor({}, 'subtext');
-    const cardColor = useThemeColor({}, 'card');
-    const primaryColor = useThemeColor({}, 'primary');
-    const successColor = useThemeColor({}, 'success');
-    const successBgColor = useThemeColor({}, 'successBg');
-    const dangerColor = useThemeColor({}, 'danger');
-    const dangerBgColor = useThemeColor({}, 'dangerBg');
-    const borderColor = useThemeColor({}, 'border');
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: {
+      documentId: string;
+      fullName: string;
+      phoneNumber: string;
+      gender: 'men' | 'women';
+      city: string;
+      avatar?: string;
+      governmentIdDocument?: string;
+      aadhaarNumber?: string;
+      governmentIdVerified?: boolean;
+      isVerified?: boolean;
+    }) =>
+      userService.updateProfile(data.documentId, {
+        fullName: data.fullName,
+        phoneNumber: data.phoneNumber,
+        gender: data.gender,
+        city: data.city,
+        avatar: data.avatar,
+        governmentIdDocument: data.governmentIdDocument,
+        aadhaarNumber: data.aadhaarNumber,
+        governmentIdVerified: data.governmentIdVerified,
+        isVerified: data.isVerified,
+      }),
+    onSuccess: (data) => {
+      setProfile(data);
+      queryClient.invalidateQueries({ queryKey: ['user-profile', authUser?.id] });
+      refetch();
+      bottomSheetModalRef.current?.dismiss();
+      Toast.show({
+        type: 'success',
+        text1: 'Profile Updated',
+        text2: 'Your profile has been successfully updated!',
+      });
+    },
+    onError: (mutationError) => {
+      console.error('Update profile error:', mutationError);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update profile. Please try again.',
+      });
+    },
+  });
 
-    const createProfileMutation = useMutation({
-        mutationFn: (data: { fullName: string; phoneNumber: string; gender: 'men' | 'women'; city: string; userId: number }) =>
-            userService.createProfile(data),
-        onSuccess: (data) => {
-            setProfile(data);
-            queryClient.invalidateQueries({ queryKey: ['user-profile', authUser?.id] });
-            refetch();
-            bottomSheetModalRef.current?.dismiss();
-            Toast.show({
-                type: 'success',
-                text1: 'Profile Created',
-                text2: 'Your profile has been successfully set up!'
-            });
-        },
-        onError: (error) => {
-            console.error('Create profile error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to create profile. Please try again.'
-            });
-        }
-    });
+  const handlePresentModalPress = useCallback(() => {
+    if (profile) {
+      setFullName(profile.fullName || '');
+      setPhoneNumber(profile.phoneNumber || '');
+      setGender(profile.gender || 'men');
+      setCity(profile.city || '');
+    } else {
+      setFullName('');
+      setPhoneNumber('');
+      setGender('men');
+      setCity('');
+    }
+    bottomSheetModalRef.current?.present();
+  }, [profile]);
 
-    const updateProfileMutation = useMutation({
-        mutationFn: (data: {
-            documentId: string;
-            fullName: string;
-            phoneNumber: string;
-            gender: 'men' | 'women';
-            city: string;
-            avatar?: string;
-            governmentIdDocument?: string;
-            aadhaarNumber?: string;
-            governmentIdVerified?: boolean;
-            isVerified?: boolean;
-        }) =>
-            userService.updateProfile(data.documentId, {
-                fullName: data.fullName,
-                phoneNumber: data.phoneNumber,
-                gender: data.gender,
-                city: data.city,
-                avatar: data.avatar,
-                governmentIdDocument: data.governmentIdDocument,
-                aadhaarNumber: data.aadhaarNumber,
-                governmentIdVerified: data.governmentIdVerified,
-                isVerified: data.isVerified,
-            }),
-        onSuccess: (data) => {
-            setProfile(data);
-            queryClient.invalidateQueries({ queryKey: ['user-profile', authUser?.id] });
-            refetch();
-            bottomSheetModalRef.current?.dismiss();
-            Toast.show({
-                type: 'success',
-                text1: 'Profile Updated',
-                text2: 'Your profile has been successfully updated!'
-            });
-        },
-        onError: (error) => {
-            console.error('Update profile error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to update profile. Please try again.'
-            });
-        }
-    });
+  const uploadAvatar = async (uri: string) => {
+    setIsUploadingAvatar(true);
+    try {
+      const fileId = await userService.uploadFile(uri);
+      updateProfileMutation.mutate({
+        documentId: profile!.documentId,
+        fullName: profile!.fullName,
+        phoneNumber: profile!.phoneNumber,
+        gender: profile!.gender!,
+        city: profile!.city!,
+        avatar: fileId,
+      });
+    } catch (uploadError) {
+      console.error('Upload avatar error:', uploadError);
+      Toast.show({
+        type: 'error',
+        text1: 'Upload Error',
+        text2: 'Failed to upload image. Please try again.',
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
-    const handlePickImage = async () => {
-        if (!profile) {
-            Toast.show({
-                type: 'info',
-                text1: 'Complete Profile First',
-                text2: 'Please complete your profile before adding an avatar.'
-            });
-            handlePresentModalPress();
-            return;
-        }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.7,
-        });
-
-        if (!result.canceled) {
-            uploadAvatar(result.assets[0].uri);
-        }
-    };
-
-    const uploadAvatar = async (uri: string) => {
-        setIsUploadingAvatar(true);
-        try {
-            const fileId = await userService.uploadFile(uri);
-            updateProfileMutation.mutate({
-                documentId: profile!.documentId,
-                fullName: profile!.fullName,
-                phoneNumber: profile!.phoneNumber,
-                gender: profile!.gender!,
-                city: profile!.city!,
-                avatar: fileId,
-            });
-        } catch (error) {
-            console.error('Upload avatar error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Upload Error',
-                text2: 'Failed to upload image. Please try again.'
-            });
-        } finally {
-            setIsUploadingAvatar(false);
-        }
-    };
-
-    const handlePresentModalPress = useCallback(() => {
-        if (profile) {
-            setFullName(profile.fullName || '');
-            setPhoneNumber(profile.phoneNumber || '');
-            setGender(profile.gender || 'men');
-            setCity(profile.city || '');
-        } else {
-            setFullName('');
-            setPhoneNumber('');
-            setGender('men');
-            setCity('');
-        }
-        bottomSheetModalRef.current?.present();
-    }, [profile]);
-
-    const selectCity = (selected: string) => {
-        setCity(selected);
-        setShowCityPicker(false);
-        setCitySearch('');
-    };
-
-    const handleSubmit = () => {
-        if (!fullName.trim() || !phoneNumber.trim() || !city.trim()) {
-            Toast.show({
-                type: 'error',
-                text1: 'Required Fields',
-                text2: 'Please enter your name, phone number, and city.'
-            });
-            return;
-        }
-
-        if (profile) {
-            updateProfileMutation.mutate({
-                documentId: profile.documentId,
-                fullName: fullName.trim(),
-                phoneNumber: phoneNumber.trim(),
-                gender,
-                city,
-            });
-        } else if (authUser) {
-            createProfileMutation.mutate({
-                fullName: fullName.trim(),
-                phoneNumber: phoneNumber.trim(),
-                gender,
-                city,
-                userId: authUser.id,
-            });
-        }
-    };
-
-    if (isLoading) {
-        return (
-            <ProfileSkeleton />
-        );
+  const handlePickImage = async () => {
+    if (!profile) {
+      Toast.show({
+        type: 'info',
+        text1: 'Complete Profile First',
+        text2: 'Please complete your profile before adding an avatar.',
+      });
+      handlePresentModalPress();
+      return;
     }
 
-    if (error && !profile) {
-        return (
-            <View style={[styles.errorContainer, { backgroundColor }]}>
-                <Text style={[styles.errorText, { color: dangerColor }]}>Failed to load profile</Text>
-                <TouchableOpacity style={[styles.retryButton, { backgroundColor: primaryColor }]} onPress={() => refetch()}>
-                    <Text style={styles.retryText}>Retry</Text>
-                </TouchableOpacity>
-            </View>
-        );
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      uploadAvatar(result.assets[0].uri);
+    }
+  };
+
+  const selectCity = (selected: string) => {
+    setCity(selected);
+    setShowCityPicker(false);
+    setCitySearch('');
+  };
+
+  const handleSubmit = () => {
+    if (!fullName.trim() || !phoneNumber.trim() || !city.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Required Fields',
+        text2: 'Please enter your name, phone number, and city.',
+      });
+      return;
     }
 
-    // fallback info if profile doesn't exist
-    const user = profile?.user || authUser;
-    const avatarUrl = typeof profile?.avatar === 'string'
-        ? profile.avatar
-        : profile?.avatar?.url || profile?.avatar?.formats?.small?.url;
-    const name = profile?.fullName || 'No Name Set';
-    const phone = profile?.phoneNumber || 'N/A';
-    const profileGender = profile?.gender;
-    const aadhaarNumber = profile?.aadhaarNumber;
-    const rating = profile?.rating || 0;
-    const completedTripsCount = profile?.completedTripsCount || 0;
-    const isVerified = profile?.isVerified || false;
-    const isGovernmentIdVerified = profile?.governmentIdVerified || false;
+    if (profile) {
+      updateProfileMutation.mutate({
+        documentId: profile.documentId,
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        gender,
+        city,
+      });
+    } else if (authUser) {
+      createProfileMutation.mutate({
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        gender,
+        city,
+        userId: authUser.id,
+      });
+    }
+  };
 
-    const maskAadhaarNumber = (value?: string | null) => {
-        if (!value || value.length < 4) return 'Not available';
-        return `XXXX XXXX ${value.slice(-4)}`;
-    };
+  const maskAadhaarNumber = (value?: string | null) => {
+    if (!value || value.length < 4) return 'Not available';
+    return `XXXX XXXX ${value.slice(-4)}`;
+  };
 
-    const extractAadhaarNumber = (recognizedText: string[]) => {
-        const normalizedText = recognizedText.join(' ').replace(/[^\d]/g, '');
-        const match = normalizedText.match(/[2-9]\d{11}/);
-        return match ? match[0] : null;
-    };
+  const extractAadhaarNumber = (recognizedText: string[]) => {
+    const normalizedText = recognizedText.join(' ').replace(/[^\d]/g, '');
+    const match = normalizedText.match(/[2-9]\d{11}/);
+    return match ? match[0] : null;
+  };
 
-    const handleVerifyNow = async () => {
-        if (!profile) {
-            Toast.show({
-                type: 'info',
-                text1: 'Complete Profile First',
-                text2: 'Please complete your profile before verifying your identity.'
-            });
-            handlePresentModalPress();
-            return;
-        }
+  const handleVerifyNow = async () => {
+    if (!profile) {
+      Toast.show({
+        type: 'info',
+        text1: 'Complete Profile First',
+        text2: 'Please complete your profile before verifying your identity.',
+      });
+      handlePresentModalPress();
+      return;
+    }
 
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            allowsEditing: true,
-            quality: 0.9,
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.9,
+    });
+
+    if (result.canceled) return;
+
+    try {
+      setIsVerifyingGovernmentId(true);
+      const imageUri = result.assets[0].uri;
+      const recognizedText = await TextRecognition.recognize(imageUri);
+      const aadhaarNumber = extractAadhaarNumber(recognizedText);
+
+      if (!aadhaarNumber) {
+        Toast.show({
+          type: 'error',
+          text1: 'Aadhaar not detected',
+          text2: 'We could not find a valid 12-digit Aadhaar number in that image.',
         });
+        return;
+      }
 
-        if (result.canceled) {
-            return;
-        }
+      const governmentIdDocument = await userService.uploadFile(imageUri);
+      await updateProfileMutation.mutateAsync({
+        documentId: profile.documentId,
+        fullName: profile.fullName,
+        phoneNumber: profile.phoneNumber,
+        gender: profile.gender!,
+        city: profile.city!,
+        governmentIdDocument,
+        aadhaarNumber,
+        governmentIdVerified: true,
+        isVerified: true,
+      });
 
-        try {
-            setIsVerifyingGovernmentId(true);
-            const imageUri = result.assets[0].uri;
-            const recognizedText = await TextRecognition.recognize(imageUri);
-            const aadhaarNumber = extractAadhaarNumber(recognizedText);
+      Toast.show({
+        type: 'success',
+        text1: 'Verification submitted',
+        text2: `Aadhaar ending ${aadhaarNumber.slice(-4)} verified successfully.`,
+      });
+    } catch (verificationError) {
+      console.error('Aadhaar verification error:', verificationError);
+      Toast.show({
+        type: 'error',
+        text1: 'Verification failed',
+        text2: 'We could not process that Aadhaar image. Please try again.',
+      });
+    } finally {
+      setIsVerifyingGovernmentId(false);
+    }
+  };
 
-            if (!aadhaarNumber) {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Aadhaar not detected',
-                    text2: 'We could not find a valid 12-digit Aadhaar number in that image.'
-                });
-                return;
-            }
+  if (isLoading) {
+    return <ProfileSkeleton />;
+  }
 
-            const governmentIdDocument = await userService.uploadFile(imageUri);
-            await updateProfileMutation.mutateAsync({
-                documentId: profile.documentId,
-                fullName: profile.fullName,
-                phoneNumber: profile.phoneNumber,
-                gender: profile.gender!,
-                city: profile.city!,
-                governmentIdDocument,
-                aadhaarNumber,
-                governmentIdVerified: true,
-                isVerified: true,
-            });
-
-            Toast.show({
-                type: 'success',
-                text1: 'Verification submitted',
-                text2: `Aadhaar ending ${aadhaarNumber.slice(-4)} verified successfully.`
-            });
-        } catch (verificationError) {
-            console.error('Aadhaar verification error:', verificationError);
-            Toast.show({
-                type: 'error',
-                text1: 'Verification failed',
-                text2: 'We could not process that Aadhaar image. Please try again.'
-            });
-        } finally {
-            setIsVerifyingGovernmentId(false);
-        }
-    };
-
-    const isPending = createProfileMutation.isPending || updateProfileMutation.isPending;
-
+  if (error && !profile) {
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
-            <Stack.Screen
-                options={{
-                    title: 'Profile',
-                    headerShown: true,
-                    headerTransparent: false,
-                    headerStyle: { backgroundColor: cardColor },
-                    headerTintColor: textColor,
-                    headerShadowVisible: false,
-
-                    headerRight: () =>
-                        profile ? (
-                            <TouchableOpacity
-                                style={{ marginRight: 16 }}
-                                onPress={() => router.push('/settings')}
-                            >
-                                <IconSymbol name="gearshape.fill" size={24} color={primaryColor} />
-                            </TouchableOpacity>
-                        ) : null,
-                }}
-            />
-            <ScrollView
-                contentContainerStyle={styles.container}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={isRefreshing}
-                        onRefresh={handleRefresh}
-                        tintColor={primaryColor}
-                        colors={[primaryColor]}
-                    />
-                }
-            >
-                {/* Header */}
-                <View style={styles.header}>
-
-                    <TouchableOpacity
-                        style={styles.avatarContainer}
-                        onPress={handlePickImage}
-                        disabled={isUploadingAvatar}
-                    >
-                        <Image
-                            source={
-                                avatarUrl
-                                    ? { uri: avatarUrl }
-                                    : { uri: DUMMY_AVATAR }
-                            }
-                            style={styles.avatar}
-                        />
-                        {isUploadingAvatar ? (
-                            <View style={styles.avatarOverlay}>
-                                <ActivityIndicator color="#fff" size="small" />
-                            </View>
-                        ) : (
-                            <View style={[styles.avatarEditIcon, { backgroundColor: primaryColor }]}>
-                                <IconSymbol name="camera.fill" size={14} color="#fff" />
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                    <Text style={[styles.name, { color: textColor }]}>{name}</Text>
-                    {profile?.city && (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                            <IconSymbol name="mappin.circle.fill" size={12} color={primaryColor} />
-                            <Text style={[styles.cityText, { color: subtextColor }]}>{profile.city}</Text>
-                        </View>
-                    )}
-                    <Text style={[styles.email, { color: subtextColor, marginTop: 4 }]}>{user?.email}</Text>
-
-                    {!profile ? (
-                        <TouchableOpacity
-                            style={[styles.completePrompt, { backgroundColor: `${primaryColor}15` }]}
-                            onPress={handlePresentModalPress}
-                        >
-                            <Text style={[styles.completePromptText, { color: primaryColor }]}>Complete your profile →</Text>
-                        </TouchableOpacity>
-                    ) : isVerified ? (
-                        <View style={styles.verificationBadges}>
-                            <View style={[styles.verifiedBadge, { backgroundColor: successBgColor }]}>
-                                <Text style={[styles.verifiedText, { color: successColor }]}>Verified</Text>
-                            </View>
-                            {isGovernmentIdVerified ? (
-                                <View style={[styles.govtBadge, { backgroundColor: `${primaryColor}14` }]}>
-                                    <IconSymbol name="checkmark.shield.fill" size={12} color={primaryColor} />
-                                    <Text style={[styles.govtBadgeText, { color: primaryColor }]}>Government ID verified</Text>
-                                </View>
-                            ) : null}
-                        </View>
-                    ) : (
-                        <>
-                            <View style={[styles.unverifiedBadge, { backgroundColor: dangerBgColor }]}>
-                                <Text style={[styles.unverifiedText, { color: dangerColor }]}>Unverified</Text>
-                            </View>
-                            <TouchableOpacity onPress={handleVerifyNow} disabled={isVerifyingGovernmentId}>
-                                <Text style={[styles.verifyNowText, { color: primaryColor }]}>
-                                    {isVerifyingGovernmentId ? 'Verifying Aadhaar...' : 'Verify now?'}
-                                </Text>
-                            </TouchableOpacity>
-                            {isVerifyingGovernmentId ? (
-                                <View style={styles.verificationProgressRow}>
-                                    <ActivityIndicator size="small" color={primaryColor} />
-                                    <Text style={[styles.verificationProgressText, { color: subtextColor }]}>
-                                        Running OCR, uploading ID, and updating your verification status...
-                                    </Text>
-                                </View>
-                            ) : null}
-                        </>
-                    )}
-                </View>
-
-                {/* Stats Card */}
-                <View style={[styles.card, { backgroundColor: cardColor }]}>
-                    <Text style={[styles.cardTitle, { color: textColor }]}>Statistics</Text>
-
-                    <TouchableOpacity
-                        style={styles.row}
-                        onPress={() => router.push('/ratings')}
-                        activeOpacity={0.6}
-                    >
-                        <View style={styles.labelRow}>
-                            <IconSymbol name="star.fill" size={14} color="#F59E0B" />
-                            <Text style={[styles.label, { color: subtextColor }]}>Rating</Text>
-                        </View>
-                        <View style={styles.labelRow}>
-                            <Text style={[styles.value, { color: textColor }]}>{Number(rating).toFixed(1)}</Text>
-                            <IconSymbol name="chevron.right" size={12} color={subtextColor} />
-                        </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.row}
-                        onPress={() => router.push({ pathname: '/my-activity', params: { tab: 'completed' } })}
-                        activeOpacity={0.6}
-                    >
-                        <View style={styles.labelRow}>
-                            <IconSymbol name="flag.checkered" size={14} color={primaryColor} />
-                            <Text style={[styles.label, { color: subtextColor }]}>Completed Trips</Text>
-                        </View>
-                        <View style={styles.labelRow}>
-                            <Text style={[styles.value, { color: textColor }]}>{completedTripsCount}</Text>
-                            <IconSymbol name="chevron.right" size={12} color={subtextColor} />
-                        </View>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Account Info Card */}
-                <View style={[styles.card, { backgroundColor: cardColor }]}>
-                    <Text style={[styles.cardTitle, { color: textColor }]}>Account Information</Text>
-
-                    <View style={styles.row}>
-                        <View style={styles.labelRow}>
-                            <IconSymbol name="at" size={14} color={subtextColor} />
-                            <Text style={[styles.label, { color: subtextColor }]}>Username</Text>
-                        </View>
-                        <Text style={[styles.value, { color: textColor }]}>{user?.username}</Text>
-                    </View>
-
-                    <View style={styles.row}>
-                        <View style={styles.labelRow}>
-                            <IconSymbol name="phone.fill" size={14} color="#10B981" />
-                            <Text style={[styles.label, { color: subtextColor }]}>Phone</Text>
-                        </View>
-                        <Text style={[styles.value, { color: textColor }]}>{phone}</Text>
-                    </View>
-
-                    <View style={styles.row}>
-                        <View style={styles.labelRow}>
-                            <IconSymbol
-                                name="person.fill"
-                                size={14}
-                                color={profileGender === 'men' ? '#3B82F6' : profileGender === 'women' ? '#EC4899' : '#94A3B8'}
-                            />
-                            <Text style={[styles.label, { color: subtextColor }]}>Gender</Text>
-                        </View>
-                        <Text style={[styles.value, { color: textColor }]}>
-                            {profileGender ? (profileGender === 'men' ? 'Male' : 'Female') : 'N/A'}
-                        </Text>
-                    </View>
-
-                    <View style={styles.row}>
-                        <View style={styles.labelRow}>
-                            <IconSymbol name="envelope.fill" size={14} color="#3B82F6" />
-                            <Text style={[styles.label, { color: subtextColor }]}>Email</Text>
-                        </View>
-                        <Text style={[styles.value, { color: textColor }]}>{user?.email}</Text>
-                    </View>
-
-                    {profile?.city && (
-                        <View style={styles.row}>
-                            <View style={styles.labelRow}>
-                                <IconSymbol name="mappin.circle.fill" size={14} color="#F59E0B" />
-                                <Text style={[styles.label, { color: subtextColor }]}>City</Text>
-                            </View>
-                            <Text style={[styles.value, { color: textColor, fontWeight: '700' }]}>{profile.city}</Text>
-                        </View>
-                    )}
-
-                    {aadhaarNumber && (
-                        <View style={styles.row}>
-                            <View style={styles.labelRow}>
-                                <IconSymbol name="checkmark.shield.fill" size={14} color={successColor} />
-                                <Text style={[styles.label, { color: subtextColor }]}>Aadhaar</Text>
-                            </View>
-                            <Text style={[styles.value, { color: textColor, fontWeight: '700' }]}>
-                                {maskAadhaarNumber(aadhaarNumber)}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* Actions Card */}
-                <View style={[styles.card, { backgroundColor: cardColor }]}>
-                    <TouchableOpacity
-                        style={styles.actionRow}
-                        onPress={handlePresentModalPress}
-                        activeOpacity={0.6}
-                    >
-                        <View style={styles.actionLeft}>
-                            <View style={[styles.actionIcon, { backgroundColor: `${primaryColor}15` }]}>
-                                <IconSymbol name="pencil" size={16} color={primaryColor} />
-                            </View>
-                            <Text style={[styles.actionLabel, { color: textColor }]}>
-                                {!profile ? 'Complete Profile' : 'Edit Profile'}
-                            </Text>
-                        </View>
-                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
-                    </TouchableOpacity>
-
-                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
-                    <TouchableOpacity
-                        style={styles.actionRow}
-                        onPress={() => router.push('/profile-analytics')}
-                        activeOpacity={0.6}
-                    >
-                        <View style={styles.actionLeft}>
-                            <View style={[styles.actionIcon, { backgroundColor: `${primaryColor}15` }]}>
-                                <IconSymbol name="chart.bar.fill" size={16} color={primaryColor} />
-                            </View>
-                            <Text style={[styles.actionLabel, { color: textColor }]}>Show Analytics</Text>
-                        </View>
-                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
-                    </TouchableOpacity>
-
-                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
-                    <TouchableOpacity
-                        style={styles.actionRow}
-                        onPress={() => router.push('/my-activity')}
-                        activeOpacity={0.6}
-                    >
-                        <View style={styles.actionLeft}>
-                            <View style={[styles.actionIcon, { backgroundColor: `${primaryColor}15` }]}>
-                                <IconSymbol name="flag.checkered" size={16} color={primaryColor} />
-                            </View>
-                            <Text style={[styles.actionLabel, { color: textColor }]}>My Activity</Text>
-                        </View>
-                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
-                    </TouchableOpacity>
-
-                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
-                    <TouchableOpacity
-                        style={styles.actionRow}
-                        onPress={() => router.push('/notifications')}
-                        activeOpacity={0.6}
-                    >
-                        <View style={styles.actionLeft}>
-                            <View style={[styles.actionIcon, { backgroundColor: '#F8717115' }]}>
-                                <IconSymbol name="bell.fill" size={16} color="#F87171" />
-                            </View>
-                            <Text style={[styles.actionLabel, { color: textColor }]}>Notifications</Text>
-                        </View>
-                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
-                    </TouchableOpacity>
-
-                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
-
-                    <TouchableOpacity
-                        style={styles.actionRow}
-                        onPress={() => setShowSignOutModal(true)}
-                        activeOpacity={0.6}
-                    >
-                        <View style={styles.actionLeft}>
-                            <View style={[styles.actionIcon, { backgroundColor: `${dangerColor}15` }]}>
-                                <IconSymbol name="rectangle.portrait.and.arrow.right" size={16} color={dangerColor} />
-                            </View>
-                            <Text style={[styles.actionLabel, { color: dangerColor }]}>Sign Out</Text>
-                        </View>
-                        <IconSymbol name="chevron.right" size={16} color={subtextColor} />
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-
-            {/* Sign Out Confirmation Modal */}
-            <Modal
-                visible={showSignOutModal}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowSignOutModal(false)}
-            >
-                <View style={styles.signOutOverlay}>
-                    <View style={[styles.signOutModal, { backgroundColor: cardColor }]}>
-                        <View style={[styles.signOutIconWrap, { backgroundColor: `${dangerColor}12` }]}>
-                            <IconSymbol name="rectangle.portrait.and.arrow.right" size={28} color={dangerColor} />
-                        </View>
-                        <Text style={[styles.signOutTitle, { color: textColor }]}>Sign Out?</Text>
-                        <Text style={[styles.signOutSubtitle, { color: subtextColor }]}>
-                            You&apos;ll need to log back in to access your account.
-                        </Text>
-                        <View style={styles.signOutActions}>
-                            <TouchableOpacity
-                                style={[styles.signOutBtn, { borderColor, borderWidth: 1.5 }]}
-                                onPress={() => setShowSignOutModal(false)}
-                            >
-                                <Text style={[styles.signOutBtnText, { color: textColor }]}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.signOutBtn, { backgroundColor: dangerColor }]}
-                                onPress={() => { setShowSignOutModal(false); signOut(); }}
-                            >
-                                <Text style={[styles.signOutBtnText, { color: '#fff' }]}>Sign Out</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Complete Profile Bottom Sheet */}
-
-            <BottomSheetModal
-                ref={bottomSheetModalRef}
-                index={0}
-                snapPoints={snapPoints}
-                backdropComponent={(props) => (
-                    <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />
-                )}
-                backgroundStyle={{ backgroundColor: cardColor }}
-                handleIndicatorStyle={{ backgroundColor: borderColor }}
-                keyboardBehavior="fillParent"
-                keyboardBlurBehavior="restore"
-            >
-                <BottomSheetScrollView contentContainerStyle={styles.modalContent}>
-                    <View style={styles.modalHeaderRow}>
-                        <Text style={[styles.modalTitle, { color: textColor }]}>
-                            {profile ? 'Edit Profile' : 'Complete Profile'}
-                        </Text>
-                        <TouchableOpacity onPress={() => bottomSheetModalRef.current?.dismiss()}>
-                            <IconSymbol name="xmark" size={20} color={subtextColor} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <Text style={[styles.modalLabel, { color: subtextColor }]}>FULL NAME</Text>
-                    <BottomSheetTextInput
-                        style={[styles.input, { color: textColor, borderColor }]}
-                        placeholder="John Doe"
-                        placeholderTextColor={subtextColor}
-                        value={fullName}
-                        onChangeText={setFullName}
-                    />
-
-                    <Text style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>PHONE NUMBER</Text>
-                    <BottomSheetTextInput
-                        style={[styles.input, { color: textColor, borderColor }]}
-                        placeholder="+91 9876543210"
-                        placeholderTextColor={subtextColor}
-                        keyboardType="phone-pad"
-                        value={phoneNumber}
-                        onChangeText={setPhoneNumber}
-                    />
-
-                    <Text style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>GENDER</Text>
-                    <View style={styles.genderRow}>
-                        <TouchableOpacity
-                            style={[
-                                styles.genderButton,
-                                { borderColor: borderColor },
-                                gender === 'men' && { backgroundColor: primaryColor, borderColor: primaryColor }
-                            ]}
-                            onPress={() => setGender('men')}
-                        >
-                            <Text style={[styles.genderButtonText, gender === 'men' ? { color: '#fff' } : { color: textColor }]}>Male</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                styles.genderButton,
-                                { borderColor: borderColor },
-                                gender === 'women' && { backgroundColor: primaryColor, borderColor: primaryColor }
-                            ]}
-                            onPress={() => setGender('women')}
-                        >
-                            <Text style={[styles.genderButtonText, gender === 'women' ? { color: '#fff' } : { color: textColor }]}>Female</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    <Text style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>CITY</Text>
-                    <TouchableOpacity
-                        style={[styles.input, { borderColor, justifyContent: 'center' }]}
-                        onPress={() => setShowCityPicker(!showCityPicker)}
-                    >
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text style={{ color: city ? textColor : subtextColor, fontSize: 16 }}>
-                                {city || 'Select your city'}
-                            </Text>
-                            <IconSymbol name="chevron.down" size={16} color={subtextColor} />
-                        </View>
-                    </TouchableOpacity>
-
-                    {showCityPicker && (
-                        <View style={{
-                            backgroundColor: `${subtextColor}05`,
-                            borderRadius: 12,
-                            marginTop: 8,
-                            maxHeight: 250,
-                            borderWidth: 1,
-                            borderColor: `${borderColor}50`,
-                            padding: 8
-                        }}>
-                            <BottomSheetTextInput
-                                style={[styles.input, { height: 44, marginBottom: 8, borderColor: `${borderColor}30`, fontSize: 14, backgroundColor: cardColor }]}
-                                placeholder="Search city..."
-                                placeholderTextColor={subtextColor}
-                                value={citySearch}
-                                onChangeText={setCitySearch}
-                                autoFocus={false}
-                            />
-                            <ScrollView nestedScrollEnabled style={{ maxHeight: 180 }}>
-                                {CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase())).map((c) => (
-                                    <TouchableOpacity
-                                        key={c}
-                                        style={{
-                                            paddingVertical: 12,
-                                            paddingHorizontal: 16,
-                                            borderRadius: 8,
-                                            backgroundColor: city === c ? `${primaryColor}10` : 'transparent',
-                                            flexDirection: 'row',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
-                                        }}
-                                        onPress={() => selectCity(c)}
-                                    >
-                                        <Text style={{
-                                            fontSize: 15,
-                                            color: city === c ? primaryColor : textColor,
-                                            fontWeight: city === c ? '700' : '400'
-                                        }}>{c}</Text>
-                                        {city === c && <IconSymbol name="checkmark" size={14} color={primaryColor} />}
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </View>
-                    )}
-
-                    <TouchableOpacity
-                        style={[styles.saveButton, { backgroundColor: primaryColor, marginTop: 24 }]}
-                        onPress={handleSubmit}
-                        disabled={isPending}
-                    >
-                        {isPending ? (
-                            <ActivityIndicator color="#fff" size="small" />
-                        ) : (
-                            <Text style={styles.saveButtonText}>
-                                {profile ? 'Update Profile' : 'Save Profile'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
-                </BottomSheetScrollView>
-            </BottomSheetModal>
-        </SafeAreaView>
+      <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor }}>
+        <Text className="mb-4 text-center text-lg font-semibold" style={{ color: dangerColor }}>
+          Failed to load profile
+        </Text>
+        <Button onPress={() => refetch()}>
+          <ButtonText>Retry</ButtonText>
+        </Button>
+      </Box>
     );
+  }
+
+  const user = profile?.user || authUser;
+  const avatarUrl =
+    typeof profile?.avatar === 'string'
+      ? profile.avatar
+      : profile?.avatar?.url || profile?.avatar?.formats?.small?.url;
+  const name = profile?.fullName || 'No Name Set';
+  const phone = profile?.phoneNumber || 'N/A';
+  const profileGender = profile?.gender;
+  const aadhaarNumber = profile?.aadhaarNumber;
+  const rating = profile?.rating || 0;
+  const completedTripsCount = profile?.completedTripsCount || 0;
+  const isVerified = profile?.isVerified || false;
+  const isGovernmentIdVerified = profile?.governmentIdVerified || false;
+  const isPending = createProfileMutation.isPending || updateProfileMutation.isPending;
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+      <Stack.Screen
+        options={{
+          title: 'Profile',
+          headerShown: true,
+          headerTransparent: false,
+          headerStyle: { backgroundColor: cardColor },
+          headerTintColor: textColor,
+          headerShadowVisible: false,
+          headerRight: () =>
+            profile ? (
+              <TouchableOpacity style={{ marginRight: 16 }} onPress={() => router.push('/settings')}>
+                <IconSymbol name="gearshape.fill" size={24} color={primaryColor} />
+              </TouchableOpacity>
+            ) : null,
+        }}
+      />
+
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={primaryColor}
+            colors={[primaryColor]}
+          />
+        }
+      >
+        <VStack className="items-center pb-6" space="sm">
+          <Pressable onPress={handlePickImage} disabled={isUploadingAvatar} className="relative mb-1">
+            <Avatar size="2xl">
+              <AvatarFallbackText>{initials || 'MR'}</AvatarFallbackText>
+              <AvatarImage
+                source={avatarUrl ? { uri: avatarUrl } : { uri: DUMMY_AVATAR }}
+                alt={name}
+              />
+            </Avatar>
+            {isUploadingAvatar ? (
+              <Box style={styles.avatarOverlay} className="items-center justify-center">
+                <Spinner color="#fff" size="small" />
+              </Box>
+            ) : (
+              <Box
+                style={[styles.avatarEditIcon, { backgroundColor: primaryColor }]}
+                className="items-center justify-center"
+              >
+                <IconSymbol name="camera.fill" size={14} color="#fff" />
+              </Box>
+            )}
+          </Pressable>
+
+          <Text className="text-center text-2xl font-bold" style={{ color: textColor }}>
+            {name}
+          </Text>
+
+          {profile?.city ? (
+            <HStack space="xs" className="items-center mt-1">
+              <IconSymbol name="mappin.circle.fill" size={12} color={primaryColor} />
+              <Text className="text-sm font-medium" style={{ color: subtextColor }}>
+                {profile.city}
+              </Text>
+            </HStack>
+          ) : null}
+
+          <Text className="mt-1 text-sm text-center" style={{ color: subtextColor }}>
+            {user?.email}
+          </Text>
+
+          {!profile ? (
+            <Pressable
+              className="mt-3 rounded-full px-4 py-2"
+              style={{ backgroundColor: `${primaryColor}15` }}
+              onPress={handlePresentModalPress}
+            >
+              <Text className="font-semibold" style={{ color: primaryColor }}>
+                Complete your profile →
+              </Text>
+            </Pressable>
+          ) : isVerified ? (
+            <VStack className="items-center mt-2" space="sm">
+              <Box className="rounded-full px-3 py-1" style={{ backgroundColor: successBgColor }}>
+                <Text className="text-xs font-semibold" style={{ color: successColor }}>
+                  Verified
+                </Text>
+              </Box>
+              {isGovernmentIdVerified ? (
+                <HStack
+                  space="xs"
+                  className="items-center rounded-full px-3 py-1.5"
+                  style={{ backgroundColor: `${primaryColor}14` }}
+                >
+                  <IconSymbol name="checkmark.shield.fill" size={12} color={primaryColor} />
+                  <Text className="text-xs font-bold" style={{ color: primaryColor }}>
+                    Government ID verified
+                  </Text>
+                </HStack>
+              ) : null}
+            </VStack>
+          ) : (
+            <VStack className="items-center mt-2" space="sm">
+              <Box className="rounded-full px-3 py-1" style={{ backgroundColor: dangerBgColor }}>
+                <Text className="text-xs font-semibold" style={{ color: dangerColor }}>
+                  Unverified
+                </Text>
+              </Box>
+              <Pressable onPress={handleVerifyNow} disabled={isVerifyingGovernmentId}>
+                <Text className="font-semibold" style={{ color: primaryColor }}>
+                  {isVerifyingGovernmentId ? 'Verifying Aadhaar...' : 'Verify now?'}
+                </Text>
+              </Pressable>
+              {isVerifyingGovernmentId ? (
+                <HStack space="sm" className="items-center px-4">
+                  <Spinner size="small" color={primaryColor} />
+                  <Text className="flex-1 text-center text-xs leading-5" style={{ color: subtextColor }}>
+                    Running OCR, uploading ID, and updating your verification status...
+                  </Text>
+                </HStack>
+              ) : null}
+            </VStack>
+          )}
+        </VStack>
+
+        <Box className="rounded-2xl p-4 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+          <Text className="text-base font-semibold mb-3" style={{ color: textColor }}>
+            Statistics
+          </Text>
+
+          <Pressable className="py-1" onPress={() => router.push('/ratings')}>
+            <HStack className="items-center justify-between">
+              <HStack space="sm" className="items-center">
+                <IconSymbol name="star.fill" size={14} color="#F59E0B" />
+                <Text className="text-sm" style={{ color: subtextColor }}>
+                  Rating
+                </Text>
+              </HStack>
+              <HStack space="sm" className="items-center">
+                <Text className="text-sm font-medium" style={{ color: textColor }}>
+                  {Number(rating).toFixed(1)}
+                </Text>
+                <IconSymbol name="chevron.right" size={12} color={subtextColor} />
+              </HStack>
+            </HStack>
+          </Pressable>
+
+          <Pressable
+            className="pt-4"
+            onPress={() => router.push({ pathname: '/my-activity', params: { tab: 'completed' } })}
+          >
+            <HStack className="items-center justify-between">
+              <HStack space="sm" className="items-center">
+                <IconSymbol name="flag.checkered" size={14} color={primaryColor} />
+                <Text className="text-sm" style={{ color: subtextColor }}>
+                  Completed Trips
+                </Text>
+              </HStack>
+              <HStack space="sm" className="items-center">
+                <Text className="text-sm font-medium" style={{ color: textColor }}>
+                  {completedTripsCount}
+                </Text>
+                <IconSymbol name="chevron.right" size={12} color={subtextColor} />
+              </HStack>
+            </HStack>
+          </Pressable>
+        </Box>
+
+        <Box className="rounded-2xl p-4 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+          <Text className="text-base font-semibold mb-3" style={{ color: textColor }}>
+            Account Information
+          </Text>
+
+          <HStack className="justify-between mb-3">
+            <HStack space="sm" className="items-center">
+              <IconSymbol name="at" size={14} color={subtextColor} />
+              <Text className="text-sm" style={{ color: subtextColor }}>
+                Username
+              </Text>
+            </HStack>
+            <Text className="text-sm font-medium" style={{ color: textColor }}>
+              {user?.username}
+            </Text>
+          </HStack>
+
+          <HStack className="justify-between mb-3">
+            <HStack space="sm" className="items-center">
+              <IconSymbol name="phone.fill" size={14} color="#10B981" />
+              <Text className="text-sm" style={{ color: subtextColor }}>
+                Phone
+              </Text>
+            </HStack>
+            <Text className="text-sm font-medium" style={{ color: textColor }}>
+              {phone}
+            </Text>
+          </HStack>
+
+          <HStack className="justify-between mb-3">
+            <HStack space="sm" className="items-center">
+              <IconSymbol
+                name="person.fill"
+                size={14}
+                color={
+                  profileGender === 'men'
+                    ? '#3B82F6'
+                    : profileGender === 'women'
+                      ? '#EC4899'
+                      : '#94A3B8'
+                }
+              />
+              <Text className="text-sm" style={{ color: subtextColor }}>
+                Gender
+              </Text>
+            </HStack>
+            <Text className="text-sm font-medium" style={{ color: textColor }}>
+              {profileGender ? (profileGender === 'men' ? 'Male' : 'Female') : 'N/A'}
+            </Text>
+          </HStack>
+
+          <HStack className="justify-between mb-3">
+            <HStack space="sm" className="items-center">
+              <IconSymbol name="envelope.fill" size={14} color="#3B82F6" />
+              <Text className="text-sm" style={{ color: subtextColor }}>
+                Email
+              </Text>
+            </HStack>
+            <Text
+              className="text-sm font-medium max-w-[55%] text-right"
+              style={{ color: textColor }}
+              numberOfLines={2}
+            >
+              {user?.email}
+            </Text>
+          </HStack>
+
+          {profile?.city ? (
+            <HStack className="justify-between mb-3">
+              <HStack space="sm" className="items-center">
+                <IconSymbol name="mappin.circle.fill" size={14} color="#F59E0B" />
+                <Text className="text-sm" style={{ color: subtextColor }}>
+                  City
+                </Text>
+              </HStack>
+              <Text className="text-sm font-bold" style={{ color: textColor }}>
+                {profile.city}
+              </Text>
+            </HStack>
+          ) : null}
+
+          {aadhaarNumber ? (
+            <HStack className="justify-between">
+              <HStack space="sm" className="items-center">
+                <IconSymbol name="checkmark.shield.fill" size={14} color={successColor} />
+                <Text className="text-sm" style={{ color: subtextColor }}>
+                  Aadhaar
+                </Text>
+              </HStack>
+              <Text className="text-sm font-bold" style={{ color: textColor }}>
+                {maskAadhaarNumber(aadhaarNumber)}
+              </Text>
+            </HStack>
+          ) : null}
+        </Box>
+
+        <Box className="rounded-2xl p-4 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+          <ActionRow
+            icon="pencil"
+            label={!profile ? 'Complete Profile' : 'Edit Profile'}
+            iconColor={primaryColor}
+            iconBackground={`${primaryColor}15`}
+            textColor={textColor}
+            chevronColor={subtextColor}
+            onPress={handlePresentModalPress}
+          />
+          <Divider className="my-3" style={{ backgroundColor: borderColor }} />
+          <ActionRow
+            icon="chart.bar.fill"
+            label="Show Analytics"
+            iconColor={primaryColor}
+            iconBackground={`${primaryColor}15`}
+            textColor={textColor}
+            chevronColor={subtextColor}
+            onPress={() => router.push('/profile-analytics')}
+          />
+          <Divider className="my-3" style={{ backgroundColor: borderColor }} />
+          <ActionRow
+            icon="flag.checkered"
+            label="My Activity"
+            iconColor={primaryColor}
+            iconBackground={`${primaryColor}15`}
+            textColor={textColor}
+            chevronColor={subtextColor}
+            onPress={() => router.push('/my-activity')}
+          />
+          <Divider className="my-3" style={{ backgroundColor: borderColor }} />
+          <ActionRow
+            icon="bell.fill"
+            label="Notifications"
+            iconColor="#F87171"
+            iconBackground="#F8717115"
+            textColor={textColor}
+            chevronColor={subtextColor}
+            onPress={() => router.push('/notifications')}
+          />
+          <Divider className="my-3" style={{ backgroundColor: borderColor }} />
+          <ActionRow
+            icon="rectangle.portrait.and.arrow.right"
+            label="Sign Out"
+            iconColor={dangerColor}
+            iconBackground={`${dangerColor}15`}
+            textColor={dangerColor}
+            chevronColor={subtextColor}
+            onPress={() => setShowSignOutModal(true)}
+          />
+        </Box>
+      </ScrollView>
+
+      <Modal
+        visible={showSignOutModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSignOutModal(false)}
+      >
+        <Box style={styles.signOutOverlay}>
+          <Box style={[styles.signOutModal, { backgroundColor: cardColor }]}>
+            <Box style={[styles.signOutIconWrap, { backgroundColor: `${dangerColor}12` }]}>
+              <IconSymbol
+                name="rectangle.portrait.and.arrow.right"
+                size={28}
+                color={dangerColor}
+              />
+            </Box>
+            <Text style={[styles.signOutTitle, { color: textColor }]}>Sign Out?</Text>
+            <Text style={[styles.signOutSubtitle, { color: subtextColor }]}>
+              You&apos;ll need to log back in to access your account.
+            </Text>
+            <HStack space="md" style={styles.signOutActions}>
+              <Button
+                variant="outline"
+                className="flex-1"
+                style={{ borderColor, borderWidth: 1.5 }}
+                onPress={() => setShowSignOutModal(false)}
+              >
+                <ButtonText style={{ color: textColor }}>Cancel</ButtonText>
+              </Button>
+              <Button
+                action="negative"
+                className="flex-1"
+                onPress={() => {
+                  setShowSignOutModal(false);
+                  signOut();
+                }}
+              >
+                <ButtonText>Sign Out</ButtonText>
+              </Button>
+            </HStack>
+          </Box>
+        </Box>
+      </Modal>
+
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={0}
+        snapPoints={snapPoints}
+        backdropComponent={(props) => (
+          <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} />
+        )}
+        backgroundStyle={{ backgroundColor: cardColor }}
+        handleIndicatorStyle={{ backgroundColor: borderColor }}
+        keyboardBehavior="fillParent"
+        keyboardBlurBehavior="restore"
+      >
+        <BottomSheetScrollView contentContainerStyle={styles.modalContent}>
+          <View style={styles.modalHeaderRow}>
+            <RNText style={[styles.modalTitle, { color: textColor }]}>
+              {profile ? 'Edit Profile' : 'Complete Profile'}
+            </RNText>
+            <TouchableOpacity onPress={() => bottomSheetModalRef.current?.dismiss()}>
+              <IconSymbol name="xmark" size={20} color={subtextColor} />
+            </TouchableOpacity>
+          </View>
+
+          <RNText style={[styles.modalLabel, { color: subtextColor }]}>FULL NAME</RNText>
+          <BottomSheetTextInput
+            style={[styles.input, { color: textColor, borderColor }]}
+            placeholder="John Doe"
+            placeholderTextColor={subtextColor}
+            value={fullName}
+            onChangeText={setFullName}
+          />
+
+          <RNText style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>
+            PHONE NUMBER
+          </RNText>
+          <BottomSheetTextInput
+            style={[styles.input, { color: textColor, borderColor }]}
+            placeholder="+91 9876543210"
+            placeholderTextColor={subtextColor}
+            keyboardType="phone-pad"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+          />
+
+          <RNText style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>
+            GENDER
+          </RNText>
+          <View style={styles.genderRow}>
+            <TouchableOpacity
+              style={[
+                styles.genderButton,
+                { borderColor },
+                gender === 'men' && { backgroundColor: primaryColor, borderColor: primaryColor },
+              ]}
+              onPress={() => setGender('men')}
+            >
+              <RNText
+                style={[
+                  styles.genderButtonText,
+                  gender === 'men' ? { color: '#fff' } : { color: textColor },
+                ]}
+              >
+                Male
+              </RNText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.genderButton,
+                { borderColor },
+                gender === 'women' && { backgroundColor: primaryColor, borderColor: primaryColor },
+              ]}
+              onPress={() => setGender('women')}
+            >
+              <RNText
+                style={[
+                  styles.genderButtonText,
+                  gender === 'women' ? { color: '#fff' } : { color: textColor },
+                ]}
+              >
+                Female
+              </RNText>
+            </TouchableOpacity>
+          </View>
+
+          <RNText style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>
+            CITY
+          </RNText>
+          <TouchableOpacity
+            style={[styles.input, { borderColor, justifyContent: 'center' }]}
+            onPress={() => setShowCityPicker(!showCityPicker)}
+          >
+            <View style={styles.citySelectorRow}>
+              <RNText style={{ color: city ? textColor : subtextColor, fontSize: 16 }}>
+                {city || 'Select your city'}
+              </RNText>
+              <IconSymbol name="chevron.down" size={16} color={subtextColor} />
+            </View>
+          </TouchableOpacity>
+
+          {showCityPicker ? (
+            <View
+              style={[
+                styles.cityPickerCard,
+                {
+                  backgroundColor: `${subtextColor}05`,
+                  borderColor: `${borderColor}50`,
+                },
+              ]}
+            >
+              <BottomSheetTextInput
+                style={[
+                  styles.input,
+                  {
+                    height: 44,
+                    marginBottom: 8,
+                    borderColor: `${borderColor}30`,
+                    fontSize: 14,
+                    backgroundColor: cardColor,
+                  },
+                ]}
+                placeholder="Search city..."
+                placeholderTextColor={subtextColor}
+                value={citySearch}
+                onChangeText={setCitySearch}
+                autoFocus={false}
+              />
+              <ScrollView nestedScrollEnabled style={{ maxHeight: 180 }}>
+                {CITIES.filter((entry) =>
+                  entry.toLowerCase().includes(citySearch.toLowerCase())
+                ).map((entry) => (
+                  <TouchableOpacity
+                    key={entry}
+                    style={[
+                      styles.cityOption,
+                      { backgroundColor: city === entry ? `${primaryColor}10` : 'transparent' },
+                    ]}
+                    onPress={() => selectCity(entry)}
+                  >
+                    <RNText
+                      style={{
+                        fontSize: 15,
+                        color: city === entry ? primaryColor : textColor,
+                        fontWeight: city === entry ? '700' : '400',
+                      }}
+                    >
+                      {entry}
+                    </RNText>
+                    {city === entry ? (
+                      <IconSymbol name="checkmark" size={14} color={primaryColor} />
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={[styles.saveButton, { backgroundColor: primaryColor, marginTop: 24 }]}
+            onPress={handleSubmit}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Spinner color="#fff" size="small" />
+            ) : (
+              <RNText style={styles.saveButtonText}>
+                {profile ? 'Update Profile' : 'Save Profile'}
+              </RNText>
+            )}
+          </TouchableOpacity>
+        </BottomSheetScrollView>
+      </BottomSheetModal>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    errorContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    errorText: {
-        marginBottom: 16,
-        fontSize: 16,
-    },
-    retryButton: {
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        borderRadius: 8,
-    },
-    retryText: {
-        fontWeight: '600',
-        color: '#fff',
-    },
-    container: {
-        padding: 20,
-    },
-    header: {
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    avatarContainer: {
-        position: 'relative',
-        marginBottom: 12,
-    },
-    avatar: {
-        width: 110,
-        height: 110,
-        borderRadius: 55,
-    },
-    avatarOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        borderRadius: 55,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarEditIcon: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#fff',
-    },
-    name: {
-        fontSize: 22,
-        fontWeight: '700',
-    },
-    cityText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    email: {
-        fontSize: 14,
-        marginTop: 4,
-    },
-    verifiedBadge: {
-        marginTop: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
-    },
-    verificationBadges: {
-        alignItems: 'center',
-        gap: 8,
-        marginTop: 8,
-    },
-    verifiedText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    govtBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 20,
-    },
-    govtBadgeText: {
-        fontSize: 12,
-        fontWeight: '700',
-    },
-    card: {
-        borderRadius: 14,
-        padding: 16,
-        marginBottom: 18,
-        // Using light opacity for shadow to work on both modes
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 12,
-    },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 10,
-    },
-    label: {
-        fontSize: 14,
-    },
-    labelRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    value: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    primaryButton: {
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    primaryButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    logoutButton: {
-        marginTop: 16,
-        alignItems: 'center',
-    },
-    logoutText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    headerEditBtn: {
-        paddingHorizontal: 4,
-        paddingVertical: 4,
-    },
-    actionRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 10,
-    },
-    actionLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    actionIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    actionLabel: {
-        fontSize: 15,
-        fontWeight: '500',
-    },
-    divider: {
-        height: 1,
-        marginVertical: 4,
-    },
-    unverifiedBadge: {
-        marginTop: 8,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
-    },
-    unverifiedText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    verifyNowText: {
-        paddingTop: 8,
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    verificationProgressRow: {
-        marginTop: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 10,
-        maxWidth: 280,
-    },
-    verificationProgressText: {
-        flex: 1,
-        fontSize: 12,
-        lineHeight: 18,
-        textAlign: 'left',
-    },
-
-    completePrompt: {
-        marginTop: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-    },
-    completePromptText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        padding: 24,
-        paddingBottom: 40,
-    },
-    modalHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    modalTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-    },
-    modalLabel: {
-        fontSize: 12,
-        fontWeight: '700',
-        marginBottom: 8,
-        letterSpacing: 1,
-    },
-    input: {
-        height: 56,
-        borderWidth: 1.5,
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        fontSize: 16,
-    },
-    saveButton: {
-        height: 56,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 32,
-    },
-    saveButtonText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    genderRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    genderButton: {
-        flex: 1,
-        height: 48,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    genderButtonText: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
-    signOutOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.55)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-    },
-    signOutModal: {
-        width: '100%',
-        borderRadius: 20,
-        padding: 28,
-        alignItems: 'center',
-    },
-    signOutIconWrap: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    signOutTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        marginBottom: 8,
-    },
-    signOutSubtitle: {
-        fontSize: 14,
-        textAlign: 'center',
-        lineHeight: 20,
-        marginBottom: 28,
-    },
-    signOutActions: {
-        flexDirection: 'row',
-        gap: 12,
-        width: '100%',
-    },
-    signOutBtn: {
-        flex: 1,
-        height: 48,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    signOutBtnText: {
-        fontSize: 15,
-        fontWeight: '700',
-    },
+  safe: {
+    flex: 1,
+  },
+  container: {
+    padding: 20,
+  },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 64,
+  },
+  avatarEditIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  cardShadow: {
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  modalContent: {
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  input: {
+    height: 56,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    fontSize: 16,
+  },
+  citySelectorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cityPickerCard: {
+    borderRadius: 12,
+    marginTop: 8,
+    maxHeight: 250,
+    borderWidth: 1,
+    padding: 8,
+  },
+  cityOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  saveButton: {
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 32,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  genderRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  genderButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  genderButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  signOutOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  signOutModal: {
+    width: '100%',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+  },
+  signOutIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  signOutTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  signOutSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  signOutActions: {
+    width: '100%',
+  },
 });
