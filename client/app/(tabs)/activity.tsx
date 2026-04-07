@@ -237,16 +237,9 @@ function TripCard(props: {
       <Divider style={{ backgroundColor: borderColor }} className="mb-4" />
 
       <HStack className="items-center justify-between">
-        <HStack className="items-center" space="xs">
-            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Fare:</Text>
-            <Text className="text-xl font-extrabold" style={{ color: primaryColor }}>
-            {typeof price === 'number'
-                ? `₹${price}`
-                : isPriceCalculated
-                ? 'Departing'
-                : 'Not set'}
-            </Text>
-        </HStack>
+        <Text className="font-extrabold" style={{ color: primaryColor, fontSize: isPriceCalculated ? 12 : 18 }}>
+          {isPriceCalculated ? 'CALCULATED ON DEMAND' : `₹${price}`}
+        </Text>
         <Box className="w-8 h-8 rounded-full items-center justify-center bg-gray-50 border shadow-sm" style={{ borderColor }}>
             <IconSymbol name="chevron.right" size={14} color={subtextColor} />
         </Box>

@@ -36,6 +36,9 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Divider } from '@/components/ui/divider';
 import { Spinner } from '@/components/ui/spinner';
+import { Input, InputField } from '@/components/ui/input';
+import { useUserProfile } from '@/hooks/use-user-profile';
+
 
 type FormErrors = Partial<
   Record<'from' | 'to' | 'date' | 'time' | 'seats' | 'price' | 'description', string>
@@ -84,50 +87,64 @@ function FormField({
   const subtextColor = useThemeColor({}, 'subtext');
   const borderColor = useThemeColor({}, 'border');
   const dangerColor = useThemeColor({}, 'danger');
+  const primaryColor = useThemeColor({}, 'primary');
 
   return (
-    <VStack space="xs" className="mb-6">
+    <VStack space="sm" className="mb-8">
       <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
         {label}
       </Text>
-      <Pressable
-        onPress={onPress}
-        className="rounded-2xl border-2 px-4 shadow-sm"
+      <Input
+        variant="outline"
+        size="md"
+        isDisabled={!editable || !!onPress}
+        isInvalid={!!error}
+        className="rounded-2xl border-2 px-1 shadow-sm"
         style={{
           borderColor: error ? dangerColor : borderColor,
           backgroundColor: 'rgba(0,0,0,0.02)',
-          minHeight: multiline ? 120 : 60,
+          minHeight: multiline ? 160 : 60,
+          height: multiline ? 'auto' : 60,
           alignItems: multiline ? 'flex-start' : 'center',
-          paddingTop: multiline ? 14 : 0,
         }}
       >
-        <HStack className="w-full h-full items-center" space="md">
-            <IconSymbol
+        <Pressable
+          onPress={onPress}
+          className="flex-1 w-full h-full flex-row items-center px-3"
+          disabled={!onPress}
+        >
+          <IconSymbol
             name={icon}
             size={18}
             color={subtextColor}
-            style={{ marginTop: multiline ? 4 : 0 }}
-            />
-            <TextInput
+            style={{ 
+              marginRight: 12, 
+              marginTop: multiline ? 16 : 0,
+              alignSelf: multiline ? 'flex-start' : 'center'
+            }}
+          />
+          <InputField
             placeholder={placeholder}
             placeholderTextColor={subtextColor}
             className="flex-1 text-base font-medium"
             style={{
-                color: textColor,
-                textAlignVertical: multiline ? 'top' : 'center',
-                minHeight: multiline ? 90 : undefined,
+              color: textColor,
+              textAlignVertical: multiline ? 'top' : 'center',
+              paddingTop: multiline ? 14 : 0,
+              paddingBottom: 0,
+              height: multiline ? undefined : 60,
+              minHeight: multiline ? 90 : undefined,
             }}
             value={value}
             onChangeText={onChangeText}
             keyboardType={keyboardType}
             editable={editable && !onPress}
-            pointerEvents={onPress ? 'none' : 'auto'}
             multiline={multiline}
             numberOfLines={numberOfLines}
             onFocus={onFocus}
-            />
-        </HStack>
-      </Pressable>
+          />
+        </Pressable>
+      </Input>
       {error ? (
         <Text className="text-[10px] font-bold uppercase tracking-tight ml-1" style={{ color: dangerColor }}>
           {error}
@@ -182,13 +199,19 @@ export default function CreateScreen() {
   const formatTime = (value: Date) =>
     value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-  const handleDescriptionFocus = () => {
+  const handleInputFocus = (offset = 0) => {
     requestAnimationFrame(() => {
       setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
+        if (offset === -1) {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        } else {
+          scrollViewRef.current?.scrollTo({ y: offset, animated: true });
+        }
       }, Platform.OS === 'ios' ? 250 : 150);
     });
   };
+
+  const handleDescriptionFocus = () => handleInputFocus(-1);
 
   const validateForm = () => {
     const nextErrors: FormErrors = {};
@@ -255,15 +278,17 @@ export default function CreateScreen() {
   const queryClient = useQueryClient();
   const { profile } = useUserStore();
 
+  const { isLoading: isProfileLoading } = useUserProfile();
+
   const isProfileIncomplete =
     !profile || !profile.fullName || !profile.phoneNumber || !profile.gender || !profile.city;
 
   useFocusEffect(
     React.useCallback(() => {
-      if (isProfileIncomplete) {
+      if (!isProfileLoading && isProfileIncomplete) {
         setShowProfileAlert(true);
       }
-    }, [isProfileIncomplete])
+    }, [isProfileIncomplete, isProfileLoading])
   );
 
   const backgroundColor = useThemeColor({}, 'background');
@@ -570,16 +595,16 @@ export default function CreateScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         <ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120 }}
+          contentContainerStyle={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 10 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
-          <VStack space="xs" className="mb-8">
+          <VStack space="sm" className="mb-10 px-6">
             <Text className="text-4xl font-extrabold" style={{ color: textColor }}>
               {isEditing ? 'Edit Trip' : 'New Trip'}
             </Text>
@@ -591,29 +616,29 @@ export default function CreateScreen() {
           </VStack>
 
           <Box
-            className="rounded-[32px] p-6 mb-8 shadow-sm border"
+            className="py-10 mb-12 shadow-none border-y"
             style={{ backgroundColor: cardColor, borderColor }}
           >
-            <FormField
-              label="Starting Point"
-              placeholder="Search pickup location..."
-              icon="house.fill"
-              value={from}
-              error={errors.from}
-              onPress={() => setShowFromPicker(true)}
-            />
+            <Box className="px-6">
+              <FormField
+                label="Starting Point"
+                placeholder="Search pickup location..."
+                icon="house.fill"
+                value={from}
+                error={errors.from}
+                onPress={() => setShowFromPicker(true)}
+              />
 
-            <FormField
-              label="Destination"
-              placeholder="Search drop location..."
-              icon="location.fill"
-              value={to}
-              error={errors.to}
-              onPress={() => setShowToPicker(true)}
-            />
+              <FormField
+                label="Destination"
+                placeholder="Search drop location..."
+                icon="location.fill"
+                value={to}
+                error={errors.to}
+                onPress={() => setShowToPicker(true)}
+              />
 
-            <HStack space="md">
-              <Box className="flex-1">
+              <VStack space="md">
                 <FormField
                   label="Date"
                   placeholder="Ride Date"
@@ -622,8 +647,6 @@ export default function CreateScreen() {
                   error={errors.date}
                   onPress={() => setShowDatePicker(true)}
                 />
-              </Box>
-              <Box className="flex-1">
                 <FormField
                   label="Time"
                   placeholder="Ride Time"
@@ -632,153 +655,161 @@ export default function CreateScreen() {
                   error={errors.time}
                   onPress={() => setShowTimePicker(true)}
                 />
-              </Box>
-            </HStack>
+              </VStack>
 
-            {showDatePicker ? (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={onDateChange}
-                minimumDate={today}
-                maximumDate={maxTripDate}
+              {showDatePicker ? (
+                <DateTimePicker
+                  value={date}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onDateChange}
+                  minimumDate={today}
+                  maximumDate={maxTripDate}
+                />
+              ) : null}
+
+              {showTimePicker ? (
+                <DateTimePicker
+                  value={time}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onTimeChange}
+                />
+              ) : null}
+
+              <FormField
+                label="Available Seats"
+                placeholder="Min 1, Max 4"
+                icon="person.fill"
+                value={seats}
+                error={errors.seats}
+                onChangeText={(text) => {
+                  setSeats(text.replace(/[^0-9]/g, ''));
+                  setErrors((current) => ({ ...current, seats: undefined }));
+                }}
+                onFocus={() => handleInputFocus(400)}
+                keyboardType="numeric"
               />
-            ) : null}
 
-            {showTimePicker ? (
-              <DateTimePicker
-                value={time}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={onTimeChange}
-              />
-            ) : null}
-
-            <FormField
-              label="Available Seats"
-              placeholder="Min 1, Max 4"
-              icon="person.fill"
-              value={seats}
-              error={errors.seats}
-              onChangeText={(text) => {
-                setSeats(text.replace(/[^0-9]/g, ''));
-                setErrors((current) => ({ ...current, seats: undefined }));
-              }}
-              keyboardType="numeric"
-            />
-
-            <VStack space="sm" className="mb-6">
-              <HStack className="items-center justify-between px-1">
-                <VStack  className="flex-1">
+              <VStack space="md" className="mb-10">
+                <HStack className="items-center justify-between px-1">
+                  <VStack className="flex-1">
                     <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Fare Logic</Text>
                     <Text className="text-sm font-bold" style={{ color: textColor }}>
-                    Auto-calculate expenses
+                      Auto-calculate expenses
                     </Text>
-                </VStack>
-                <Switch
-                  value={isPriceCalculated}
-                  onValueChange={(value) => {
-                    setIsPriceCalculated(value);
-                    if (value) {
-                      setPrice('');
-                      setErrors((current) => ({ ...current, price: undefined }));
-                    }
-                  }}
-                  trackColor={{ false: borderColor, true: primaryColor }}
-                />
-              </HStack>
+                  </VStack>
+                  <Switch
+                    value={isPriceCalculated}
+                    onValueChange={(value) => {
+                      setIsPriceCalculated(value);
+                      if (value) {
+                        setPrice('');
+                        setErrors((current) => ({ ...current, price: undefined }));
+                      }
+                    }}
+                    trackColor={{ false: borderColor, true: primaryColor }}
+                  />
+                </HStack>
 
-              {!isPriceCalculated && (
-                <FormField
-                  label="Fixed Price per Seat (₹)"
-                  placeholder="e.g. 200"
-                  icon="indianrupeesign.circle.fill"
-                  value={price}
-                  error={errors.price}
-                  onChangeText={(text) => {
-                    setPrice(text.replace(/[^0-9.]/g, ''));
-                    setErrors((current) => ({ ...current, price: undefined }));
-                  }}
-                  keyboardType="numeric"
-                />
-              )}
-            </VStack>
-
-            <FormField
-              label="Trip Bio & Ground Rules"
-              placeholder="Tell riders about luggage, music, or stopovers..."
-              icon="doc.text.fill"
-              value={description}
-              error={errors.description}
-              onChangeText={(text) => {
-                setDescription(text);
-                setErrors((current) => ({ ...current, description: undefined }));
-              }}
-              multiline
-              numberOfLines={5}
-              onFocus={handleDescriptionFocus}
-            />
-
-            <VStack space="xs" className="mb-2">
-              <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
-                Gender Preference
-              </Text>
-              <HStack space="sm">
-                {genderOptions.map((option) => {
-                  const active = genderPreference === option.key;
-                  return (
-                    <Pressable
-                      key={option.key}
-                      className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
-                      style={{
-                        borderColor: active ? primaryColor : borderColor,
-                        backgroundColor: active ? primaryColor : 'transparent',
+                {!isPriceCalculated && (
+                  <Box className="mt-4">
+                    <FormField
+                      label="Fixed Price per Seat (₹)"
+                      placeholder="e.g. 200"
+                      icon="indianrupeesign.circle.fill"
+                      value={price}
+                      error={errors.price}
+                      onChangeText={(text) => {
+                        setPrice(text.replace(/[^0-9.]/g, ''));
+                        setErrors((current) => ({ ...current, price: undefined }));
                       }}
-                      onPress={() => setGenderPreference(option.key)}
-                    >
-                      <Text
-                        className="text-[10px] font-extrabold uppercase tracking-widest text-center"
-                        style={{ color: active ? '#fff' : textColor }}
+                      onFocus={() => handleInputFocus(600)}
+                      keyboardType="numeric"
+                    />
+                  </Box>
+                )}
+              </VStack>
+
+              <FormField
+                label="Trip Bio & Ground Rules"
+                placeholder="Tell riders about luggage, music, or stopovers..."
+                icon="doc.text.fill"
+                value={description}
+                error={errors.description}
+                onChangeText={(text) => {
+                  setDescription(text);
+                  setErrors((current) => ({ ...current, description: undefined }));
+                }}
+                multiline
+                numberOfLines={5}
+                onFocus={handleDescriptionFocus}
+              />
+
+              <Box className="mt-2 mb-2" />
+
+              <VStack space="sm" className="mb-6">
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
+                  Gender Preference
+                </Text>
+                <HStack space="md">
+                  {genderOptions.map((option) => {
+                    const active = genderPreference === option.key;
+                    return (
+                      <Pressable
+                        key={option.key}
+                        className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
+                        style={{
+                          borderColor: active ? primaryColor : borderColor,
+                          backgroundColor: active ? primaryColor : 'transparent',
+                        }}
+                        onPress={() => setGenderPreference(option.key)}
                       >
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </HStack>
-            </VStack>
+                        <Text
+                          className="text-[10px] font-extrabold uppercase tracking-widest text-center"
+                          style={{ color: active ? '#fff' : textColor }}
+                        >
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </HStack>
+              </VStack>
+            </Box>
           </Box>
 
-          <VStack className="items-center px-4" space="xs">
+          <VStack className="items-center px-6 mb-10" space="xs">
             <IconSymbol name="shield.lefthalf.filled" size={24} color={primaryColor} />
-            <Text className="text-[9px] font-extrabold uppercase tracking-widest text-center leading-4" style={{ color: subtextColor }}>
-                By publishing, you commit to driving safely and adhering to the My Ride Partner community guidelines. Ride safely!
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center leading-4" style={{ color: subtextColor }}>
+              By publishing, you commit to split costs fairly and adhering to the community guidelines.
             </Text>
           </VStack>
 
-          <Button
-            className="mt-10 h-16 rounded-[24px] shadow-xl"
-            style={{
+          <Box className="px-6 mb-10">
+            <Button
+              className="h-14 rounded-2xl shadow-md"
+              style={{
                 backgroundColor: primaryColor,
                 opacity: publishMutation.isPending ? 0.8 : 1,
-            }}
-            onPress={handlePublish}
-            disabled={publishMutation.isPending}
-          >
-            {publishMutation.isPending ? (
-              <Spinner color="#fff" />
-            ) : (
+              }}
+              onPress={handlePublish}
+              disabled={publishMutation.isPending}
+            >
+              {publishMutation.isPending ? (
+                <Spinner color="#fff" />
+              ) : (
                 <HStack space="md" className="items-center">
-                    <ButtonText className="text-base font-extrabold uppercase tracking-widest">
-                        {isEditing ? 'Update Ride' : 'Launch Ride'}
-                    </ButtonText>
-                    <IconSymbol name="paperplane.fill" size={16} color="white" />
+                  <ButtonText className="text-base font-extrabold uppercase tracking-widest text-white">
+                    {isEditing ? 'Update Ride' : 'Publish Ride'}
+                  </ButtonText>
+                  <IconSymbol name="paperplane.fill" size={18} color="white" />
                 </HStack>
-            )}
-          </Button>
+              )}
+            </Button>
+          </Box>
 
-          <Box className="h-10" />
+          <Box className="h-20" />
         </ScrollView>
       </KeyboardAvoidingView>
     </>

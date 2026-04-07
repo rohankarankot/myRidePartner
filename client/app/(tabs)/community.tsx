@@ -1,6 +1,7 @@
-import React from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQuery } from '@tanstack/react-query';
+import { userService } from '@/services/user-service';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -9,6 +10,7 @@ import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
+import { Spinner } from '@/components/ui/spinner';
 
 type CommunityActionCardProps = {
   icon: string;
@@ -67,6 +69,13 @@ export default function CommunityTabScreen() {
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'primary');
 
+  const { data: communityData, isLoading } = useQuery({
+    queryKey: ['community-members-count'],
+    queryFn: () => userService.getCommunityMembers({ pageSize: 1 }),
+  });
+
+  const totalMembers = communityData?.meta?.pagination?.total || 0;
+
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor }}
@@ -77,67 +86,72 @@ export default function CommunityTabScreen() {
           className="rounded-[32px] border p-8 shadow-sm overflow-hidden"
           style={{ backgroundColor: cardColor, borderColor }}
         >
-            <VStack space="lg">
-              <HStack
-                className="self-start items-center rounded-full px-3 py-1.5 border"
-                space="xs"
-                style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}20` }}
-              >
-                <IconSymbol
-                  name="bubble.left.and.bubble.right.fill"
-                  size={12}
-                  color={primaryColor}
-                />
-                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-                  City community
-                </Text>
-              </HStack>
+          <VStack space="lg">
+            <HStack
+              className="self-start items-center rounded-full px-3 py-1.5 border"
+              space="xs"
+              style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}20` }}
+            >
+              <IconSymbol
+                name="bubble.left.and.bubble.right.fill"
+                size={12}
+                color={primaryColor}
+              />
+              <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                City community
+              </Text>
+            </HStack>
 
-              <VStack space="sm">
-                <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
-                    Travellers Community
-                </Text>
-                <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
-                    Talk routes, connect with nearby riders, and keep local travel
-                    conversations in one place.
-                </Text>
-              </VStack>
-              
-              <HStack className="items-center" space="md">
-                  <Box className="flex-row -space-x-4">
-                      {[1,2,3].map(i => (
-                          <Box key={i} className="h-8 w-8 rounded-full border-2 border-white bg-gray-100 overflow-hidden" style={{ borderColor: cardColor }}>
-                              <Box className="w-full h-full bg-gray-200" />
-                          </Box>
-                      ))}
-                  </Box>
-                  <Text className="text-xs font-bold" style={{ color: primaryColor }}>+ 500 members active</Text>
-              </HStack>
+            <VStack space="sm">
+              <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
+                Travellers Community
+              </Text>
+              <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
+                Talk routes, connect with nearby riders, and keep local travel
+                conversations in one place.
+              </Text>
             </VStack>
+
+            <HStack className="items-center" space="sm">
+              <Box
+                className="h-8 w-8 rounded-full items-center justify-center shadow-inner"
+                style={{ backgroundColor: `${primaryColor}10` }}
+              >
+                <IconSymbol name="person.2.fill" size={14} color={primaryColor} />
+              </Box>
+              {isLoading ? (
+                <Spinner size="small" color={primaryColor} />
+              ) : (
+                <Text className="text-xs font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                  {totalMembers > 0 ? `${totalMembers} active members and growing rapidly` : 'Active members and growing rapidly'}
+                </Text>
+              )}
+            </HStack>
+          </VStack>
         </Box>
 
         <VStack space="xs">
-            <CommunityActionCard
-                icon="message.fill"
-                title="Open chat room"
-                subtitle="Join the live public conversation in a dedicated chat screen."
-                primaryColor={primaryColor}
-                subtextColor={subtextColor}
-                textColor={textColor}
-                borderColor={borderColor}
-                onPress={() => router.push('/community-chat')}
-            />
+          <CommunityActionCard
+            icon="message.fill"
+            title="Open chat room"
+            subtitle="Join the live public conversation in a dedicated chat screen."
+            primaryColor={primaryColor}
+            subtextColor={subtextColor}
+            textColor={textColor}
+            borderColor={borderColor}
+            onPress={() => router.push('/community-chat')}
+          />
 
-            <CommunityActionCard
-                icon="person.2.fill"
-                title="Browse Members"
-                subtitle="See all users who are part of the public community."
-                primaryColor={primaryColor}
-                subtextColor={subtextColor}
-                textColor={textColor}
-                borderColor={borderColor}
-                onPress={() => router.push('/community-members')}
-            />
+          <CommunityActionCard
+            icon="person.2.fill"
+            title="Browse Members"
+            subtitle="See all users who are part of the public community."
+            primaryColor={primaryColor}
+            subtextColor={subtextColor}
+            textColor={textColor}
+            borderColor={borderColor}
+            onPress={() => router.push('/community-members')}
+          />
         </VStack>
       </VStack>
     </SafeAreaView>

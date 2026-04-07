@@ -72,14 +72,14 @@ export default function AboutScreen() {
           <IconSymbol name="car.fill" size={48} color="#fff" />
         </Box>
         <VStack className="items-center" space="xs">
-            <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
+          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
             My Ride Partner
+          </Text>
+          <Box className="px-3 py-1 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+              Version 1.0.0
             </Text>
-            <Box className="px-3 py-1 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
-                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-                Version 1.0.0
-                </Text>
-            </Box>
+          </Box>
         </VStack>
       </VStack>
 
@@ -143,16 +143,16 @@ export default function AboutScreen() {
                 </Avatar>
                 <VStack className="flex-1" space="xs">
                   <Text className="text-lg font-bold text-white">{creatorName}</Text>
-                  <Text className="text-xs font-semibold text-white/90 uppercase tracking-widest">Analyst @ Accenture</Text>
+                  <Text className="text-xs font-semibold text-white/90 uppercase tracking-widest">Packaged App Development Senior Analyst @ Accenture</Text>
                 </VStack>
               </HStack>
 
               <HStack className="items-center justify-between mt-2 pt-4 border-t border-white/20">
                 <HStack space="sm" className="items-center">
-                    <Box className="w-5 h-5 bg-white rounded-sm items-center justify-center">
-                        <Text className="text-[10px] font-extrabold" style={{ color: '#0A66C2' }}>in</Text>
-                    </Box>
-                    <Text className="text-xs font-bold text-white uppercase tracking-widest">Connect on LinkedIn</Text>
+                  <Box className="w-5 h-5 bg-white rounded-sm items-center justify-center">
+                    <Text className="text-[10px] font-extrabold" style={{ color: '#0A66C2' }}>in</Text>
+                  </Box>
+                  <Text className="text-xs font-bold text-white uppercase tracking-widest">Connect on LinkedIn</Text>
                 </HStack>
                 <IconSymbol name="arrow.up.right" size={16} color="#fff" />
               </HStack>
@@ -166,11 +166,11 @@ export default function AboutScreen() {
           An initiative by Solapur MH13 Community
         </Text>
         <Pressable onPress={() => openLink('https://github.com/rohankarankot/myRidePartner')}>
-            <Box className="px-5 py-2 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
-                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-                    Contributions are welcomed
-                </Text>
-            </Box>
+          <Box className="px-5 py-2 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+              Contributions are welcomed
+            </Text>
+          </Box>
         </Pressable>
         <Divider className="w-12 mt-4" style={{ backgroundColor: borderColor }} />
         <Text className="text-[8px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
