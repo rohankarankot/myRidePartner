@@ -18,7 +18,6 @@ import {
 } from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { AppLoader } from '@/components/app-loader';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { publicChatService } from '@/services/public-chat-service';
@@ -29,6 +28,11 @@ import { userService } from '@/services/user-service';
 import { useUserStore } from '@/store/user-store';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
+import { Box } from '@/components/ui/box';
+import { Text as GSText } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { VStack } from '@/components/ui/vstack';
+import { Spinner } from '@/components/ui/spinner';
 
 const MESSAGE_PAGE_SIZE = 40;
 
@@ -559,7 +563,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                 />
             ) : null}
 
-            <View
+            <Box
                 style={[
                     styles.customHeader,
                     {
@@ -570,28 +574,27 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     },
                 ]}
             >
-                <TouchableOpacity
+                <Pressable
                     onPress={() => router.back()}
                     style={styles.headerIconButton}
                 >
                     <IconSymbol name="chevron.left" size={22} color={textColor} />
-                </TouchableOpacity>
+                </Pressable>
 
-                <TouchableOpacity
-                    activeOpacity={0.85}
+                <Pressable
                     style={styles.headerTitleWrap}
                     onPress={() => citySheetRef.current?.present()}
                 >
-                    <Text style={[styles.headerTitle, { color: textColor }]}>Community Chat</Text>
-                    <View style={[styles.cityPill, { backgroundColor: `${primaryColor}14` }]}>
+                    <GSText className="text-lg font-bold" style={{ color: textColor }}>Community Chat</GSText>
+                    <Box style={[styles.cityPill, { backgroundColor: `${primaryColor}14` }]}>
                         <IconSymbol name="mappin.circle.fill" size={14} color={primaryColor} />
-                        <Text style={[styles.cityPillText, { color: primaryColor }]} numberOfLines={1}>
+                        <GSText style={[styles.cityPillText, { color: primaryColor }]} numberOfLines={1}>
                             {cityLabel}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
+                        </GSText>
+                    </Box>
+                </Pressable>
 
-                <TouchableOpacity
+                <Pressable
                     onPress={() => router.push({
                         pathname: '/community-room',
                         params: selectedCity ? { city: selectedCity } : undefined,
@@ -599,32 +602,32 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     style={styles.headerIconButton}
                 >
                     <IconSymbol name="info.circle.fill" size={22} color={primaryColor} />
-                </TouchableOpacity>
-            </View>
+                </Pressable>
+            </Box>
 
             {isLoading ? (
-                <View style={[styles.center, { backgroundColor, paddingTop: headerHeight }]}>
-                    <AppLoader />
-                </View>
+                <Box className="flex-1 items-center justify-center" style={{ backgroundColor, paddingTop: headerHeight }}>
+                    <Spinner size="large" color={primaryColor} />
+                </Box>
             ) : !selectedCity ? (
-                <View style={[styles.center, { backgroundColor, paddingHorizontal: 24, paddingTop: headerHeight }]}>
-                    <View style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}14` }]}>
+                <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor, paddingTop: headerHeight }}>
+                    <Box style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}14` }]}>
                         <IconSymbol name="mappin.and.ellipse" size={34} color={primaryColor} />
-                    </View>
-                    <Text style={[styles.emptyTitle, { color: textColor }]}>Choose your city room</Text>
-                    <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
+                    </Box>
+                    <GSText className="text-xl font-bold mb-2 text-center" style={{ color: textColor }}>Choose your city room</GSText>
+                    <GSText className="text-sm leading-6 text-center" style={{ color: subtextColor }}>
                         Pick a city to join its community chat room and see local conversations.
-                    </Text>
-                    <TouchableOpacity
-                        activeOpacity={0.88}
+                    </GSText>
+                    <Pressable
                         onPress={() => citySheetRef.current?.present()}
-                        style={[styles.selectCityButton, { backgroundColor: primaryColor }]}
+                        className="mt-5 px-[18px] py-3 rounded-full"
+                        style={{ backgroundColor: primaryColor }}
                     >
-                        <Text style={styles.selectCityButtonText}>Select city</Text>
-                    </TouchableOpacity>
-                </View>
+                        <GSText className="text-sm font-bold text-white">Select city</GSText>
+                    </Pressable>
+                </Box>
             ) : (
-                <View style={[styles.chatWrapper, { paddingTop: headerHeight }]}>
+                <Box className="flex-1" style={{ paddingTop: headerHeight }}>
                     <GiftedChat
                         messages={giftedMessages}
                         onSend={handleSend}
@@ -834,18 +837,18 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                         )}
                         renderSend={() => null}
                         renderChatEmpty={() => (
-                            <View style={styles.emptyState}>
-                                <View style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}14` }]}>
+                            <Box style={styles.emptyState}>
+                                <Box style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}14` }]}>
                                     <IconSymbol name="person.2.fill" size={34} color={primaryColor} />
-                                </View>
-                                <Text style={[styles.emptyTitle, { color: textColor }]}>{cityLabel} room is open</Text>
-                                <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
+                                </Box>
+                                <GSText className="text-xl font-bold mb-2 text-center" style={{ color: textColor }}>{cityLabel} room is open</GSText>
+                                <GSText className="text-sm leading-6 text-center" style={{ color: subtextColor }}>
                                     Introduce yourself, ask about routes, and chat with riders around {cityLabel}.
-                                </Text>
-                            </View>
+                                </GSText>
+                            </Box>
                         )}
                     />
-                </View>
+                </Box>
             )}
 
             <BottomSheetModal
@@ -863,14 +866,14 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     data={filteredCities}
                     keyExtractor={(item: string) => item}
                     ListHeaderComponent={
-                        <View style={styles.sheetHeader}>
-                            <View style={styles.sheetHeaderCopy}>
-                                <Text style={[styles.sheetTitle, { color: textColor }]}>Select City Room</Text>
-                                <Text style={[styles.sheetSubtitle, { color: subtextColor }]}>
+                        <Box style={styles.sheetHeader}>
+                            <VStack style={styles.sheetHeaderCopy}>
+                                <GSText className="text-2xl font-bold" style={{ color: textColor }}>Select City Room</GSText>
+                                <GSText className="text-sm leading-5" style={{ color: subtextColor }}>
                                     Join the community room for a specific city.
-                                </Text>
-                            </View>
-                            <View style={[styles.sheetSearchBox, { backgroundColor: `${subtextColor}10` }]}>
+                                </GSText>
+                            </VStack>
+                            <Box style={[styles.sheetSearchBox, { backgroundColor: `${subtextColor}10` }]}>
                                 <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
                                 <BottomSheetTextInput
                                     placeholder="Search city..."
@@ -881,15 +884,14 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                     autoCorrect={false}
                                     autoCapitalize="words"
                                 />
-                            </View>
-                        </View>
+                            </Box>
+                        </Box>
                     }
                     renderItem={({ item }: { item: string }) => {
                         const isActive = selectedCity === item;
 
                         return (
-                            <TouchableOpacity
-                                activeOpacity={0.85}
+                            <Pressable
                                 style={[
                                     styles.cityRow,
                                     {
@@ -904,8 +906,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                     citySheetRef.current?.dismiss();
                                 }}
                             >
-                                <View style={styles.cityRowLeft}>
-                                    <View
+                                <Box style={styles.cityRowLeft}>
+                                    <Box
                                         style={[
                                             styles.cityRowIcon,
                                             { backgroundColor: isActive ? primaryColor : `${subtextColor}15` },
@@ -916,25 +918,25 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                             size={20}
                                             color={isActive ? '#FFFFFF' : subtextColor}
                                         />
-                                    </View>
-                                    <Text style={[styles.cityRowTitle, { color: isActive ? primaryColor : textColor }]}>
+                                    </Box>
+                                    <GSText className="text-base font-semibold" style={{ color: isActive ? primaryColor : textColor }}>
                                         {item}
-                                    </Text>
-                                </View>
+                                    </GSText>
+                                </Box>
                                 {isActive ? (
-                                    <View style={[styles.cityRowCheck, { backgroundColor: primaryColor }]}>
+                                    <Box style={[styles.cityRowCheck, { backgroundColor: primaryColor }]}>
                                         <IconSymbol name="checkmark" size={14} color="#FFFFFF" />
-                                    </View>
+                                    </Box>
                                 ) : null}
-                            </TouchableOpacity>
+                            </Pressable>
                         );
                     }}
                     ListEmptyComponent={
                         <BottomSheetView style={styles.sheetEmptyState}>
-                            <Text style={[styles.sheetEmptyTitle, { color: textColor }]}>No matching city</Text>
-                            <Text style={[styles.sheetEmptySubtitle, { color: subtextColor }]}>
+                            <GSText className="text-lg font-bold mb-1.5" style={{ color: textColor }}>No matching city</GSText>
+                            <GSText className="text-sm leading-5 text-center" style={{ color: subtextColor }}>
                                 Try another search keyword or update your profile city.
-                            </Text>
+                            </GSText>
                         </BottomSheetView>
                     }
                     contentContainerStyle={styles.sheetListContent}
