@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Linking, ScrollView } from 'react-native';
 import { Stack } from 'expo-router';
+import Constants from 'expo-constants';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -32,6 +33,7 @@ const TECH_STACK = [
 ];
 
 export default function AboutScreen() {
+  const appVersion = Constants.expoConfig?.version ?? '2.0.0';
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const subtextColor = useThemeColor({}, 'subtext');
@@ -77,7 +79,7 @@ export default function AboutScreen() {
           </Text>
           <Box className="px-3 py-1 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
             <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-              Version 1.0.0
+              Version {appVersion}
             </Text>
           </Box>
         </VStack>
@@ -162,8 +164,8 @@ export default function AboutScreen() {
       </Box>
 
       <VStack className="items-center mt-12 px-10" space="md">
-        <Text className="text-xs font-bold text-center leading-5 uppercase tracking-tighter" style={{ color: textColor }}>
-          An initiative by Solapur MH13 Community
+        <Text className="text-xs letter-spacing-2 font-bold text-center leading-5 uppercase tracking-tighter" style={{ color: textColor }}>
+          An initiative by MH13 Community
         </Text>
         <Pressable onPress={() => openLink('https://github.com/rohankarankot/myRidePartner')}>
           <Box className="px-5 py-2 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>

@@ -11,7 +11,7 @@ const shareHost = new URL(shareBaseUrl).host;
 const config: ExpoConfig = {
   name: 'My Ride Partner',
   slug: 'myridepartner',
-  version: '1.0.0',
+  version: '2.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'myridepartner',

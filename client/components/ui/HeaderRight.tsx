@@ -12,7 +12,7 @@ import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 
 type HeaderRightProps = {
-    type?: 'notifications' | 'settings';
+    type?: 'notifications' | 'settings' | 'chats';
 };
 
 export function HeaderRight({ type = 'notifications' }: HeaderRightProps) {
@@ -32,12 +32,19 @@ export function HeaderRight({ type = 'notifications' }: HeaderRightProps) {
     const onPress = () => {
         if (type === 'notifications') {
             router.push('/notifications');
-        } else {
+        } else if (type === 'settings') {
             router.push('/settings');
+        } else if (type === 'chats') {
+            router.push('/chats');
         }
     };
 
-    const iconName = type === 'notifications' ? 'bell.fill' : 'gearshape.fill';
+    const iconName = 
+        type === 'notifications' 
+            ? 'bell.fill' 
+            : type === 'settings' 
+                ? 'gearshape.fill' 
+                : 'bubble.left.and.bubble.right.fill';
 
     return (
         <Pressable

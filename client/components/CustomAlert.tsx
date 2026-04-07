@@ -92,7 +92,7 @@ export function CustomAlert({
                                 style={{ borderColor }}
                                 onPress={tertiaryButton.onPress}
                             >
-                                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
                                     {tertiaryButton.text}
                                 </Text>
                             </Pressable>
@@ -103,7 +103,7 @@ export function CustomAlert({
                                 style={{ borderColor }}
                                 onPress={secondaryButton.onPress}
                             >
-                                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
                                     {secondaryButton.text}
                                 </Text>
                             </Pressable>
@@ -116,7 +116,7 @@ export function CustomAlert({
                             }}
                             onPress={primaryButton.onPress}
                         >
-                            <Text className="text-[10px] font-extrabold uppercase tracking-widest text-white">
+                            <Text className="text-[10px] font-extrabold uppercase tracking-widest text-white text-center">
                                 {primaryButton.text}
                             </Text>
                         </Pressable>

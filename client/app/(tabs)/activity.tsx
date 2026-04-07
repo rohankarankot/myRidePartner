@@ -182,7 +182,7 @@ function TripCard(props: {
             {avatarUrl ? <AvatarImage source={{ uri: avatarUrl }} alt={captainName || 'Captain'} /> : null}
           </Avatar>
           <VStack className="flex-1" space="xs">
-            <Text className="text-base font-extrabold" style={{ color: textColor }}>
+            <Text className="text-base font-bold" style={{ color: textColor }}>
               {captainName || 'Captain'}
             </Text>
             <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>
@@ -215,10 +215,10 @@ function TripCard(props: {
         </VStack>
 
         <VStack className="flex-1 justify-between h-20">
-          <Text className="text-[15px] font-bold" style={{ color: textColor }} numberOfLines={2}>
+          <Text className="text-sm font-bold" style={{ color: textColor }} numberOfLines={2}>
             {from}
           </Text>
-          <Text className="text-[15px] font-bold" style={{ color: textColor }} numberOfLines={2}>
+          <Text className="text-sm font-bold" style={{ color: textColor }} numberOfLines={2}>
             {to}
           </Text>
         </VStack>
@@ -381,7 +381,7 @@ export default function ActivityScreen() {
                 <IconSymbol name="list.bullet" size={40} color={subtextColor} />
             </Box>
             <VStack className="items-center" space="xs">
-                <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
+                <Text className="text-3xl font-extrabold text-center" style={{ color: textColor }}>
                 No recent activity
                 </Text>
                 <Text className="text-sm font-medium text-center leading-6 max-w-[240px]" style={{ color: subtextColor }}>

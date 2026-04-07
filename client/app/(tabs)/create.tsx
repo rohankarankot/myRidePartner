@@ -605,7 +605,7 @@ export default function CreateScreen() {
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
           <VStack space="sm" className="mb-10 px-6">
-            <Text className="text-4xl font-extrabold" style={{ color: textColor }}>
+            <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
               {isEditing ? 'Edit Trip' : 'New Trip'}
             </Text>
             <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
@@ -616,7 +616,7 @@ export default function CreateScreen() {
           </VStack>
 
           <Box
-            className="py-10 mb-12 shadow-none border-y"
+            className="mx-6 mb-12 rounded-[32px] border p-6 shadow-sm"
             style={{ backgroundColor: cardColor, borderColor }}
           >
             <Box className="px-6">

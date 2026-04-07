@@ -386,7 +386,6 @@ export default function ProfileScreen() {
   if (error && !profile) {
     return (
       <Box className="flex-1 items-center justify-center px-10" style={{ backgroundColor }}>
-        <Stack.Screen options={{ title: 'Profile', headerTitleStyle: { fontWeight: '800' } }} />
         <VStack className="items-center" space="md">
             <Box className="w-20 h-20 rounded-full bg-gray-50 items-center justify-center mb-2">
                 <IconSymbol name="person.crop.circle.badge.exclamationmark" size={40} color={subtextColor} />
@@ -425,23 +424,6 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
-      <Stack.Screen
-        options={{
-          title: 'Profile',
-          headerTitleStyle: { fontWeight: '800' },
-          headerShown: true,
-          headerTransparent: false,
-          headerStyle: { backgroundColor: cardColor },
-          headerTintColor: textColor,
-          headerShadowVisible: false,
-          headerRight: () =>
-            profile ? (
-              <Pressable className="mr-4" onPress={() => router.push('/settings')}>
-                <IconSymbol name="gearshape.fill" size={24} color={primaryColor} />
-              </Pressable>
-            ) : null,
-        }}
-      />
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 40 }}

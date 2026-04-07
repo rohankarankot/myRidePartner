@@ -20,9 +20,7 @@ import { Button, ButtonText } from '@/components/ui/button';
 import { VStack } from '@/components/ui/vstack';
 import { Pressable } from '@/components/ui/pressable';
 
-import FindOutlineIcon from '@/assets/tab-icons/find-outline.svg';
 import FindFilledIcon from '@/assets/tab-icons/find-filled.svg';
-import ChatsFilledIcon from '@/assets/tab-icons/chats-filled.svg';
 import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
 import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
 
@@ -125,17 +123,18 @@ export default function TabLayout() {
         tabBarHideOnKeyboard: true,
         headerShown: true,
         headerStyle: {
-          backgroundColor: currentColors.background,
+          backgroundColor: currentColors.card,
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 1,
           borderBottomColor: currentColors.border,
         },
         headerTitleStyle: {
-          fontWeight: '900',
+          fontWeight: '800',
           textTransform: 'uppercase',
-          letterSpacing: 2,
-          fontSize: 14,
+          letterSpacing: 1.5,
+          fontSize: 16,
+          fontFamily: 'Plus Jakarta Sans',
         },
         headerTintColor: currentColors.text,
         tabBarButton: HapticTab,
@@ -144,7 +143,7 @@ export default function TabLayout() {
         headerBackTitleVisible: false,
         headerLeft: () => null,
         tabBarStyle: {
-            backgroundColor: currentColors.background,
+            backgroundColor: currentColors.card,
             borderTopWidth: 1,
             borderTopColor: currentColors.border,
             height: Platform.OS === 'ios' ? 88 : 68,
@@ -154,27 +153,20 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          headerTitle: 'Ride Partner',
+          headerTitle: 'FIND RIDES',
           title: 'Find',
           tabBarIcon: ({ color, focused }) =>
             focused
               ? <FindFilledIcon width={28} height={28} color={color} />
-              : <FindOutlineIcon width={28} height={28} color={color} />,
+              : <IconSymbol name="magnifyingglass" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
         name="activity"
         options={{
+          headerTitle: 'ACTIVITY',
           title: 'Activity',
-          headerRight: () => (
-            <Pressable
-              onPress={() => router.push('/chats')}
-              className="mr-5 w-10 h-10 rounded-full items-center justify-center border shadow-xs"
-              style={{ backgroundColor: `${currentColors.primary}10`, borderColor: `${currentColors.border}` }}
-            >
-              <ChatsFilledIcon width={20} height={20} color={currentColors.text} />
-            </Pressable>
-          ),
+          headerRight: () => <HeaderRight type="chats" />,
           tabBarIcon: ({ color }) => (
             <IconSymbol name="list.bullet" size={26} color={color} />
           ),
@@ -184,6 +176,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="create"
         options={{
+          headerTitle: 'PUBLISH',
           title: 'Publish',
           tabBarIcon: ({ color, focused }) =>
             focused
@@ -194,6 +187,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="community"
         options={{
+          headerTitle: 'COMMUNITY',
           title: 'Community',
           tabBarIcon: ({ color }) => (
             <IconSymbol name="person.2.fill" size={26} color={color} />
@@ -204,6 +198,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
+          headerTitle: 'PROFILE',
           title: 'Profile',
           headerRight: () => <HeaderRight type="settings" />,
           tabBarIcon: ({ focused, color }) => (

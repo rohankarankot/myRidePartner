@@ -43,6 +43,7 @@ const MAPPING = {
   'bell.fill': 'notifications',
   'car': 'directions-car',
   'car.fill': 'directions-car',
+  'car.2.fill': 'directions-car',
   'google.logo': 'login',
   'checkmark.circle': 'check-circle-outline',
   'camera.fill': 'photo-camera',

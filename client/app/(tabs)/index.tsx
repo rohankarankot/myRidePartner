@@ -282,11 +282,11 @@ export default function FindRidesScreen() {
     if (loading) return null;
     return (
       <VStack className="items-center justify-center py-20 px-10" space="lg">
-        <Box className="w-16 h-16 rounded-full bg-gray-50 items-center justify-center">
-            <IconSymbol name="car.2.fill" size={32} color={borderColor} />
+        <Box className="w-20 h-20 rounded-[32px] bg-gray-50 items-center justify-center rotate-3 shadow-xl">
+            <IconSymbol name="car.fill" size={40} color={subtextColor} />
         </Box>
         <VStack space="xs">
-            <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
+            <Text className="text-3xl font-extrabold text-center" style={{ color: textColor }}>
             {selectedCity ? `No rides in ${selectedCity}` : 'Select a city'}
             </Text>
             <Text className="text-sm font-medium text-center leading-6" style={{ color: subtextColor }}>
@@ -311,8 +311,6 @@ export default function FindRidesScreen() {
     <Box className="flex-1" style={{ backgroundColor }}>
       <Tabs.Screen
         options={{
-          headerTitle: 'Browse Rides',
-          headerTitleStyle: { fontWeight: '800' },
           headerLeft: () => (
             <Pressable
               className="flex-row items-center ml-4 px-3 py-1 rounded-full border shadow-sm"

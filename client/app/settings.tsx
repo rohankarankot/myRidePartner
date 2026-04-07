@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import Constants from 'expo-constants';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -48,7 +49,7 @@ function SettingItem({
         <HStack className="items-center justify-between">
           <HStack space="md" className="items-center">
             <Box className="w-8 h-8 items-center justify-center rounded-full" style={{ backgroundColor: `${iconColor}10` }}>
-                <IconSymbol name={icon as any} size={18} color={iconColor} />
+              <IconSymbol name={icon as any} size={18} color={iconColor} />
             </Box>
             <Text className="text-base font-bold" style={{ color: labelColor }}>
               {label}
@@ -63,6 +64,7 @@ function SettingItem({
 }
 
 export default function SettingsScreen() {
+  const appVersion = Constants.expoConfig?.version ?? '2.0.0';
   const { signOut } = useAuth();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -125,8 +127,8 @@ export default function SettingsScreen() {
     <ScrollView style={{ flex: 1, backgroundColor }} contentContainerStyle={{ paddingBottom: 40 }}>
       {/* Visual Header */}
       <VStack className="px-6 py-8" space="xs">
-          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Settings</Text>
-          <Text className="text-sm font-medium" style={{ color: subtextColor }}>Customize your experience and manage your account.</Text>
+        <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Settings</Text>
+        <Text className="text-sm font-medium" style={{ color: subtextColor }}>Customize your experience and manage your account.</Text>
       </VStack>
 
       <Box className="mx-6 rounded-[32px] p-4 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
@@ -223,9 +225,9 @@ export default function SettingsScreen() {
       </Box>
 
       <VStack className="items-center py-10" space="xs">
-          <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
+        <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
         <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
-          Version 1.0.0
+          Version {appVersion}
         </Text>
       </VStack>
 
