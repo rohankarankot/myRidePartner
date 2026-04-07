@@ -126,9 +126,9 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
           <Box className="w-0.5 h-10" style={{ backgroundColor: borderColor }} />
           <Box className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: '#10B981' }} />
         </VStack>
-        <VStack className="flex-1 justify-between h-[65px]">
-          <Text className="text-sm font-bold" style={{ color: textColor }} numberOfLines={1}>{from}</Text>
-          <Text className="text-sm font-bold" style={{ color: textColor }} numberOfLines={1}>{to}</Text>
+        <VStack className="flex-1 justify-between py-1">
+          <Text className="text-sm font-bold" style={{ color: textColor }} numberOfLines={2}>{from}</Text>
+          <Text className="text-sm font-bold" style={{ color: textColor }} numberOfLines={2}>{to}</Text>
         </VStack>
       </HStack>
 

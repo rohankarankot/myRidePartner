@@ -103,6 +103,7 @@ export function LocationSearchModal({ visible, onClose, onSelectLocation, title 
                                             value={query}
                                             onChangeText={setQuery}
                                             autoFocus
+                                            maxLength={50}
                                         />
                                         {query.length > 0 && (
                                             <Pressable

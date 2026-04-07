@@ -84,6 +84,8 @@ export default function TripDetailsScreen() {
     const [isJoining, setIsJoining] = useState(false);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
     const [showGenderAlert, setShowGenderAlert] = useState(false);
+    const [showStartAlert, setShowStartAlert] = useState(false);
+    const [showCompleteAlert, setShowCompleteAlert] = useState(false);
 
     const joinSheetRef = useRef<BottomSheetModal>(null);
     const [sheetIndex, setSheetIndex] = useState(-1);
@@ -429,6 +431,17 @@ export default function TripDetailsScreen() {
                           subtextColor={subtextColor} 
                         />
                     </HStack>
+                    <Divider className="my-4" style={{ backgroundColor: borderColor }} />
+                    <HStack className="justify-between">
+                        <InfoItem 
+                          icon="person.2.fill" 
+                          label="Gender" 
+                          value={trip.genderPreference === 'both' ? 'Everyone' : trip.genderPreference === 'men' ? 'Men only' : 'Women only'} 
+                          textColor={textColor} 
+                          subtextColor={subtextColor} 
+                        />
+                        <Box className="flex-1" />
+                    </HStack>
                 </Box>
 
                 {/* Chat Action */}
@@ -467,6 +480,72 @@ export default function TripDetailsScreen() {
                         </VStack>
                     </HStack>
                 </Pressable>
+
+                {/* Creator Management Actions */}
+                {isCreator && (
+                    <VStack space="md" className="mb-6">
+                        <Text className="text-lg font-bold" style={{ color: textColor }}>Manage Ride</Text>
+                        <HStack space="md">
+                            {trip.status === 'PUBLISHED' && (
+                                <Button 
+                                    className="flex-1 h-12 rounded-xl" 
+                                    style={{ backgroundColor: primaryColor, opacity: canEditTrip ? 1 : 0.5 }} 
+                                    onPress={handleEditTrip}
+                                >
+                                    <HStack space="xs" className="items-center">
+                                        <IconSymbol name="pencil" size={16} color="#fff" />
+                                        <ButtonText className="text-white font-bold">Edit</ButtonText>
+                                    </HStack>
+                                </Button>
+                            )}
+                            
+                            {trip.status === 'PUBLISHED' && (
+                                <Button 
+                                    className="flex-1 h-12 rounded-xl" 
+                                    style={{ backgroundColor: successColor }} 
+                                    onPress={() => setShowStartAlert(true)}
+                                >
+                                    <HStack space="xs" className="items-center">
+                                        <IconSymbol name="play.fill" size={16} color="#fff" />
+                                        <ButtonText className="text-white font-bold">Start</ButtonText>
+                                    </HStack>
+                                </Button>
+                            )}
+
+                            {trip.status === 'STARTED' && (
+                                <Button 
+                                    className="flex-1 h-12 rounded-xl" 
+                                    style={{ backgroundColor: successColor }} 
+                                    onPress={handleCompleteTrip}
+                                >
+                                    <HStack space="xs" className="items-center">
+                                        <IconSymbol name="checkmark.circle.fill" size={16} color="#fff" />
+                                        <ButtonText className="text-white font-bold">Complete</ButtonText>
+                                    </HStack>
+                                </Button>
+                            )}
+
+                            {(trip.status === 'PUBLISHED' || trip.status === 'STARTED') && (
+                                <Button 
+                                    className="flex-1 h-12 rounded-xl" 
+                                    style={{ backgroundColor: dangerColor }} 
+                                    onPress={() => setShowCancelModal(true)}
+                                >
+                                    <HStack space="xs" className="items-center">
+                                        <IconSymbol name="xmark.circle.fill" size={16} color="#fff" />
+                                        <ButtonText className="text-white font-bold">Cancel</ButtonText>
+                                    </HStack>
+                                </Button>
+                            )}
+                        </HStack>
+                        
+                        {!canEditTrip && trip.status === 'PUBLISHED' && (
+                            <Text className="text-xs italic" style={{ color: subtextColor }}>
+                                {getEditTripBlockedReason()}
+                            </Text>
+                        )}
+                    </VStack>
+                )}
 
                 {/* Join Requests for Creator */}
                 {isCreator && (
@@ -514,7 +593,71 @@ export default function TripDetailsScreen() {
             {/* Custom Modals & Alerts */}
             <ReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} onSubmit={saveReport} reportedUserId={trip.creator?.id ?? 0} reportedUserName={creatorProfile?.fullName} tripDocumentId={trip.documentId} source="trip" />
             <CustomAlert visible={showProfileAlert} title="Profile Incomplete" message="Please update your profile details first." primaryButton={{ text: "Go to Profile", onPress: () => router.push('/(tabs)/profile') }} onClose={() => setShowProfileAlert(false)} />
-            <CustomAlert visible={showGenderAlert} title="Gender Mismatch" message="This ride matches a different gender preference." primaryButton={{ text: "OK", onPress: () => setShowGenderAlert(false) }} onClose={() => setShowGenderAlert(false)} />
+            <CustomAlert visible={showGenderAlert} title="Gender Mismatch" message="This ride matches a different gender preference." primaryButton={{ text: "OK", onPress: () => setShowGenderAlert(false) }} onClose={() => setShowGenderAlert(false) } />
+            
+            <CustomAlert 
+                visible={showStartAlert} 
+                title="Start Ride?" 
+                message="Are you sure you want to start this ride now?" 
+                primaryButton={{ 
+                    text: "Start Ride", 
+                    onPress: () => {
+                        setShowStartAlert(false);
+                        handleUpdateTripStatus('STARTED');
+                    } 
+                }} 
+                onClose={() => setShowStartAlert(false)} 
+            />
+
+            <CustomAlert 
+                visible={showCancelModal} 
+                title="Cancel Ride?" 
+                message="Are you sure you want to cancel this ride? This action cannot be undone." 
+                primaryButton={{ 
+                    text: "Yes, Cancel", 
+                    onPress: () => {
+                        setAgreeToCancel(true);
+                        // Trigger the actual cancellation in the next frame to avoid state sync issues
+                        setTimeout(() => handleCancelTrip(), 100);
+                    },
+                    style: { backgroundColor: dangerColor }
+                }} 
+                onClose={() => setShowCancelModal(false)} 
+            />
+
+            {/* Price Completion Modal */}
+            <Modal
+                visible={showCompletionPriceModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowCompletionPriceModal(false)}
+            >
+                <Box className="flex-1 bg-black/50 items-center justify-center p-6">
+                    <Box className="w-full rounded-3xl p-6" style={{ backgroundColor: cardColor }}>
+                        <Text className="text-xl font-bold mb-2" style={{ color: textColor }}>Final Price</Text>
+                        <Text className="mb-6" style={{ color: subtextColor }}>Enter the final price per seat for this ride.</Text>
+                        
+                        <Input className="h-14 rounded-2xl mb-6" style={{ borderColor }}>
+                            <InputField
+                                placeholder="e.g. 150"
+                                value={completionPriceInput}
+                                onChangeText={setCompletionPriceInput}
+                                keyboardType="numeric"
+                                style={{ color: textColor }}
+                            />
+                        </Input>
+
+                        <HStack space="md">
+                            <Button className="flex-1 h-12 rounded-xl border" style={{ borderColor }} variant="outline" onPress={() => setShowCompletionPriceModal(false)}>
+                                <ButtonText style={{ color: textColor }}>Back</ButtonText>
+                            </Button>
+                            <Button className="flex-1 h-12 rounded-xl" style={{ backgroundColor: successColor }} onPress={handleConfirmCompletionPrice} disabled={isCompletingTrip}>
+                                {isCompletingTrip ? <Spinner color="#fff" /> : <ButtonText className="text-white font-bold">Complete</ButtonText>}
+                            </Button>
+                        </HStack>
+                    </Box>
+                </Box>
+            </Modal>
             
             <BottomSheetModal
                 ref={joinSheetRef}

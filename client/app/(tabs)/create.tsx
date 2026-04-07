@@ -90,7 +90,7 @@ function FormField({
   const primaryColor = useThemeColor({}, 'primary');
 
   return (
-    <VStack space="sm" className="mb-8">
+    <VStack space="xs" className="mb-6">
       <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
         {label}
       </Text>
@@ -103,8 +103,8 @@ function FormField({
         style={{
           borderColor: error ? dangerColor : borderColor,
           backgroundColor: 'rgba(0,0,0,0.02)',
-          minHeight: multiline ? 160 : 60,
-          height: multiline ? 'auto' : 60,
+          minHeight: multiline ? 160 : 56,
+          height: multiline ? 'auto' : 56,
           alignItems: multiline ? 'flex-start' : 'center',
         }}
       >
@@ -123,16 +123,16 @@ function FormField({
               alignSelf: multiline ? 'flex-start' : 'center'
             }}
           />
-          <InputField
+            <InputField
             placeholder={placeholder}
             placeholderTextColor={subtextColor}
             className="flex-1 text-base font-medium"
             style={{
               color: textColor,
               textAlignVertical: multiline ? 'top' : 'center',
-              paddingTop: multiline ? 14 : 0,
+              paddingTop: multiline ? 12 : 0,
               paddingBottom: 0,
-              height: multiline ? undefined : 60,
+              height: multiline ? undefined : 56,
               minHeight: multiline ? 90 : undefined,
             }}
             value={value}
@@ -227,14 +227,14 @@ export default function CreateScreen() {
 
     if (!trimmedFrom) {
       nextErrors.from = 'Starting point is required.';
-    } else if (trimmedFrom.length > 20) {
-      nextErrors.from = 'Starting point must be 20 characters or less.';
+    } else if (trimmedFrom.length > 50) {
+      nextErrors.from = 'Starting point must be 50 characters or less.';
     }
 
     if (!trimmedTo) {
       nextErrors.to = 'Destination is required.';
-    } else if (trimmedTo.length > 20) {
-      nextErrors.to = 'Destination must be 20 characters or less.';
+    } else if (trimmedTo.length > 50) {
+      nextErrors.to = 'Destination must be 50 characters or less.';
     }
 
     if (selectedDate < today || selectedDate > maxTripDate) {
@@ -604,7 +604,7 @@ export default function CreateScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
-          <VStack space="sm" className="mb-10 px-6">
+          <VStack space="xs" className="mb-6 px-6">
             <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
               {isEditing ? 'Edit Trip' : 'New Trip'}
             </Text>
@@ -616,7 +616,7 @@ export default function CreateScreen() {
           </VStack>
 
           <Box
-            className="mx-6 mb-12 rounded-[32px] border p-6 shadow-sm"
+            className="mx-6 mb-8 rounded-[32px] border p-5 shadow-sm"
             style={{ backgroundColor: cardColor, borderColor }}
           >
             <Box className="px-6">
@@ -779,7 +779,7 @@ export default function CreateScreen() {
             </Box>
           </Box>
 
-          <VStack className="items-center px-6 mb-10" space="xs">
+          <VStack className="items-center px-6 mb-6" space="xs">
             <IconSymbol name="shield.lefthalf.filled" size={24} color={primaryColor} />
             <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center leading-4" style={{ color: subtextColor }}>
               By publishing, you commit to split costs fairly and adhering to the community guidelines.

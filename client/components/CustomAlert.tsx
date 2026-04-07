@@ -18,6 +18,7 @@ interface CustomAlertProps {
     primaryButton: {
         text: string;
         onPress: () => void;
+        style?: any;
     };
     secondaryButton?: {
         text: string;
@@ -110,10 +111,13 @@ export function CustomAlert({
                         )}
                         <Pressable
                             className="flex-1 h-12 rounded-2xl items-center justify-center shadow-xl border"
-                            style={{ 
-                                backgroundColor: primaryColor, 
-                                borderColor: `${primaryColor}20` 
-                            }}
+                            style={[
+                                { 
+                                    backgroundColor: primaryColor, 
+                                    borderColor: `${primaryColor}20` 
+                                },
+                                primaryButton.style
+                            ]}
                             onPress={primaryButton.onPress}
                         >
                             <Text className="text-[10px] font-extrabold uppercase tracking-widest text-white text-center">
