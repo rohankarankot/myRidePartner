@@ -3,10 +3,11 @@ import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from './icon-symbol';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { getThemeColors } from '@/constants/theme';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
 import { notificationService } from '@/services/notification-service';
+import { useThemeStore } from '@/store/theme-store';
 
 type HeaderRightProps = {
     type?: 'notifications' | 'settings';
@@ -16,7 +17,9 @@ export function HeaderRight({ type = 'notifications' }: HeaderRightProps) {
     const router = useRouter();
     const { user } = useAuth();
     const colorScheme = useColorScheme();
-    const tintColor = Colors[colorScheme ?? 'light'].tint;
+    const palette = useThemeStore((state) => state.palette);
+    const colors = getThemeColors(palette)[colorScheme ?? 'light'];
+    const tintColor = colors.tint;
 
     const { data: unreadCount = 0 } = useQuery({
         queryKey: ['unread-notifications-count', user?.id],
@@ -42,7 +45,7 @@ export function HeaderRight({ type = 'notifications' }: HeaderRightProps) {
         >
             <IconSymbol name={iconName} size={24} color={tintColor} />
             {type === 'notifications' && unreadCount > 0 && (
-                <View style={[styles.badge, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                     <Text style={styles.badgeText}>
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </Text>

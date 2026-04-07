@@ -63,6 +63,9 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+      },
       fontSize: {
         '2xs': ['10px', { lineHeight: '14px' }],
         xs: ['12px', { lineHeight: '16px' }],
@@ -75,6 +78,32 @@ module.exports = {
         '4xl': ['36px', { lineHeight: '42px' }],
         '5xl': ['48px', { lineHeight: '54px' }],
         '6xl': ['60px', { lineHeight: '66px' }],
+      },
+      colors: {
+        hearth: {
+          surface: '#111316',
+          'surface-low': '#161A1E',
+          'surface-container': '#1B1F23',
+          'surface-high': '#252A30',
+          'surface-highest': '#2E343B',
+          text: '#E2E2E6',
+          subtext: '#B6A39E',
+          primary: '#F06539',
+          'primary-soft': '#FFB59F',
+          amber: '#FFD799',
+          danger: '#FFB3AC',
+          outline: 'rgba(162, 124, 112, 0.15)',
+        },
+      },
+      borderRadius: {
+        hearth: '24px',
+      },
+      boxShadow: {
+        hearth: '0 16px 48px rgba(42, 18, 11, 0.08)',
+        'hearth-soft': '0 12px 32px rgba(42, 18, 11, 0.06)',
+      },
+      letterSpacing: {
+        editorial: '0.8px',
       },
     },
   },

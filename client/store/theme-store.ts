@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
+import { ThemePalette } from '@/constants/theme';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeState {
     theme: ThemeMode;
+    palette: ThemePalette;
     setTheme: (theme: ThemeMode) => void;
+    setPalette: (palette: ThemePalette) => void;
 }
 
 // Custom storage for Expo SecureStore
@@ -26,7 +29,9 @@ export const useThemeStore = create<ThemeState>()(
     persist(
         (set) => ({
             theme: 'system',
+            palette: 'ember',
             setTheme: (theme) => set({ theme }),
+            setPalette: (palette) => set({ palette }),
         }),
         {
             name: 'theme-storage',

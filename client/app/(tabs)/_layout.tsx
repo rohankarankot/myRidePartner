@@ -1,20 +1,20 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { View, StyleSheet, Linking, Platform, TouchableOpacity, Image, Text } from 'react-native';
+import { View, StyleSheet, Linking, TouchableOpacity, Image, Text } from 'react-native';
 import * as Location from 'expo-location';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { getThemeColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { useAuth } from '@/context/auth-context';
-import { useRouter } from 'expo-router';
 import { HeaderRight } from '@/components/ui/HeaderRight';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUserStore } from '@/store/user-store';
+import { useThemeStore } from '@/store/theme-store';
 import FindOutlineIcon from '@/assets/tab-icons/find-outline.svg';
 import FindFilledIcon from '@/assets/tab-icons/find-filled.svg';
 import ChatsFilledIcon from '@/assets/tab-icons/chats-filled.svg';
@@ -23,12 +23,13 @@ import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const palette = useThemeStore((state) => state.palette);
   const { user, isLoading } = useAuth();
   const { profile } = useUserStore();
   const router = useRouter();
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
-  const currentColors = Colors[colorScheme ?? 'light'];
+  const currentColors = getThemeColors(palette)[colorScheme ?? 'light'];
 
   const profileAvatarUrl =
     typeof profile?.avatar === 'string'
@@ -50,7 +51,7 @@ export default function TabLayout() {
     } else if (!user) {
       router.replace('/login');
     }
-  }, [user, isLoading, isFirstLaunch]);
+  }, [user, isLoading, isFirstLaunch, router]);
 
   const showContent = !isLoading && user && isFirstLaunch === false;
 
@@ -71,7 +72,7 @@ export default function TabLayout() {
   if (locationPermission && locationPermission !== 'granted') {
     return (
       <ThemedView style={styles.permissionContainer}>
-        <IconSymbol name="location.slash.fill" size={64} color={Colors[colorScheme ?? 'light'].tint} />
+        <IconSymbol name="location.slash.fill" size={64} color={currentColors.tint} />
         <ThemedText type="title" style={styles.permissionTitle}>Location Required</ThemedText>
         <ThemedText style={styles.permissionText}>
           My Ride Partner needs access to your location to find nearby rides and help you set pickup locations.
@@ -82,7 +83,7 @@ export default function TabLayout() {
 
         <View style={styles.buttonContainer}>
           <ThemedText
-            style={[styles.buttonText, { color: Colors[colorScheme ?? 'light'].tint }]}
+            style={[styles.buttonText, { color: currentColors.tint }]}
             onPress={() => Linking.openSettings()}
           >
             Open Settings
@@ -110,7 +111,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={() => ({
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: currentColors.tint,
         tabBarShowLabel: false,
         tabBarHideOnKeyboard: true,
         headerShown: true,
