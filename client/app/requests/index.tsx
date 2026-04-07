@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, RefreshControl, StyleSheet } from 'react-native';
+import { FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -45,42 +45,37 @@ export default function RequestsScreen() {
 
   const renderItem = ({ item }: { item: JoinRequest }) => (
     <Pressable
-      className="rounded-3xl p-4 mb-4"
-      style={[styles.cardShadow, { backgroundColor: cardColor }]}
+      className="rounded-[24px] p-5 mb-4 shadow-sm"
+      style={{ backgroundColor: cardColor }}
       onPress={() => router.push(`/requests/${item.documentId}`)}
     >
-      <HStack className="items-center">
+      <HStack className="items-center" space="md">
         <Box
-          className="w-[50px] h-[50px] rounded-full items-center justify-center"
+          className="w-12 h-12 rounded-full items-center justify-center"
           style={{ backgroundColor: `${primaryColor}15` }}
         >
-          <Text className="text-xl font-bold" style={{ color: primaryColor }}>
+          <Text className="text-lg font-extrabold" style={{ color: primaryColor }}>
             {item.passenger.username.charAt(0).toUpperCase()}
           </Text>
         </Box>
 
-        <VStack className="flex-1 ml-3" space="xs">
-          <Text className="text-lg font-semibold" style={{ color: textColor }}>
+        <VStack className="flex-1" space="xs">
+          <Text className="text-base font-bold" style={{ color: textColor }}>
             {item.passenger.username}
           </Text>
-          <Text className="text-sm" style={{ color: subtextColor }} numberOfLines={1}>
+          <Text className="text-xs font-medium" style={{ color: subtextColor }}>
             Requested {item.requestedSeats} {item.requestedSeats === 1 ? 'seat' : 'seats'}
-          </Text>
-          <Text className="text-sm" style={{ color: subtextColor }} numberOfLines={1}>
-            {item.sharePhoneNumber
-              ? item.passenger.userProfile?.phoneNumber || 'Phone unavailable'
-              : maskPhoneNumber(item.passenger.userProfile?.phoneNumber)}
           </Text>
         </VStack>
 
-        <IconSymbol name="chevron.right" size={20} color={subtextColor} />
+        <IconSymbol name="chevron.right" size={18} color={subtextColor} />
       </HStack>
 
-      <Box className="h-px my-3" style={{ backgroundColor: borderColor }} />
+      <Box className="h-px w-full my-4" style={{ backgroundColor: borderColor }} />
 
-      <HStack className="items-center" space="sm">
-        <IconSymbol name="car" size={16} color={subtextColor} />
-        <Text className="text-sm flex-1" style={{ color: subtextColor }} numberOfLines={1}>
+      <HStack className="items-center" space="xs">
+        <IconSymbol name="car.fill" size={14} color={subtextColor} />
+        <Text className="text-xs font-medium flex-1" style={{ color: subtextColor }} numberOfLines={1}>
           {item.trip.startingPoint} → {item.trip.destination}
         </Text>
       </HStack>
@@ -88,12 +83,11 @@ export default function RequestsScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
       <Stack.Screen
         options={{
           title: 'Join Requests',
-          headerShown: true,
-          headerBackTitle: 'Back',
+          headerTitleStyle: { fontWeight: '800' },
           headerStyle: { backgroundColor },
           headerTintColor: textColor,
           headerShadowVisible: false,
@@ -104,22 +98,24 @@ export default function RequestsScreen() {
         data={requests}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+        contentContainerStyle={{ padding: 20 }}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={primaryColor} />}
         ListEmptyComponent={
-          <Box className="flex-1 items-center justify-center px-10 py-24">
+          <Box className="flex-1 items-center justify-center px-10 py-32">
             {isLoading ? (
               <Spinner size="large" color={primaryColor} />
             ) : (
-              <>
-                <IconSymbol name="checkmark.circle" size={60} color={subtextColor} />
-                <Text className="text-xl font-bold mt-4 text-center" style={{ color: textColor }}>
+              <VStack space="md" className="items-center">
+                <Box className="w-16 h-16 rounded-full bg-gray-50 items-center justify-center">
+                    <IconSymbol name="checkmark.circle.fill" size={32} color={subtextColor} />
+                </Box>
+                <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
                   No pending requests
                 </Text>
-                <Text className="text-sm text-center mt-2 leading-6" style={{ color: subtextColor }}>
+                <Text className="text-sm text-center leading-6" style={{ color: subtextColor }}>
                   When people request to join your rides, they will appear here.
                 </Text>
-              </>
+              </VStack>
             )}
           </Box>
         }
@@ -127,19 +123,3 @@ export default function RequestsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  cardShadow: {
-    shadowColor: '#2A120B',
-    shadowOpacity: 0.05,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-  container: {
-    padding: 20,
-  },
-});

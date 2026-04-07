@@ -1,84 +1,48 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Skeleton } from '@/components/skeleton';
+import { Skeleton } from '@/components/skeleton/Skeleton';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { AppCard } from '@/components/ui/app-card';
-import { Spacing } from '@/constants/ui';
+import { Box } from '@/components/ui/box';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
 
 export function ChatsTabSkeleton() {
   const backgroundColor = useThemeColor({}, 'background');
+  const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
 
   return (
-    <View style={[styles.safe, { backgroundColor }]}>
-      <View style={styles.container}>
-        {Array.from({ length: 6 }).map((_, index) => (
-          <AppCard
+    <Box className="flex-1" style={{ backgroundColor }}>
+      <VStack className="p-4" space="md">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Box
             key={index}
-            style={[styles.card, { borderColor }]}
+            className="rounded-[32px] p-5 border-2 shadow-sm"
+            style={{ backgroundColor: cardColor, borderColor }}
           >
-            <Skeleton width={52} height={52} borderRadius={26} />
+            <HStack space="md">
+              <Skeleton width={56} height={56} borderRadius={28} />
+              
+              <VStack className="flex-1" space="xs">
+                <HStack className="justify-between items-center mb-1">
+                  <Skeleton width={index % 2 === 0 ? '55%' : '65%'} height={16} borderRadius={8} />
+                  <Skeleton width={70} height={22} borderRadius={11} />
+                </HStack>
+                
+                <Skeleton width="90%" height={13} borderRadius={7} />
+                <Skeleton width="70%" height={13} borderRadius={7} className="mt-1" />
 
-            <View style={styles.content}>
-              <View style={styles.row}>
-                <Skeleton width={index % 2 === 0 ? '58%' : '64%'} height={16} borderRadius={8} />
-                <Skeleton width={74} height={24} borderRadius={999} />
-              </View>
-
-              <Skeleton width="92%" height={13} borderRadius={7} style={styles.subtitleLine} />
-              <Skeleton width="72%" height={13} borderRadius={7} style={styles.compactLine} />
-
-              <View style={styles.footer}>
-                <View style={styles.roleRow}>
-                  <Skeleton width={14} height={14} borderRadius={7} />
-                  <Skeleton width={index % 2 === 0 ? 150 : 166} height={12} borderRadius={6} />
-                </View>
-                <Skeleton width={18} height={18} borderRadius={9} />
-              </View>
-            </View>
-          </AppCard>
+                <HStack className="justify-between items-center mt-4">
+                  <HStack className="items-center" space="xs">
+                    <Skeleton width={14} height={14} borderRadius={7} />
+                    <Skeleton width={index % 2 === 0 ? 120 : 140} height={12} borderRadius={6} />
+                  </HStack>
+                  <Skeleton width={20} height={20} borderRadius={10} />
+                </HStack>
+              </VStack>
+            </HStack>
+          </Box>
         ))}
-      </View>
-    </View>
+      </VStack>
+    </Box>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  container: {
-    padding: 16,
-    gap: 12,
-  },
-  card: {
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  content: {
-    flex: 1,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  subtitleLine: {
-    marginTop: 8,
-  },
-  compactLine: {
-    marginTop: 6,
-  },
-  footer: {
-    marginTop: Spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  roleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-});

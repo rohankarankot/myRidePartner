@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
-    StyleSheet,
+    RefreshControl,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Spinner } from '@/components/ui/spinner';
+import { Divider } from '@/components/ui/divider';
 
 type MemberRow = {
     id: number;
@@ -42,7 +43,7 @@ export default function TripChatMembersScreen() {
     const offlineColor = useMemo(() => `${subtextColor}55`, [subtextColor]);
     const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
 
-    const { data: members = [], isLoading } = useQuery({
+    const { data: members = [], isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['trip-chat-members', tripId],
         queryFn: async () => {
             const trip = await tripService.getTripById(tripId!);
@@ -121,9 +122,9 @@ export default function TripChatMembersScreen() {
     const titleText = useMemo(() => {
         const riderCount = Math.max(0, members.length - 1);
         if (riderCount === 0) {
-            return 'Captain only for now';
+            return 'Just the captain for now';
         }
-        return `${riderCount} rider${riderCount > 1 ? 's' : ''} in this ride`;
+        return `${riderCount} approved rider${riderCount > 1 ? 's' : ''} in this group`;
     }, [members.length]);
 
     useEffect(() => {
@@ -152,106 +153,99 @@ export default function TripChatMembersScreen() {
     }, [tripId]);
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+        <Box className="flex-1" style={{ backgroundColor }}>
             <Stack.Screen
                 options={{
-                    title: 'Ride Members',
+                    title: 'Group Members',
                     headerShown: true,
                     headerStyle: { backgroundColor },
                     headerTintColor: textColor,
                     headerShadowVisible: false,
+                    headerTitleStyle: { fontWeight: '800' },
                 }}
             />
 
-            {isLoading ? (
-                <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
+            {isLoading && !isRefetching ? (
+                <Box className="flex-1 items-center justify-center">
                     <Spinner size="large" color={primaryColor} />
+                    <Text className="mt-4 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Scanning group…</Text>
                 </Box>
             ) : (
                 <FlatList
                     data={members}
                     keyExtractor={(item) => String(item.id)}
-                    contentContainerStyle={styles.container}
+                    contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+                    refreshControl={
+                        <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={primaryColor} colors={[primaryColor]} />
+                    }
                     ListHeaderComponent={
-                        <Box style={styles.headerCopy}>
-                            <Text className="text-2xl font-extrabold mb-1" style={{ color: textColor }}>
-                                Everyone in this ride
+                        <Box className="mb-6">
+                            <Text className="text-3xl font-extrabold mb-1" style={{ color: textColor }}>
+                                The Squad
                             </Text>
-                            <Text className="text-sm leading-5" style={{ color: subtextColor }}>
+                            <Text className="text-sm font-medium leading-5" style={{ color: subtextColor }}>
                                 {titleText}
                             </Text>
+                            
                             <Pressable
-                                className="mt-4 rounded-3xl border px-4 py-4 flex-row items-center"
-                                style={[styles.cardShadow, { backgroundColor: cardColor, borderColor: `${primaryColor}28` }]}
+                                className="mt-6 rounded-[32px] border-2 p-5 flex-row items-center shadow-xl"
+                                style={{ backgroundColor: cardColor, borderColor: `${primaryColor}30` }}
                                 onPress={() => router.push(`/trip/${tripId}`)}
                             >
-                                <Box className="w-11 h-11 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}14` }}>
-                                    <IconSymbol name="car.fill" size={18} color={primaryColor} />
+                                <Box className="w-12 h-12 rounded-2xl items-center justify-center border shadow-sm" style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor + '20' }}>
+                                    <IconSymbol name="car.fill" size={20} color={primaryColor} />
                                 </Box>
-                                <VStack className="flex-1 ml-3">
-                                    <Text className="text-[11px] font-extrabold uppercase mb-1" style={{ color: primaryColor }}>
-                                        Ride Overview
+                                <VStack className="flex-1 ml-4" >
+                                    <Text className="text-[9px] font-extrabold uppercase tracking-widest mb-1" style={{ color: primaryColor }}>
+                                        Full Trip Logistics
                                     </Text>
-                                    <Text className="text-base font-extrabold mb-0.5" style={{ color: textColor }}>
-                                        View trip details
+                                    <Text className="text-base font-extrabold" style={{ color: textColor }}>
+                                        Explore ride details
                                     </Text>
-                                    <Text className="text-sm leading-5" style={{ color: subtextColor }}>
-                                        Check route, timing, seats, and ride status
+                                    <Text className="text-xs font-medium leading-5" style={{ color: subtextColor }}>
+                                        Route, timing, and policies
                                     </Text>
                                 </VStack>
-                                <Box className="w-[34px] h-[34px] rounded-full items-center justify-center ml-3" style={{ backgroundColor: `${primaryColor}10` }}>
-                                    <IconSymbol name="chevron.right" size={16} color={primaryColor} />
+                                <Box className="w-8 h-8 rounded-full items-center justify-center border shadow-xs" style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor + '10' }}>
+                                    <IconSymbol name="chevron.right" size={14} color={primaryColor} />
                                 </Box>
                             </Pressable>
+
+                            <Divider className="my-8" style={{ backgroundColor: borderColor }} />
+                            
+                            <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1 mb-4" style={{ color: subtextColor }}>
+                                Active Members
+                            </Text>
                         </Box>
                     }
                     renderItem={({ item }) => (
                         <Pressable
-                            className="rounded-3xl border p-4 mb-3 flex-row items-center"
-                            style={[styles.cardShadow, { backgroundColor: cardColor, borderColor }]}
+                            className="rounded-[28px] border p-5 mb-4 flex-row items-center shadow-sm"
+                            style={{ backgroundColor: cardColor, borderColor }}
                             onPress={() => router.push(`/user/${item.id}`)}
                         >
-                            <Avatar size="lg">
+                            <Avatar size="lg" className="border shadow-sm" style={{ borderColor }}>
                                 <AvatarFallbackText>{item.name}</AvatarFallbackText>
                                 {item.avatarUrl ? <AvatarImage source={{ uri: item.avatarUrl }} alt={item.name} /> : null}
                             </Avatar>
 
-                            <VStack className="flex-1 ml-3">
-                                <HStack className="items-center" space="sm">
-                                    <Text className="flex-1 text-base font-bold" style={{ color: textColor }} numberOfLines={1}>
+                            <VStack className="flex-1 ml-4">
+                                <HStack className="items-center justify-between mb-1" space="xs">
+                                    <Text className="flex-1 text-base font-extrabold" style={{ color: textColor }} numberOfLines={1}>
                                         {item.name}
                                     </Text>
-                                    <HStack className="items-center" space="xs">
-                                        <Box
-                                            className="w-2 h-2 rounded-full"
-                                            style={{
-                                                backgroundColor: onlineUserIds.includes(item.id)
-                                                    ? successColor
-                                                    : offlineColor,
-                                            }}
-                                        />
-                                        <Text
-                                            className="text-xs font-semibold"
-                                            style={{
-                                                color: onlineUserIds.includes(item.id)
-                                                    ? successColor
-                                                    : subtextColor,
-                                            }}
-                                        >
-                                            {onlineUserIds.includes(item.id) ? 'Online' : 'Offline'}
-                                        </Text>
-                                    </HStack>
                                     <Box
-                                        className="rounded-full px-3 py-1"
+                                        className="rounded-full px-3 py-1 border shadow-xs"
                                         style={{
                                             backgroundColor:
                                                 item.role === 'Captain'
-                                                    ? `${primaryColor}15`
-                                                    : `${subtextColor}14`,
+                                                    ? `${primaryColor}10`
+                                                    : `#11182708`,
+                                            borderColor: item.role === 'Captain' ? primaryColor + '20' : borderColor
                                         }}
                                     >
                                         <Text
-                                            className="text-[11px] font-bold"
+                                            className="text-[9px] font-extrabold uppercase tracking-widest"
                                             style={{
                                                 color:
                                                     item.role === 'Captain'
@@ -263,39 +257,40 @@ export default function TripChatMembersScreen() {
                                         </Text>
                                     </Box>
                                 </HStack>
-                                <Text className="text-sm mt-1" style={{ color: subtextColor }} numberOfLines={1}>
+                                
+                                <HStack className="items-center mb-1.5" space="xs">
+                                    <Box
+                                        className="w-2 h-2 rounded-full border border-white"
+                                        style={{
+                                            backgroundColor: onlineUserIds.includes(item.id)
+                                                ? successColor
+                                                : offlineColor,
+                                        }}
+                                    />
+                                    <Text
+                                        className="text-[10px] font-extrabold uppercase tracking-tight"
+                                        style={{
+                                            color: onlineUserIds.includes(item.id)
+                                                ? successColor
+                                                : subtextColor,
+                                        }}
+                                    >
+                                        {onlineUserIds.includes(item.id) ? 'Online' : 'Away'}
+                                    </Text>
+                                </HStack>
+
+                                <Text className="text-[13px] font-medium leading-5" style={{ color: subtextColor }} numberOfLines={1}>
                                     {item.subtitle}
                                 </Text>
                             </VStack>
 
-                            <IconSymbol name="chevron.right" size={18} color={subtextColor} />
+                            <Box className="ml-3 w-7 h-7 rounded-full items-center justify-center border bg-gray-50/50 shadow-xs" style={{ borderColor }}>
+                                <IconSymbol name="chevron.right" size={12} color={subtextColor} />
+                            </Box>
                         </Pressable>
                     )}
                 />
             )}
-        </SafeAreaView>
+        </Box>
     );
 }
-
-const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cardShadow: {
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
-    },
-    container: {
-        padding: 16,
-    },
-    headerCopy: {
-        marginBottom: 10,
-    },
-});

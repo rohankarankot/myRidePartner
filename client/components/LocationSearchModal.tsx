@@ -1,11 +1,20 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import {
-    StyleSheet, View, Text, Modal, TouchableOpacity,
-    TextInput, KeyboardAvoidingView, Platform
+    Modal,
+    TextInput,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from './ui/icon-symbol';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
 
 interface LocationSearchModalProps {
     visible: boolean;
@@ -24,10 +33,6 @@ export function LocationSearchModal({ visible, onClose, onSelectLocation, title 
     const borderColor = useThemeColor({}, 'border');
     const subtextColor = useThemeColor({}, 'subtext');
 
-    const fetchSuggestions = (text: string) => {
-        setQuery(text);
-    };
-
     const handleConfirm = () => {
         if (query.trim()) {
             onSelectLocation(query);
@@ -43,143 +48,97 @@ export function LocationSearchModal({ visible, onClose, onSelectLocation, title 
 
     return (
         <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-            <SafeAreaView style={[styles.container, { backgroundColor }]} edges={['top']}>
-                {/* Header */}
-                <View style={[styles.header, { borderBottomColor: borderColor }]}>
-                    <TouchableOpacity onPress={handleClose} style={styles.closeButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                        <IconSymbol name="xmark" size={22} color={textColor} />
-                    </TouchableOpacity>
-                    <Text style={[styles.title, { color: textColor }]}>{title}</Text>
-                    <View style={{ width: 30 }} />
-                </View>
-                <View style={{
-                    padding: 16, paddingTop: 0, paddingBottom: 8,
-                    height: 180,
-                    backgroundColor: '#5f5f5fff',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    width: '100%',
-                }}>
-                    <Text style={[styles.title, { color: textColor, fontStyle: "italic" }]}>placeholder for map integration</Text>
-                    <Text style={[styles.title, { color: textColor, fontStyle: "italic", fontSize: 15 }]}>(I dont have API key)</Text>
+            <Box className="flex-1" style={{ backgroundColor }}>
+                <SafeAreaView className="flex-1" edges={['top', 'bottom']}>
+                    <KeyboardAvoidingView 
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+                        className="flex-1"
+                    >
+                        {/* Header */}
+                        <HStack className="items-center justify-between px-6 py-5 border-b" style={{ borderBottomColor: borderColor }}>
+                            <Pressable 
+                                onPress={handleClose} 
+                                className="w-10 h-10 rounded-full items-center justify-center bg-gray-50 border shadow-xs"
+                                style={{ borderColor }}
+                            >
+                                <IconSymbol name="xmark" size={20} color={textColor} />
+                            </Pressable>
+                            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>{title}</Text>
+                            <Box className="w-10" />
+                        </HStack>
 
-                </View>
-                {/* Search Box */}
-                <View style={[styles.searchBox, { backgroundColor: cardColor, borderColor }]}>
-                    <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
-                    <TextInput
-                        style={[styles.input, { color: textColor }]}
-                        placeholder="Search area, landmark, city..."
-                        placeholderTextColor={subtextColor}
-                        value={query}
-                        onChangeText={fetchSuggestions}
-                        autoFocus
-                    />
-                    {query.length > 0 && (
-                        <TouchableOpacity
-                            onPress={() => { setQuery(''); }}
-                            style={styles.clearInputButton}
-                            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-                        >
-                            <View style={styles.clearIconCircle}>
-                                <IconSymbol name="xmark" size={14} color="#fff" />
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                        <ScrollView className="flex-1" bounces={false} keyboardShouldPersistTaps="handled">
+                            {/* Placeholder Map Area */}
+                            <Box className="px-6 py-8">
+                                <Box 
+                                    className="h-44 rounded-[32px] border-2 border-dashed items-center justify-center p-8 bg-gray-50/30"
+                                    style={{ borderColor: `${primaryColor}20` }}
+                                >
+                                    <Box className="w-12 h-12 rounded-2xl bg-white items-center justify-center mb-4 shadow-sm border" style={{ borderColor }}>
+                                        <IconSymbol name="map.fill" size={20} color={primaryColor} />
+                                    </Box>
+                                    <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
+                                        Interactive map integration coming soon
+                                    </Text>
+                                </Box>
+                            </Box>
 
-                {/* Confirm Button Area */}
-                <View style={styles.confirmArea}>
-                    {query.trim().length > 0 && (
-                        <TouchableOpacity
-                            style={[styles.confirmButton, { backgroundColor: primaryColor }]}
-                            onPress={handleConfirm}
-                        >
-                            <IconSymbol name="checkmark.circle.fill" size={20} color="#fff" />
-                            <Text style={styles.confirmButtonText}>Confirm "{query}"</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                            {/* Search Box */}
+                            <Box className="px-6 pb-6">
+                                <VStack space="sm">
+                                    <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
+                                        Manual Search
+                                    </Text>
+                                    <HStack 
+                                        className="items-center px-4 h-16 rounded-[24px] border-2 shadow-sm" 
+                                        style={{ backgroundColor: cardColor, borderColor }}
+                                        space="md"
+                                    >
+                                        <IconSymbol name="magnifyingglass" size={18} color={primaryColor} />
+                                        <TextInput
+                                            className="flex-1 text-[15px] font-medium"
+                                            style={{ color: textColor }}
+                                            placeholder="Area, landmark, or city..."
+                                            placeholderTextColor={subtextColor}
+                                            value={query}
+                                            onChangeText={setQuery}
+                                            autoFocus
+                                        />
+                                        {query.length > 0 && (
+                                            <Pressable
+                                                onPress={() => setQuery('')}
+                                                className="w-8 h-8 rounded-full items-center justify-center bg-gray-100"
+                                            >
+                                                <IconSymbol name="xmark" size={12} color={subtextColor} />
+                                            </Pressable>
+                                        )}
+                                    </HStack>
+                                </VStack>
+                            </Box>
 
-                <View style={styles.instructionsArea}>
-                    <Text style={[styles.instructionsText, { color: subtextColor }]}>
-                        Type the location manually and press confirm.
-                    </Text>
-                </View>
-            </SafeAreaView>
+                            {/* Confirm Button Area */}
+                            <Box className="px-6 pt-4">
+                                {query.trim().length > 0 && (
+                                    <Button 
+                                        className="h-16 rounded-[24px] shadow-xl"
+                                        style={{ backgroundColor: primaryColor }}
+                                        onPress={handleConfirm}
+                                    >
+                                        <ButtonIcon as={() => <IconSymbol name="checkmark.circle.fill" size={18} color="#fff" />} className="mr-3" />
+                                        <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Confirm "{query}"</ButtonText>
+                                    </Button>
+                                )}
+                            </Box>
+
+                            <Box className="px-10 py-12 items-center">
+                                <Text className="text-[11px] font-medium leading-5 text-center opacity-60 italic" style={{ color: subtextColor }}>
+                                    Precision matters for a smooth pickup. Please type the full address or primary landmark.
+                                </Text>
+                            </Box>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+                </SafeAreaView>
+            </Box>
         </Modal>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    closeButton: {
-        padding: 4,
-    },
-    title: {
-        fontSize: 17,
-        fontWeight: '700',
-    },
-    searchBox: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        margin: 16,
-        paddingHorizontal: 14,
-        height: 50,
-        borderRadius: 12,
-        borderWidth: 1,
-        gap: 10,
-    },
-    input: {
-        flex: 1,
-        fontSize: 16,
-    },
-    clearInputButton: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    clearIconCircle: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
-        backgroundColor: '#C4C4C4',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    confirmArea: {
-        paddingHorizontal: 16,
-        paddingTop: 8,
-    },
-    confirmButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 54,
-        borderRadius: 12,
-        gap: 10,
-    },
-    confirmButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    instructionsArea: {
-        padding: 32,
-        alignItems: 'center',
-    },
-    instructionsText: {
-        textAlign: 'center',
-        fontSize: 14,
-        lineHeight: 20,
-    },
-});

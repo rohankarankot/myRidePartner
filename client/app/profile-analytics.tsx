@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 
@@ -10,6 +10,8 @@ import { ProfileAnalyticsCard } from '@/components/profile-analytics-card';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { Spinner } from '@/components/ui/spinner';
+import { VStack } from '@/components/ui/vstack';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function ProfileAnalyticsScreen() {
   const { user } = useAuth();
@@ -27,6 +29,7 @@ export default function ProfileAnalyticsScreen() {
   if (isLoading) {
     return (
       <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
+        <Stack.Screen options={{ title: 'Your Analytics', headerTitleStyle: { fontWeight: '800' } }} />
         <Spinner size="large" color={primaryColor} />
       </Box>
     );
@@ -34,38 +37,41 @@ export default function ProfileAnalyticsScreen() {
 
   if (error || !data) {
     return (
-      <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor }}>
-        <Stack.Screen options={{ title: 'Your Analytics', headerBackTitle: 'Profile' }} />
-        <Text className="text-xl font-bold text-center" style={{ color: textColor }}>
-          Analytics unavailable
-        </Text>
-        <Text className="text-sm leading-6 text-center mt-2" style={{ color: subtextColor }}>
-          We could not load your ride insights right now. Pull to refresh and try again.
-        </Text>
+      <Box className="flex-1 items-center justify-center px-10" style={{ backgroundColor }}>
+        <Stack.Screen options={{ title: 'Your Analytics', headerTitleStyle: { fontWeight: '800' } }} />
+        <VStack className="items-center" space="md">
+            <Box className="w-20 h-20 rounded-full bg-gray-50 items-center justify-center mb-2">
+                <IconSymbol name="chart.bar.fill" size={40} color={subtextColor} />
+            </Box>
+          <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
+            Analytics unavailable
+          </Text>
+          <Text className="text-sm font-medium text-center leading-6" style={{ color: subtextColor }}>
+            We could not load your ride insights right now. Pull to refresh and try again.
+          </Text>
+        </VStack>
       </Box>
     );
   }
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor }]}
-      contentContainerStyle={styles.content}
+      style={{ flex: 1, backgroundColor }}
+      contentContainerStyle={{ paddingBottom: 40 }}
       refreshControl={
         <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={primaryColor} colors={[primaryColor]} />
       }
     >
-      <Stack.Screen options={{ title: 'Your Analytics', headerBackTitle: 'Profile' }} />
-      <ProfileAnalyticsCard analytics={data} />
+      <Stack.Screen options={{ title: 'Your Analytics', headerTitleStyle: { fontWeight: '800' }, headerBackTitle: 'Profile' }} />
+      
+      <VStack className="px-6 py-8" space="xs">
+          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Ride Insights</Text>
+          <Text className="text-sm font-medium" style={{ color: subtextColor }}>Detailed tracking of your contributions and savings.</Text>
+      </VStack>
+
+      <Box className="px-6">
+        <ProfileAnalyticsCard analytics={data} />
+      </Box>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-});

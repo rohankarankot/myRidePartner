@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { RefreshControl, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useScrollToTop, useFocusEffect } from '@react-navigation/native';
@@ -35,11 +35,11 @@ function ActivitySkeleton() {
 
   return (
     <Box className="flex-1" style={{ backgroundColor }}>
-      <Box className="border-b" style={{ borderBottomColor: borderColor || 'rgba(0,0,0,0.05)' }}>
+      <Box className="border-b" style={{ borderBottomColor: borderColor }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsScrollContent}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 12 }}
         >
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton
@@ -53,18 +53,18 @@ function ActivitySkeleton() {
         </ScrollView>
       </Box>
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
         <Skeleton width="38%" height={18} borderRadius={9} style={{ marginBottom: 16 }} />
 
         {Array.from({ length: 4 }).map((_, index) => (
           <Box
             key={index}
-            className="rounded-2xl p-4 mb-4"
-            style={[styles.cardShadow, { backgroundColor: cardColor }]}
+            className="rounded-[32px] p-5 mb-4 border"
+            style={{ backgroundColor: cardColor, borderColor }}
           >
             <HStack className="items-start justify-between mb-4">
               <HStack className="flex-1 items-center" space="md">
-                <Skeleton width={40} height={40} borderRadius={20} />
+                <Skeleton width={44} height={44} borderRadius={22} />
                 <VStack className="flex-1" space="xs">
                   <Skeleton width={index % 2 === 0 ? '52%' : '44%'} height={16} borderRadius={8} />
                   <Skeleton width="36%" height={14} borderRadius={7} />
@@ -87,15 +87,13 @@ function ActivitySkeleton() {
                 <Skeleton width={index % 2 === 0 ? '80%' : '68%'} height={16} borderRadius={8} />
                 <Skeleton width={index % 2 === 0 ? '72%' : '84%'} height={16} borderRadius={8} />
               </VStack>
-
-              <Skeleton width={52} height={24} borderRadius={12} style={{ marginLeft: 12 }} />
             </HStack>
 
-            <Divider style={{ backgroundColor: borderColor, marginBottom: 12 }} />
+            <Divider style={{ backgroundColor: borderColor, marginBottom: 16 }} />
 
             <HStack className="items-center justify-between">
-              <Skeleton width={index % 2 === 0 ? 120 : 154} height={18} borderRadius={9} />
-              <Skeleton width={18} height={18} borderRadius={9} />
+              <Skeleton width={120} height={24} borderRadius={12} />
+              <Skeleton width={20} height={20} borderRadius={10} />
             </HStack>
           </Box>
         ))}
@@ -173,84 +171,85 @@ function TripCard(props: {
 
   return (
     <Pressable
-      className="rounded-2xl p-4 mb-4"
-      style={[styles.cardShadow, { backgroundColor: cardColor }]}
+      className="rounded-[32px] p-5 mb-4 border shadow-sm"
+      style={{ backgroundColor: cardColor, borderColor }}
       onPress={() => onPress(documentId)}
     >
-      <HStack className="items-start justify-between mb-4">
+      <HStack className="items-start justify-between mb-6">
         <HStack className="flex-1 items-center" space="md">
-          <Avatar size="md">
+          <Avatar size="md" className="border shadow-sm" style={{ borderColor }}>
             <AvatarFallbackText>{captainName || 'Captain'}</AvatarFallbackText>
             {avatarUrl ? <AvatarImage source={{ uri: avatarUrl }} alt={captainName || 'Captain'} /> : null}
           </Avatar>
           <VStack className="flex-1" space="xs">
-            <Text className="text-base font-bold" style={{ color: textColor }}>
+            <Text className="text-base font-extrabold" style={{ color: textColor }}>
               {captainName || 'Captain'}
             </Text>
-            <Text className="text-sm" style={{ color: subtextColor }}>
+            <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>
               {date}
             </Text>
           </VStack>
         </HStack>
 
         <VStack className="items-end" space="xs">
-          <Box className="rounded-xl px-3 py-1" style={{ backgroundColor: statusStyle.bg }}>
-            <Text className="text-[11px] font-bold" style={{ color: statusStyle.text }}>
+          <Box className="rounded-full px-3 py-1 border shadow-sm" style={{ backgroundColor: statusStyle.bg, borderColor: statusStyle.text + '20' }}>
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: statusStyle.text }}>
               {status}
             </Text>
           </Box>
-          {pendingRequestsCount > 0 ? (
-            <Box className="rounded-[10px] px-2 py-1" style={{ backgroundColor: primaryColor }}>
-              <Text className="text-[10px] font-extrabold text-white">
+          {pendingRequestsCount > 0 && (
+            <Box className="rounded-full px-2 py-0.5 border shadow-sm" style={{ backgroundColor: primaryColor, borderColor: '#fff' }}>
+              <Text className="text-[8px] font-extrabold uppercase tracking-widest text-white">
                 {pendingRequestsCount} Pending
               </Text>
             </Box>
-          ) : null}
+          )}
         </VStack>
       </HStack>
 
-      <HStack className="mb-4 items-start">
-        <VStack className="items-center mr-3 pt-1">
-          <Box className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }} />
-          <Box className="w-px h-8 my-1" style={{ backgroundColor: borderColor }} />
-          <Box className="h-2 w-2 rounded-full" style={{ backgroundColor: '#10B981' }} />
+      <HStack className="mb-6 items-start">
+        <VStack className="items-center mr-4 pt-1">
+          <Box className="h-2.5 w-2.5 rounded-full border-2" style={{ backgroundColor: primaryColor, borderColor: '#fff' }} />
+          <Box className="w-1 flex-1 my-1 border-r border-dashed" style={{ borderColor }} />
+          <Box className="h-2.5 w-2.5 rounded-full border-2" style={{ backgroundColor: '#10B981', borderColor: '#fff' }} />
         </VStack>
 
-        <VStack className="flex-1 justify-between">
-          <Text className="text-base font-semibold" style={{ color: textColor }} numberOfLines={2}>
+        <VStack className="flex-1 justify-between h-20">
+          <Text className="text-[15px] font-bold" style={{ color: textColor }} numberOfLines={2}>
             {from}
           </Text>
-          <Text
-            className="text-base font-semibold mt-5"
-            style={{ color: textColor }}
-            numberOfLines={2}
-          >
+          <Text className="text-[15px] font-bold" style={{ color: textColor }} numberOfLines={2}>
             {to}
           </Text>
         </VStack>
 
         <Box
-          className="h-6 rounded-xl px-2 ml-3 flex-row items-center"
-          style={{ backgroundColor: genderPalette.bg }}
+          className="rounded-full px-3 py-1 ml-3 flex-row items-center border shadow-sm"
+          style={{ backgroundColor: genderPalette.bg, borderColor: genderPalette.text + '20' }}
         >
           <IconSymbol name={genderPalette.icon} size={10} color={genderPalette.text} />
-          <Text className="text-[11px] font-bold ml-1" style={{ color: genderPalette.text }}>
+          <Text className="text-[9px] font-extrabold uppercase tracking-widest ml-1.5" style={{ color: genderPalette.text }}>
             {genderPreference === 'both' ? 'All' : genderPreference === 'men' ? 'Men' : 'Women'}
           </Text>
         </Box>
       </HStack>
 
-      <Divider style={{ backgroundColor: borderColor, marginBottom: 12 }} />
+      <Divider style={{ backgroundColor: borderColor }} className="mb-4" />
 
       <HStack className="items-center justify-between">
-        <Text className="text-lg font-extrabold" style={{ color: primaryColor }}>
-          {typeof price === 'number'
-            ? `₹${price}`
-            : isPriceCalculated
-              ? 'Calculated on departure'
-              : 'Price not set'}
-        </Text>
-        <IconSymbol name="chevron.right" size={18} color={subtextColor} />
+        <HStack className="items-center" space="xs">
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Fare:</Text>
+            <Text className="text-xl font-extrabold" style={{ color: primaryColor }}>
+            {typeof price === 'number'
+                ? `₹${price}`
+                : isPriceCalculated
+                ? 'Departing'
+                : 'Not set'}
+            </Text>
+        </HStack>
+        <Box className="w-8 h-8 rounded-full items-center justify-center bg-gray-50 border shadow-sm" style={{ borderColor }}>
+            <IconSymbol name="chevron.right" size={14} color={subtextColor} />
+        </Box>
       </HStack>
     </Pressable>
   );
@@ -348,29 +347,26 @@ export default function ActivityScreen() {
 
   return (
     <Box className="flex-1" style={{ backgroundColor }}>
-      <Box
-        className="border-b"
-        style={{ borderBottomColor: borderColor || 'rgba(0,0,0,0.05)' }}
-      >
+      <Box style={{ borderBottomColor: borderColor }} className="border-b">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsScrollContent}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 14 }}
         >
           {FILTER_TABS.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <Pressable
                 key={tab.id}
-                className="rounded-full border px-4 py-2 mr-2"
+                className="rounded-full border px-5 py-2 mr-3 shadow-sm"
                 style={{
                   backgroundColor: isActive ? primaryColor : 'transparent',
-                  borderColor: isActive ? primaryColor : `${subtextColor}40`,
+                  borderColor: isActive ? primaryColor : borderColor,
                 }}
                 onPress={() => setActiveTab(tab.id)}
               >
                 <Text
-                  className="text-sm font-semibold"
+                  className="text-xs font-extrabold uppercase tracking-widest"
                   style={{ color: isActive ? '#fff' : subtextColor }}
                 >
                   {tab.label}
@@ -383,32 +379,39 @@ export default function ActivityScreen() {
 
       <ScrollView
         ref={ref}
-        contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />}
+        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
         {displayTrips.length === 0 && displayRequests.length === 0 ? (
-          <VStack className="items-center justify-center py-[60px]" space="sm">
-            <IconSymbol name="list.bullet" size={48} color={subtextColor} />
-            <Text className="text-base mt-2 text-center" style={{ color: subtextColor }}>
-              No {activeTab.replace('-', ' ')} activity found.
-            </Text>
+          <VStack className="items-center justify-center py-[100px]" space="lg">
+            <Box className="w-20 h-20 rounded-[32px] bg-gray-50 items-center justify-center rotate-3 shadow-xl">
+                <IconSymbol name="list.bullet" size={40} color={subtextColor} />
+            </Box>
+            <VStack className="items-center" space="xs">
+                <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
+                No recent activity
+                </Text>
+                <Text className="text-sm font-medium text-center leading-6 max-w-[240px]" style={{ color: subtextColor }}>
+                Your {activeTab.replace('-', ' ')} activity is empty. Start a trip or join one to see updates here.
+                </Text>
+            </VStack>
             <Pressable
-              className="rounded-xl px-6 py-3 mt-2"
-              style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}
+              className="rounded-2xl px-8 py-3.5 mt-4 shadow-sm border"
+              style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor }}
               onPress={() => router.push('/')}
             >
-              <Text className="font-semibold" style={{ color: primaryColor }}>
+              <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
                 Find a ride
               </Text>
             </Pressable>
           </VStack>
         ) : (
           <>
-            {displayTrips.length > 0 ? (
+            {displayTrips.length > 0 && (
               <>
                 <Text
-                  className="text-base font-semibold uppercase mb-4 tracking-[1px]"
-                  style={{ color: textColor }}
+                  className="text-[10px] font-extrabold uppercase mb-4 tracking-widest ml-1"
+                  style={{ color: subtextColor }}
                 >
                   Trips You&apos;re Leading
                 </Text>
@@ -424,9 +427,7 @@ export default function ActivityScreen() {
                     status={trip.status}
                     genderPreference={trip.genderPreference}
                     avatarUrl={
-                      typeof trip.creator?.userProfile?.avatar === 'string'
-                        ? trip.creator.userProfile.avatar
-                        : (trip.creator?.userProfile?.avatar as any)?.url
+                      trip.creator?.userProfile?.avatar?.url || trip.creator?.userProfile?.avatar
                     }
                     captainName={
                       trip.creator?.userProfile?.fullName || trip.creator?.username
@@ -438,13 +439,13 @@ export default function ActivityScreen() {
                   />
                 ))}
               </>
-            ) : null}
+            )}
 
-            {displayRequests.length > 0 ? (
+            {displayRequests.length > 0 && (
               <>
                 <Text
-                  className="text-base font-semibold uppercase mb-4 tracking-[1px]"
-                  style={{ color: textColor, marginTop: displayTrips.length > 0 ? 24 : 0 }}
+                  className="text-[10px] font-extrabold uppercase mb-4 tracking-widest ml-1"
+                  style={{ color: subtextColor, marginTop: displayTrips.length > 0 ? 24 : 0 }}
                 >
                   Trips You&apos;ve Requested
                 </Text>
@@ -460,9 +461,7 @@ export default function ActivityScreen() {
                     status={request.status}
                     genderPreference={request.trip?.genderPreference || 'both'}
                     avatarUrl={
-                      typeof request.trip?.creator?.userProfile?.avatar === 'string'
-                        ? request.trip.creator.userProfile.avatar
-                        : (request.trip?.creator?.userProfile?.avatar as any)?.url
+                      request.trip?.creator?.userProfile?.avatar?.url || request.trip?.creator?.userProfile?.avatar
                     }
                     captainName={
                       request.trip?.creator?.userProfile?.fullName ||
@@ -472,28 +471,10 @@ export default function ActivityScreen() {
                   />
                 ))}
               </>
-            ) : null}
+            )}
           </>
         )}
       </ScrollView>
     </Box>
   );
 }
-
-const styles = StyleSheet.create({
-  tabsScrollContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  container: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  cardShadow: {
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-});

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { RefreshControl, ScrollView } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +20,7 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Spinner } from '@/components/ui/spinner';
+import { Divider } from '@/components/ui/divider';
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams();
@@ -96,16 +97,17 @@ export default function UserProfileScreen() {
 
   const screenOptions = {
     title: profile?.fullName || 'Profile',
+    headerTitleStyle: { fontWeight: 'bold' },
     headerShown: true,
     headerStyle: { backgroundColor },
     headerTintColor: textColor,
     headerShadowVisible: false,
     headerBackTitle: 'Back',
-  };
+  } as const;
 
   if (isLoading && !isRefreshing) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
         <Stack.Screen options={screenOptions} />
         <Box className="flex-1 items-center justify-center">
           <Spinner size="large" color={primaryColor} />
@@ -116,20 +118,25 @@ export default function UserProfileScreen() {
 
   if (error || !profile) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
         <Stack.Screen options={screenOptions} />
-        <Box className="flex-1 items-center justify-center px-8">
-          <IconSymbol name="person.fill" size={64} color={subtextColor} />
-          <Text className="text-base font-medium mt-4 text-center" style={{ color: textColor }}>
-            User profile not found.
+        <VStack className="flex-1 items-center justify-center px-10" space="md">
+            <Box className="w-20 h-20 rounded-full bg-gray-50 items-center justify-center mb-2">
+                <IconSymbol name="person.crop.circle.badge.exclamationmark" size={40} color={subtextColor} />
+            </Box>
+          <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
+            User profile not found
           </Text>
-        </Box>
+          <Text className="text-sm text-center leading-6" style={{ color: subtextColor }}>
+            We couldn't retrieve the information for this user. They might have deleted their account or it's temporarily unavailable.
+          </Text>
+        </VStack>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
       <ReportModal
         visible={showReportModal}
         onClose={() => setShowReportModal(false)}
@@ -157,34 +164,38 @@ export default function UserProfileScreen() {
       <Stack.Screen options={screenOptions} />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={{ paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={primaryColor} />}
       >
-        <Box className="rounded-3xl p-6 items-center" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-          <Box className="relative mb-4">
-            <Avatar size="2xl">
+        <VStack className="px-6 py-8 items-center" space="xl">
+          <Box className="relative">
+            <Avatar size="2xl" className="border-4 shadow-xl" style={{ borderColor: cardColor }}>
               <AvatarFallbackText>{profile.fullName || '?'}</AvatarFallbackText>
               {avatarUrl ? <AvatarImage source={{ uri: avatarUrl }} alt={profile.fullName || 'User'} /> : null}
             </Avatar>
-            {profile.isVerified ? (
-              <Box className="absolute bottom-0 right-0 w-7 h-7 rounded-full items-center justify-center border-[3px]" style={{ backgroundColor: '#10B981', borderColor: cardColor }}>
-                <IconSymbol name="checkmark" size={12} color="#fff" />
+            {profile.isVerified && (
+              <Box className="absolute bottom-1 right-1 w-8 h-8 rounded-full items-center justify-center border-4 shadow-sm" style={{ backgroundColor: '#10B981', borderColor: cardColor }}>
+                <IconSymbol name="checkmark" size={14} color="#fff" />
               </Box>
-            ) : null}
+            )}
           </Box>
 
-          <Text className="text-2xl font-bold mb-1 text-center" style={{ color: textColor }}>
-            {profile.fullName || 'Unknown User'}
-          </Text>
-          <Text className="text-sm mb-6" style={{ color: subtextColor }}>
-            Ride Leader
-          </Text>
+          <VStack className="items-center" space="xs">
+            <Text className="text-3xl font-extrabold text-center" style={{ color: textColor }}>
+                {profile.fullName || 'Unknown User'}
+            </Text>
+            <Box className="px-3 py-1 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                    Ride Leader
+                </Text>
+            </Box>
+          </VStack>
 
-          {!isOwnProfile ? (
-            <VStack className="w-full mb-5" space="sm">
+          {!isOwnProfile && (
+            <HStack className="w-full" space="md">
               <Pressable
-                className="rounded-2xl min-h-[46px] px-4 flex-row items-center justify-center"
-                style={{ backgroundColor: blocked ? `${dangerColor}10` : cardColor, borderColor, borderWidth: 1 }}
+                className="flex-1 h-14 rounded-2xl flex-row items-center justify-center border shadow-sm"
+                style={{ backgroundColor: blocked ? `${dangerColor}10` : cardColor, borderColor: blocked ? dangerColor : borderColor }}
                 onPress={() => setShowBlockAlert(true)}
                 disabled={isBlocking || isUnblocking}
               >
@@ -193,124 +204,97 @@ export default function UserProfileScreen() {
                   size={16}
                   color={blocked ? dangerColor : textColor}
                 />
-                <Text className="text-sm font-semibold ml-2" style={{ color: blocked ? dangerColor : textColor }}>
-                  {blocked ? 'Unblock User' : 'Block User'}
+                <Text className="text-sm font-extrabold ml-2 uppercase tracking-tight" style={{ color: blocked ? dangerColor : textColor }}>
+                  {blocked ? 'Unblock' : 'Block'}
                 </Text>
               </Pressable>
 
               <Pressable
-                className="rounded-2xl min-h-[46px] px-4 flex-row items-center justify-center"
-                style={{ backgroundColor: cardColor, borderColor, borderWidth: 1 }}
+                className="flex-1 h-14 rounded-2xl flex-row items-center justify-center border shadow-sm"
+                style={{ backgroundColor: cardColor, borderColor }}
                 onPress={() => setShowReportModal(true)}
               >
                 <IconSymbol name="flag.fill" size={16} color="#F59E0B" />
-                <Text className="text-sm font-semibold ml-2" style={{ color: textColor }}>
-                  Report User
+                <Text className="text-sm font-extrabold ml-2 uppercase tracking-tight" style={{ color: textColor }}>
+                  Report
                 </Text>
               </Pressable>
-            </VStack>
-          ) : null}
+            </HStack>
+          )}
 
-          <HStack className="w-full items-center justify-center pt-5" style={{ borderTopColor: 'rgba(150,150,150,0.1)', borderTopWidth: 1 }}>
-            <Pressable className="flex-1 items-center" onPress={() => router.push(`/ratings?userId=${userId}`)}>
-              <Box className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: `${primaryColor}15` }}>
-                <IconSymbol name="star.fill" size={20} color="#F59E0B" />
-              </Box>
-              <Text className="text-lg font-bold mb-0.5" style={{ color: textColor }}>
-                {profile.rating ? Number(profile.rating).toFixed(1) : 'New'}
-              </Text>
-              <Text className="text-xs text-center" style={{ color: subtextColor }}>
-                Rating
-              </Text>
-            </Pressable>
-
-            <Box className="w-px h-10" style={{ backgroundColor: 'rgba(150,150,150,0.2)' }} />
-
-            <Box className="flex-1 items-center">
-              <Box className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: `${primaryColor}15` }}>
-                <IconSymbol name="car.fill" size={20} color={primaryColor} />
-              </Box>
-              <Text className="text-lg font-bold mb-0.5" style={{ color: textColor }}>
-                {profile.completedTripsCount || 0}
-              </Text>
-              <Text className="text-xs text-center" style={{ color: subtextColor }}>
-                Completed Rides
-              </Text>
-            </Box>
-
-            <Box className="w-px h-10" style={{ backgroundColor: 'rgba(150,150,150,0.2)' }} />
-
-            <Pressable className="flex-1 items-center" onPress={() => router.push(`/ratings?userId=${userId}`)}>
-              <Box className="w-10 h-10 rounded-full items-center justify-center mb-2" style={{ backgroundColor: '#6366F115' }}>
-                <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
-              </Box>
-              <Text className="text-lg font-bold mb-0.5" style={{ color: textColor }}>
-                {profile.ratingsCount || 0}
-              </Text>
-              <Text className="text-xs text-center" style={{ color: subtextColor }}>
-                Reviews
-              </Text>
-            </Pressable>
-          </HStack>
-        </Box>
-
-        <Text className="text-xs font-semibold ml-4 mt-6 mb-2 uppercase" style={{ color: subtextColor }}>
-          About
-        </Text>
-        <Box className="rounded-3xl p-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-          <HStack className="items-center">
-            <Box
-              className="w-10 h-10 rounded-full items-center justify-center mr-4"
-              style={{ backgroundColor: profile.gender === 'men' ? '#3B82F615' : profile.gender === 'women' ? '#EC489915' : '#94A3B815' }}
-            >
-              <IconSymbol
-                name="person.fill"
-                size={20}
-                color={profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' : '#94A3B8'}
-              />
-            </Box>
-            <VStack className="flex-1">
-              <Text className="text-xs mb-0.5" style={{ color: subtextColor }}>
-                Gender
-              </Text>
-              <Text className="text-base font-medium" style={{ color: textColor }}>
-                {profile.gender === 'men' ? 'Male' : profile.gender === 'women' ? 'Female' : 'Not specified'}
-              </Text>
-            </VStack>
-          </HStack>
-
-          {profile.city ? (
-            <>
-              <Box className="h-px my-3 ml-14" style={{ backgroundColor: borderColor, opacity: 0.5 }} />
-              <HStack className="items-center">
-                <Box className="w-10 h-10 rounded-full items-center justify-center mr-4" style={{ backgroundColor: '#F59E0B15' }}>
-                  <IconSymbol name="mappin.circle.fill" size={20} color="#F59E0B" />
+          <HStack className="w-full justify-between items-center bg-transparent px-2">
+            <Pressable className="items-center flex-1" onPress={() => router.push(`/ratings?userId=${userId}`)}>
+              <VStack className="items-center" space="xs">
+                <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                    <IconSymbol name="star.fill" size={20} color="#F59E0B" />
                 </Box>
-                <VStack className="flex-1">
-                  <Text className="text-xs mb-0.5" style={{ color: subtextColor }}>
-                    City
-                  </Text>
-                  <Text className="text-base font-medium" style={{ color: textColor }}>
-                    {profile.city}
-                  </Text>
+                <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+                   {profile.rating ? Number(profile.rating).toFixed(1) : 'New'}
+                </Text>
+                <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Rating</Text>
+              </VStack>
+            </Pressable>
+
+            <Divider className="h-12 w-px" style={{ backgroundColor: borderColor }} />
+
+            <VStack className="items-center flex-1" space="xs">
+                <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                    <IconSymbol name="car.fill" size={20} color={primaryColor} />
+                </Box>
+                <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+                   {profile.completedTripsCount || 0}
+                </Text>
+                <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Rides</Text>
+            </VStack>
+
+            <Divider className="h-12 w-px" style={{ backgroundColor: borderColor }} />
+
+            <Pressable className="items-center flex-1" onPress={() => router.push(`/ratings?userId=${userId}`)}>
+              <VStack className="items-center" space="xs">
+                <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                    <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
+                </Box>
+                <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+                   {profile.ratingsCount || 0}
+                </Text>
+                <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Reviews</Text>
+              </VStack>
+            </Pressable>
+          </HStack>
+
+          <VStack className="w-full" space="md">
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-2" style={{ color: subtextColor }}>About</Text>
+            <Box className="rounded-[32px] p-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+                <VStack space="xl">
+                    <HStack className="items-center" space="lg">
+                        <Box className="w-10 h-10 rounded-full items-center justify-center shadow-sm" style={{ backgroundColor: profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' :  subtextColor }}>
+                            <IconSymbol name="person.fill" size={18} color="#fff" />
+                        </Box>
+                        <VStack >
+                            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Gender</Text>
+                            <Text className="text-base font-bold capitalize" style={{ color: textColor }}>{profile.gender || 'Not specified'}</Text>
+                        </VStack>
+                    </HStack>
+
+                    {profile.city && (
+                        <>
+                            <Divider style={{ backgroundColor: borderColor }} />
+                            <HStack className="items-center" space="lg">
+                                <Box className="w-10 h-10 rounded-full items-center justify-center shadow-sm" style={{ backgroundColor: '#F59E0B' }}>
+                                    <IconSymbol name="mappin.circle.fill" size={18} color="#fff" />
+                                </Box>
+                                <VStack >
+                                    <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>City</Text>
+                                    <Text className="text-base font-bold" style={{ color: textColor }}>{profile.city}</Text>
+                                </VStack>
+                            </HStack>
+                        </>
+                    )}
                 </VStack>
-              </HStack>
-            </>
-          ) : null}
-        </Box>
+            </Box>
+          </VStack>
+        </VStack>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  cardShadow: {
-    shadowColor: '#2A120B',
-    shadowOpacity: 0.05,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-});

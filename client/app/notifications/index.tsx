@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, FlatList, Modal, RefreshControl, StyleSheet } from 'react-native';
+import { Animated, FlatList, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,6 +18,8 @@ import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Spinner } from '@/components/ui/spinner';
+import { Divider } from '@/components/ui/divider';
+import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
@@ -54,9 +56,9 @@ export default function NotificationsScreen() {
     mutationFn: (documentId: string) => notificationService.deleteNotification(documentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
-      Toast.show({ type: 'success', text1: 'Notification deleted' });
+      Toast.show({ type: 'success', text1: 'Deleted', text2: 'Notification removed successfully.' });
     },
-    onError: () => Toast.show({ type: 'error', text1: 'Failed to delete notification' }),
+    onError: () => Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to delete notification.' }),
   });
 
   const clearAllMutation = useMutation({
@@ -64,9 +66,9 @@ export default function NotificationsScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['unread-notifications-count', user?.id] });
-      Toast.show({ type: 'success', text1: 'All notifications cleared' });
+      Toast.show({ type: 'success', text1: 'Cleared', text2: 'All notifications have been removed.' });
     },
-    onError: () => Toast.show({ type: 'error', text1: 'Failed to clear notifications' }),
+    onError: () => Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to clear notifications.' }),
   });
 
   const confirmDelete = useCallback((documentId: string) => {
@@ -110,15 +112,15 @@ export default function NotificationsScreen() {
   const getIconForType = (type: string) => {
     switch (type) {
       case 'JOIN_REQUEST':
-        return 'person.2.fill';
+        return 'person.2.fill' as const;
       case 'TRIP_COMPLETED':
-        return 'checkmark.circle.fill';
+        return 'checkmark.circle.fill' as const;
       case 'TRIP_UPDATE':
-        return 'car';
+        return 'car.fill' as const;
       case 'SYSTEM':
-        return 'gearshape.fill';
+        return 'gearshape.fill' as const;
       default:
-        return 'bell.fill';
+        return 'bell.fill' as const;
     }
   };
 
@@ -129,11 +131,14 @@ export default function NotificationsScreen() {
   ) => {
     const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1], extrapolate: 'clamp' });
     return (
-      <Pressable style={styles.deleteAction} onPress={() => confirmDelete(documentId)}>
-        <Animated.View style={{ transform: [{ scale }] }}>
-          <IconSymbol name="xmark.circle.fill" size={28} color="#fff" />
+      <Pressable 
+        style={{ backgroundColor: '#EF4444', width: 80, borderRadius: 28, marginBottom: 12, justifyContent: 'center', alignItems: 'center' }} 
+        onPress={() => confirmDelete(documentId)}
+      >
+        <Animated.View style={{ transform: [{ scale }], alignItems: 'center' }}>
+          <IconSymbol name="trash.fill" size={24} color="#fff" />
+          <Text className="text-[10px] font-extrabold uppercase mt-1 text-white">Delete</Text>
         </Animated.View>
-        <Animated.Text style={[styles.deleteActionText, { transform: [{ scale }] }]}>Delete</Animated.Text>
       </Pressable>
     );
   };
@@ -149,52 +154,55 @@ export default function NotificationsScreen() {
       friction={2}
     >
       <Pressable
-        className="rounded-3xl p-4 mb-3"
-        style={[styles.cardShadow, { backgroundColor: cardColor }]}
+        className="rounded-[32px] p-5 mb-3 border shadow-sm"
+        style={{ backgroundColor: cardColor, borderColor }}
         onPress={() => handleNotificationPress(item)}
       >
-        <HStack className="items-center">
+        <HStack className="items-start" space="md">
           <Box
-            className="w-12 h-12 rounded-full items-center justify-center mr-4"
-            style={{ backgroundColor: `${primaryColor}15` }}
+            className="w-12 h-12 rounded-2xl items-center justify-center border shadow-sm"
+            style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor + '20' }}
           >
-            <IconSymbol name={getIconForType(item.type)} size={24} color={primaryColor} />
+            <IconSymbol name={getIconForType(item.type)} size={20} color={primaryColor} />
           </Box>
 
           <VStack className="flex-1">
-            <HStack className="items-center justify-between mb-1">
-              <Text className="text-xs font-bold uppercase" style={{ color: primaryColor }}>
+            <HStack className="items-center justify-between mb-2">
+              <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
                 {item.type.replace('_', ' ')}
               </Text>
-              <Text className="text-xs" style={{ color: subtextColor }}>
+              <Text className="text-[9px] font-bold uppercase" style={{ color: subtextColor }}>
                 {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
               </Text>
             </HStack>
-            <Text className="text-sm leading-6" style={{ color: textColor }}>
+            <Text className="text-sm font-medium leading-6" style={{ color: textColor }}>
               {item.message}
             </Text>
           </VStack>
 
-          {!item.read ? <Box className="w-2.5 h-2.5 rounded-full ml-3" style={{ backgroundColor: primaryColor }} /> : null}
+          {!item.read && (
+            <Box className="w-2.5 h-2.5 rounded-full mt-1.5 shadow-sm border-2" style={{ backgroundColor: primaryColor, borderColor: '#fff' }} />
+          )}
         </HStack>
       </Pressable>
     </Swipeable>
   );
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
       <Stack.Screen
         options={{
           title: 'Notifications',
+          headerTitleStyle: { fontWeight: '800' },
           headerShown: true,
-          headerBackTitle: 'Back',
+          headerBackTitle: 'Profile',
           headerStyle: { backgroundColor },
           headerTintColor: textColor,
           headerShadowVisible: false,
           headerRight: () =>
             notifications.length > 0 ? (
-              <Pressable className="mr-1 px-2 py-1" onPress={() => setShowClearAllModal(true)}>
-                <Text className="text-sm font-semibold" style={{ color: dangerColor }}>
+              <Pressable className="mr-3 px-3 py-1.5 rounded-full border border-dashed" style={{ borderColor: dangerColor }} onPress={() => setShowClearAllModal(true)}>
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: dangerColor }}>
                   Clear All
                 </Text>
               </Pressable>
@@ -204,47 +212,54 @@ export default function NotificationsScreen() {
 
       {isLoading && !isRefetching ? (
         <Box className="flex-1 items-center justify-center">
-          <Spinner size="large" color={primaryColor} />
+            <Spinner size="large" color={primaryColor} />
+            <Text className="mt-4 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Scanning updates…</Text>
         </Box>
       ) : (
         <FlatList
           data={notifications}
           keyExtractor={(item) => item.documentId}
           renderItem={renderItem}
-          contentContainerStyle={styles.container}
+          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={primaryColor} colors={[primaryColor]} />
           }
           ListEmptyComponent={
-            <Box className="flex-1 items-center justify-center pt-24 px-10">
-              <IconSymbol name="bell.fill" size={64} color={subtextColor} />
-              <Text className="text-2xl font-bold mt-4 text-center" style={{ color: textColor }}>
-                No notifications yet
-              </Text>
-              <Text className="text-sm text-center mt-2 leading-6" style={{ color: subtextColor }}>
-                We&apos;ll let you know when something important happens!
-              </Text>
-            </Box>
+            <VStack className="items-center justify-center pt-24 px-10" space="lg">
+                <Box className="w-20 h-20 rounded-[32px] bg-gray-50 items-center justify-center rotate-3 shadow-xl">
+                    <IconSymbol name="bell.slash.fill" size={34} color={subtextColor} />
+                </Box>
+                <VStack className="items-center" space="xs">
+                    <Text className="text-2xl font-extrabold text-center" style={{ color: textColor }}>
+                        Quiet in here
+                    </Text>
+                    <Text className="text-sm font-medium text-center leading-6" style={{ color: subtextColor }}>
+                        We&apos;ll ping you here when your ride requests are approved or when new trips match your route.
+                    </Text>
+                </VStack>
+            </VStack>
           }
         />
       )}
 
+      {/* Single Delete Confirmation Modal */}
       <Modal visible={!!pendingDeleteId} transparent animationType="fade" onRequestClose={() => setPendingDeleteId(null)}>
-        <Box style={styles.modalOverlay}>
-          <Box className="w-full rounded-3xl p-7 items-center" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-            <Box className="w-14 h-14 rounded-full items-center justify-center mb-4" style={{ backgroundColor: `${dangerColor}12` }}>
-              <IconSymbol name="xmark.circle.fill" size={28} color={dangerColor} />
+        <Box className="flex-1 bg-black/60 justify-center items-center px-6">
+          <Box className="w-full rounded-[32px] p-8 items-center border-2 border-white shadow-2xl" style={{ backgroundColor: cardColor }}>
+            <Box className="w-16 h-16 rounded-full items-center justify-center mb-6 border-4" style={{ backgroundColor: `${dangerColor}10`, borderColor: dangerColor + '20' }}>
+              <IconSymbol name="trash.fill" size={32} color={dangerColor} />
             </Box>
-            <Text className="text-xl font-bold mb-2 text-center" style={{ color: textColor }}>
-              Delete Notification?
+            <Text className="text-2xl font-extrabold mb-2 text-center" style={{ color: textColor }}>
+              Permanently Delete?
             </Text>
-            <Text className="text-sm text-center leading-6 mb-7" style={{ color: subtextColor }}>
-              This notification will be permanently removed.
+            <Text className="text-sm font-medium text-center leading-6 mb-8" style={{ color: subtextColor }}>
+              This update will be removed from your activity log forever.
             </Text>
-            <HStack className="w-full" space="sm">
-              <Pressable
-                className="flex-1 h-12 rounded-2xl items-center justify-center"
-                style={{ borderColor, borderWidth: 1.5 }}
+            <HStack className="w-full" space="md">
+              <Button
+                className="flex-1 h-14 rounded-2xl border-2 shadow-sm"
+                variant="outline"
+                style={{ borderColor }}
                 onPress={() => {
                   if (pendingDeleteId) {
                     swipeableRefs.current[pendingDeleteId]?.close();
@@ -252,62 +267,68 @@ export default function NotificationsScreen() {
                   setPendingDeleteId(null);
                 }}
               >
-                <Text className="text-sm font-semibold" style={{ color: textColor }}>
-                  Cancel
-                </Text>
-              </Pressable>
-              <Pressable
-                className="flex-1 h-12 rounded-2xl items-center justify-center"
+                <ButtonText className="text-xs font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Cancel</ButtonText>
+              </Button>
+              <Button
+                className="flex-1 h-14 rounded-2xl shadow-lg"
                 style={{ backgroundColor: dangerColor }}
                 onPress={handleConfirmSingleDelete}
+                disabled={deleteMutation.isPending}
               >
                 {deleteMutation.isPending ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <Spinner color="#fff" size="small" />
                 ) : (
-                  <Text className="text-sm font-semibold text-white">Delete</Text>
+                    <HStack space="xs" className="items-center">
+                        <ButtonText className="text-xs font-extrabold uppercase tracking-widest text-white">Delete</ButtonText>
+                        <IconSymbol name="trash.fill" size={12} color="white" />
+                    </HStack>
                 )}
-              </Pressable>
+              </Button>
             </HStack>
           </Box>
         </Box>
       </Modal>
 
+      {/* Clear All Confirmation Modal */}
       <Modal visible={showClearAllModal} transparent animationType="fade" onRequestClose={() => setShowClearAllModal(false)}>
-        <Box style={styles.modalOverlay}>
-          <Box className="w-full rounded-3xl p-7 items-center" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-            <Box className="w-14 h-14 rounded-full items-center justify-center mb-4" style={{ backgroundColor: `${dangerColor}12` }}>
-              <IconSymbol name="xmark.circle.fill" size={28} color={dangerColor} />
+        <Box className="flex-1 bg-black/60 justify-center items-center px-6">
+          <Box className="w-full rounded-[32px] p-8 items-center border-2 border-white shadow-2xl" style={{ backgroundColor: cardColor }}>
+            <Box className="w-16 h-16 rounded-full items-center justify-center mb-6 border-4" style={{ backgroundColor: `${dangerColor}10`, borderColor: dangerColor + '20' }}>
+              <IconSymbol name="bell.slash.fill" size={32} color={dangerColor} />
             </Box>
-            <Text className="text-xl font-bold mb-2 text-center" style={{ color: textColor }}>
-              Clear All Notifications?
+            <Text className="text-2xl font-extrabold mb-2 text-center" style={{ color: textColor }}>
+              Purge Inbox?
             </Text>
-            <Text className="text-sm text-center leading-6 mb-7" style={{ color: subtextColor }}>
-              All {notifications.length} notification{notifications.length !== 1 ? 's' : ''} will be permanently deleted.
+            <Text className="text-sm font-medium text-center leading-6 mb-8" style={{ color: subtextColor }}>
+              You are about to delete all {notifications.length} notifications. This action cannot be undone.
             </Text>
-            <HStack className="w-full" space="sm">
-              <Pressable
-                className="flex-1 h-12 rounded-2xl items-center justify-center"
-                style={{ borderColor, borderWidth: 1.5 }}
+            <HStack className="w-full" space="md">
+              <Button
+                className="flex-1 h-14 rounded-2xl border-2 shadow-sm"
+                variant="outline"
+                style={{ borderColor }}
                 onPress={() => setShowClearAllModal(false)}
               >
-                <Text className="text-sm font-semibold" style={{ color: textColor }}>
-                  Cancel
-                </Text>
-              </Pressable>
-              <Pressable
-                className="flex-1 h-12 rounded-2xl items-center justify-center"
+                <ButtonText className="text-xs font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Wait, Go Back</ButtonText>
+              </Button>
+              <Button
+                className="flex-1 h-14 rounded-2xl shadow-lg"
                 style={{ backgroundColor: dangerColor }}
                 onPress={() => {
                   setShowClearAllModal(false);
                   clearAllMutation.mutate();
                 }}
+                disabled={clearAllMutation.isPending}
               >
                 {clearAllMutation.isPending ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <Spinner color="#fff" size="small" />
                 ) : (
-                  <Text className="text-sm font-semibold text-white">Clear All</Text>
+                    <HStack space="xs" className="items-center">
+                        <ButtonText className="text-xs font-extrabold uppercase tracking-widest text-white">Clear All</ButtonText>
+                        <IconSymbol name="trash.fill" size={12} color="white" />
+                    </HStack>
                 )}
-              </Pressable>
+              </Button>
             </HStack>
           </Box>
         </Box>
@@ -315,32 +336,3 @@ export default function NotificationsScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  container: { padding: 16, paddingBottom: 40 },
-  cardShadow: {
-    shadowColor: '#2A120B',
-    shadowOpacity: 0.05,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-  deleteAction: {
-    backgroundColor: '#EF4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 80,
-    borderRadius: 24,
-    marginBottom: 12,
-    gap: 4,
-  },
-  deleteActionText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-});

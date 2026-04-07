@@ -1,5 +1,5 @@
-import React from 'react';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -15,8 +15,10 @@ import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
-import { Button, ButtonText } from '@/components/ui/button';
+import { Button, ButtonText, ButtonSpinner } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Divider } from '@/components/ui/divider';
+import { CustomAlert } from '@/components/CustomAlert';
 
 export default function RequestDetailsScreen() {
   const { documentId } = useLocalSearchParams();
@@ -33,6 +35,9 @@ export default function RequestDetailsScreen() {
   const successColor = useThemeColor({}, 'success');
   const dangerColor = useThemeColor({}, 'danger');
 
+  const [showAlert, setShowAlert] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<'APPROVED' | 'REJECTED' | null>(null);
+
   const { data: request, isLoading } = useQuery({
     queryKey: ['join-request', documentId],
     queryFn: () => joinRequestService.getJoinRequestByDocumentId(documentId as string),
@@ -46,7 +51,6 @@ export default function RequestDetailsScreen() {
       queryClient.invalidateQueries({ queryKey: ['pending-approvals'] });
       queryClient.invalidateQueries({ queryKey: ['pending-approvals-count'] });
       queryClient.invalidateQueries({ queryKey: ['trips'] });
-      queryClient.invalidateQueries({ queryKey: ['all-trips-paged'] });
       Toast.show({
         type: 'success',
         text1: variables.status === 'APPROVED' ? 'Request Approved' : 'Request Rejected',
@@ -63,19 +67,15 @@ export default function RequestDetailsScreen() {
   });
 
   const handleAction = (status: 'APPROVED' | 'REJECTED') => {
-    const name = request?.passenger.username || 'this user';
-    Alert.alert(
-      `${status === 'APPROVED' ? 'Approve' : 'Reject'} Request`,
-      `Are you sure you want to ${status.toLowerCase()} ${name}'s request?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: status === 'APPROVED' ? 'Approve' : 'Reject',
-          style: status === 'REJECTED' ? 'destructive' : 'default',
-          onPress: () => updateStatusMutation.mutate({ status }),
-        },
-      ]
-    );
+    setPendingStatus(status);
+    setShowAlert(true);
+  };
+
+  const confirmAction = () => {
+    if (pendingStatus) {
+      updateStatusMutation.mutate({ status: pendingStatus });
+    }
+    setShowAlert(false);
   };
 
   if (isLoading) {
@@ -89,126 +89,127 @@ export default function RequestDetailsScreen() {
   if (!request) {
     return (
       <Box className="flex-1 items-center justify-center px-8" style={{ backgroundColor }}>
-        <Text className="text-base text-center" style={{ color: subtextColor }}>
+        <Text className="text-base text-center font-medium" style={{ color: subtextColor }}>
           Request not found or already processed.
         </Text>
-        <Pressable onPress={() => router.back()} className="mt-5">
-          <Text className="text-base font-bold" style={{ color: primaryColor }}>
-            Go Back
-          </Text>
-        </Pressable>
+        <Button variant="link" className="mt-4" onPress={() => router.back()}>
+          <ButtonText style={{ color: primaryColor }}>Go Back</ButtonText>
+        </Button>
       </Box>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
       <Stack.Screen
         options={{
           title: 'Request Details',
-          headerShown: true,
-          headerBackTitle: 'Back',
+          headerTitleStyle: { fontWeight: '800' },
           headerStyle: { backgroundColor },
           headerTintColor: textColor,
           headerShadowVisible: false,
         }}
       />
 
-      <ScrollView contentContainerStyle={styles.container}>
-        <Box className="rounded-3xl p-5 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-          <Text className="text-xs font-bold uppercase mb-4" style={{ color: subtextColor }}>
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        {/* Passenger Info */}
+        <Box className="rounded-[32px] p-6 mb-6 shadow-sm" style={{ backgroundColor: cardColor }}>
+          <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-5" style={{ color: subtextColor }}>
             Passenger
           </Text>
-          <HStack className="items-center">
+          <HStack className="items-center" space="xl">
             <Box
-              className="w-[70px] h-[70px] rounded-full items-center justify-center"
-              style={{ backgroundColor: `${primaryColor}15` }}
+              className="w-20 h-20 rounded-full items-center justify-center shadow-inner"
+              style={{ backgroundColor: `${primaryColor}10` }}
             >
-              <Text className="text-[28px] font-bold" style={{ color: primaryColor }}>
+              <Text className="text-3xl font-extrabold" style={{ color: primaryColor }}>
                 {request.passenger.username.charAt(0).toUpperCase()}
               </Text>
             </Box>
-            <VStack className="flex-1 ml-5" space="xs">
-              <Text className="text-2xl font-bold" style={{ color: textColor }}>
+            <VStack className="flex-1" space="xs">
+              <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
                 {request.passenger.username}
               </Text>
-              <Text className="text-sm" style={{ color: subtextColor }}>
+              <Text className="text-xs font-medium" style={{ color: subtextColor }}>
                 {request.passenger.email}
               </Text>
-              <Text className="text-sm" style={{ color: subtextColor }}>
-                {request.sharePhoneNumber
-                  ? request.passenger.userProfile?.phoneNumber || 'Phone unavailable'
-                  : maskPhoneNumber(request.passenger.userProfile?.phoneNumber)}
-              </Text>
+              <HStack className="items-center mt-1" space="xs">
+                <IconSymbol name="phone.fill" size={12} color={subtextColor} />
+                <Text className="text-xs font-bold" style={{ color: subtextColor }}>
+                  {request.sharePhoneNumber
+                    ? request.passenger.userProfile?.phoneNumber || 'Phone unavailable'
+                    : maskPhoneNumber(request.passenger.userProfile?.phoneNumber)}
+                </Text>
+              </HStack>
             </VStack>
           </HStack>
         </Box>
 
-        <Box className="rounded-3xl p-5 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-          <Text className="text-xs font-bold uppercase mb-4" style={{ color: subtextColor }}>
+        {/* Request Details */}
+        <Box className="rounded-[32px] p-6 mb-6 shadow-sm" style={{ backgroundColor: cardColor }}>
+          <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-5" style={{ color: subtextColor }}>
             Request Details
           </Text>
 
-          <HStack className="justify-between mb-4">
-            <VStack className="flex-1" space="xs">
-              <Text className="text-xs font-semibold" style={{ color: subtextColor }}>
+          <HStack className="justify-between items-center mb-6">
+            <VStack space="xs">
+              <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>
                 Status
               </Text>
-              <Box className="self-start px-3 py-1 rounded-xl" style={{ backgroundColor: '#FEF3C7' }}>
-                <Text className="text-[11px] font-bold" style={{ color: '#D97706' }}>
+              <Box className="px-3 py-1 rounded-full bg-amber-50 self-start">
+                <Text className="text-[10px] font-extrabold text-amber-600 uppercase tracking-widest">
                   {request.status}
                 </Text>
               </Box>
             </VStack>
-            <VStack className="flex-1" space="xs">
-              <Text className="text-xs font-semibold" style={{ color: subtextColor }}>
-                Seats Requested
+            <VStack className="items-end" space="xs">
+              <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>
+                Seats
               </Text>
-              <Text className="text-base font-bold" style={{ color: textColor }}>
+              <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
                 {request.requestedSeats}
               </Text>
             </VStack>
           </HStack>
 
-          {request.message ? (
-            <Box className="mt-2 p-4 rounded-2xl" style={{ backgroundColor: `${subtextColor}10` }}>
-              <Text className="text-xs font-semibold mb-1" style={{ color: subtextColor }}>
+          {request.message && (
+            <VStack space="xs" className="mb-4">
+              <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>
                 Message
               </Text>
-              <Text className="text-sm italic leading-6" style={{ color: textColor }}>
-                &quot;{request.message}&quot;
-              </Text>
-            </Box>
-          ) : null}
+              <Box className="p-4 rounded-2xl border" style={{ backgroundColor: `${subtextColor}05`, borderColor }}>
+                <Text className="text-sm font-medium italic leading-6" style={{ color: textColor }}>
+                  &quot;{request.message}&quot;
+                </Text>
+              </Box>
+            </VStack>
+          )}
 
-          <Box className="mt-2 p-4 rounded-2xl" style={{ backgroundColor: `${subtextColor}10` }}>
-            <Text className="text-xs font-semibold mb-1" style={{ color: subtextColor }}>
-              Phone visibility
+          <HStack className="items-center mt-2" space="sm">
+            <IconSymbol name="eye.fill" size={14} color={subtextColor} />
+            <Text className="text-[11px] font-bold" style={{ color: subtextColor }}>
+              Phone: {request.sharePhoneNumber ? 'Shared with ride members' : 'Masked for security'}
             </Text>
-            <Text className="text-sm italic leading-6" style={{ color: textColor }}>
-              {request.sharePhoneNumber
-                ? 'Shared with captain and riders'
-                : 'Masked for captain and riders'}
-            </Text>
-          </Box>
+          </HStack>
         </Box>
 
-        <Box className="rounded-3xl p-5 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-          <Text className="text-xs font-bold uppercase mb-4" style={{ color: subtextColor }}>
-            Trip Info
+        {/* Trip Summary */}
+        <Box className="rounded-[32px] p-6 mb-6 shadow-sm" style={{ backgroundColor: cardColor }}>
+          <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-5" style={{ color: subtextColor }}>
+            Ride Route
           </Text>
 
-          <HStack className="mb-5">
-            <VStack className="items-center w-5 pt-1">
-              <Box className="w-[10px] h-[10px] rounded-full" style={{ backgroundColor: primaryColor }} />
-              <Box className="w-px h-10 my-1" style={{ backgroundColor: borderColor }} />
-              <Box className="w-[10px] h-[10px] rounded-full" style={{ backgroundColor: '#10B981' }} />
+          <HStack space="md" className="mb-6">
+            <VStack className="items-center pt-1" space="xs">
+              <Box className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primaryColor }} />
+              <Box className="w-0.5 h-10" style={{ backgroundColor: borderColor }} />
+              <Box className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: successColor }} />
             </VStack>
-            <VStack className="flex-1 ml-4">
-              <Text className="text-base font-semibold" style={{ color: textColor }}>
+            <VStack className="flex-1 justify-between">
+              <Text className="text-sm font-bold truncate" style={{ color: textColor }}>
                 {request.trip.startingPoint}
               </Text>
-              <Text className="text-base font-semibold mt-[30px]" style={{ color: textColor }}>
+              <Text className="text-sm font-bold truncate" style={{ color: textColor }}>
                 {request.trip.destination}
               </Text>
             </VStack>
@@ -216,54 +217,57 @@ export default function RequestDetailsScreen() {
 
           <HStack className="items-center" space="sm">
             <IconSymbol name="calendar" size={16} color={subtextColor} />
-            <Text className="text-sm" style={{ color: subtextColor }}>
+            <Text className="text-xs font-bold" style={{ color: subtextColor }}>
               {request.trip.date} • {request.trip.time}
             </Text>
           </HStack>
         </Box>
 
-        <VStack space="sm" className="mt-2 mb-5">
-          <Pressable
-            className="h-14 rounded-2xl items-center justify-center"
-            style={{ borderColor: dangerColor, borderWidth: 1.5 }}
-            onPress={() => handleAction('REJECTED')}
-            disabled={updateStatusMutation.isPending}
-          >
-            <Text className="text-[17px] font-bold" style={{ color: dangerColor }}>
-              Reject Request
-            </Text>
-          </Pressable>
+        {/* Actions */}
+        <VStack space="md" className="mb-8">
+            <Button
+                className="h-14 rounded-2xl"
+                style={{ backgroundColor: successColor }}
+                onPress={() => handleAction('APPROVED')}
+                disabled={updateStatusMutation.isPending}
+            >
+                {updateStatusMutation.isPending && pendingStatus === 'APPROVED' ? (
+                <ButtonSpinner color="#fff" />
+                ) : (
+                <ButtonText className="text-white font-extrabold uppercase tracking-widest">Approve Request</ButtonText>
+                )}
+            </Button>
 
-          <Button
-            className="h-14 rounded-2xl"
-            style={{ backgroundColor: successColor }}
-            onPress={() => handleAction('APPROVED')}
-            disabled={updateStatusMutation.isPending}
-          >
-            {updateStatusMutation.isPending ? (
-              <Spinner size="small" color="#fff" />
-            ) : (
-              <ButtonText style={{ color: '#ffffff' }}>Approve Request</ButtonText>
-            )}
-          </Button>
+            <Button
+                className="h-14 rounded-2xl"
+                style={{ borderColor: dangerColor, borderWidth: 2 }}
+                variant="outline"
+                onPress={() => handleAction('REJECTED')}
+                disabled={updateStatusMutation.isPending}
+            >
+                {updateStatusMutation.isPending && pendingStatus === 'REJECTED' ? (
+                <ButtonSpinner color={dangerColor} />
+                ) : (
+                <ButtonText className="font-extrabold uppercase tracking-widest" style={{ color: dangerColor }}>Decline Request</ButtonText>
+                )}
+            </Button>
         </VStack>
       </ScrollView>
+
+      <CustomAlert 
+        visible={showAlert} 
+        title={`${pendingStatus === 'APPROVED' ? 'Approve' : 'Decline'} Request`}
+        message={`Are you sure you want to ${pendingStatus?.toLowerCase()} this request from ${request.passenger.username}?`}
+        onClose={() => setShowAlert(false)}
+        primaryButton={{
+            text: pendingStatus === 'APPROVED' ? 'Approve' : 'Decline',
+            onPress: confirmAction
+        }}
+        secondaryButton={{
+            text: 'Cancel',
+            onPress: () => setShowAlert(false)
+        }}
+      />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  container: {
-    padding: 20,
-  },
-  cardShadow: {
-    shadowColor: '#2A120B',
-    shadowOpacity: 0.05,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-});

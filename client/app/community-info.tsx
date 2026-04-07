@@ -1,7 +1,6 @@
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useRouter } from 'expo-router';
-import { StyleSheet } from 'react-native';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -32,14 +31,14 @@ function CommunityInfoAction({
 }) {
   return (
     <Pressable
-      className="rounded-3xl border p-4"
-      style={{ borderColor }}
+      className="rounded-[28px] border p-5 mb-4 shadow-sm"
+      style={{ backgroundColor: 'transparent', borderColor }}
       onPress={onPress}
     >
-      <HStack className="items-center" space="md">
+      <HStack className="items-center" space="xl">
         <Box
-          className="h-[46px] w-[46px] rounded-full items-center justify-center"
-          style={{ backgroundColor: `${primaryColor}14` }}
+          className="h-12 w-12 rounded-full items-center justify-center shadow-inner"
+          style={{ backgroundColor: `${primaryColor}10` }}
         >
           <IconSymbol name={icon as any} size={22} color={primaryColor} />
         </Box>
@@ -47,7 +46,7 @@ function CommunityInfoAction({
           <Text className="text-base font-bold" style={{ color: textColor }}>
             {title}
           </Text>
-          <Text className="text-sm leading-5" style={{ color: subtextColor }}>
+          <Text className="text-xs font-medium leading-5" style={{ color: subtextColor }}>
             {subtitle}
           </Text>
         </VStack>
@@ -64,12 +63,14 @@ export default function CommunityInfoScreen() {
   const subtextColor = useThemeColor({}, 'subtext');
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'primary');
+  const cardColor = useThemeColor({}, 'card');
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
       <Stack.Screen
         options={{
           title: 'Community Info',
+          headerTitleStyle: { fontWeight: '800' },
           headerShown: true,
           headerStyle: { backgroundColor },
           headerTintColor: textColor,
@@ -77,44 +78,40 @@ export default function CommunityInfoScreen() {
         }}
       />
 
-      <VStack className="p-5" space="md">
+      <VStack className="p-6" space="xl">
         <VStack space="sm">
-          <Text className="text-2xl font-bold" style={{ color: textColor }}>
+          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
             Community options
           </Text>
-          <Text className="text-base leading-6" style={{ color: subtextColor }}>
-            Explore the shared public group and see everyone who is part of it.
+          <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
+            Explore the shared public group and see everyone who is part of it. Join discussions, share rides, and connect with other travelers.
           </Text>
         </VStack>
 
-        <CommunityInfoAction
-          icon="message.fill"
-          title="Chat Room"
-          subtitle="Open the public community chat in a dedicated screen."
-          primaryColor={primaryColor}
-          subtextColor={subtextColor}
-          textColor={textColor}
-          borderColor={borderColor}
-          onPress={() => router.push('/community-chat')}
-        />
+        <VStack space="xs" className="mt-4">
+          <CommunityInfoAction
+            icon="message.fill"
+            title="Chat Room"
+            subtitle="Open the public community chat in a dedicated screen."
+            primaryColor={primaryColor}
+            subtextColor={subtextColor}
+            textColor={textColor}
+            borderColor={borderColor}
+            onPress={() => router.push('/community-chat')}
+          />
 
-        <CommunityInfoAction
-          icon="person.2.fill"
-          title="Members"
-          subtitle="See all users who are part of the public community chat."
-          primaryColor={primaryColor}
-          subtextColor={subtextColor}
-          textColor={textColor}
-          borderColor={borderColor}
-          onPress={() => router.push('/community-members')}
-        />
+          <CommunityInfoAction
+            icon="person.2.fill"
+            title="Members"
+            subtitle="See all users who are part of the public community chat."
+            primaryColor={primaryColor}
+            subtextColor={subtextColor}
+            textColor={textColor}
+            borderColor={borderColor}
+            onPress={() => router.push('/community-members')}
+          />
+        </VStack>
       </VStack>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-});

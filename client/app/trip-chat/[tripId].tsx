@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { AppState, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, TextInput, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -24,10 +24,11 @@ import { useAuth } from '@/context/auth-context';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 import { Box } from '@/components/ui/box';
-import { Text as GSText } from '@/components/ui/text';
+import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { VStack } from '@/components/ui/vstack';
 import { Spinner } from '@/components/ui/spinner';
+import { HStack } from '@/components/ui/hstack';
 
 const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
 const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
@@ -238,11 +239,11 @@ const SwipeableMessageBubble = ({
     const primaryColor = useThemeColor({}, 'primary');
 
     const renderSwipeAction = () => (
-        <View style={{ justifyContent: 'center', alignItems: 'center', width: 50 }}>
-            <View style={{ backgroundColor: `${primaryColor}22`, borderRadius: 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center' }}>
+        <Box className="w-[50px] items-center justify-center">
+            <Box className="w-[30px] h-[30px] rounded-xl items-center justify-center" style={{ backgroundColor: `${primaryColor}22` }}>
                 <IconSymbol name="arrowshape.turn.up.left.fill" size={14} color={primaryColor} />
-            </View>
-        </View>
+            </Box>
+        </Box>
     );
 
     return (
@@ -337,7 +338,7 @@ export default function TripChatScreen() {
         }
 
         const actualList =
-            (typeof list.scrollToIndex === 'function' ? list : null) ||
+            (list.scrollToIndex && typeof list.scrollToIndex === 'function' ? list : null) ||
             (list.flatListRef?.current && typeof list.flatListRef.current.scrollToIndex === 'function' ? list.flatListRef.current : null) ||
             (list.getNode && typeof list.getNode().scrollToIndex === 'function' ? list.getNode() : null) ||
             (list._listRef && typeof list._listRef.scrollToIndex === 'function' ? list._listRef : null);
@@ -350,13 +351,6 @@ export default function TripChatScreen() {
                 console.log('Failed to scroll:', e);
                 Toast.show({ type: 'error', text1: 'Scroll Error', text2: 'Item is not measured yet.' });
             }
-        } else {
-            const keys = Object.keys(list).slice(0, 5).join(', ');
-            Toast.show({
-                type: 'error',
-                text1: 'Scroll Error',
-                text2: `Underlying method missing. Available keys: ${keys}`,
-            });
         }
     };
 
@@ -367,7 +361,7 @@ export default function TripChatScreen() {
     const borderColor = useThemeColor({}, 'border');
     const primaryColor = useThemeColor({}, 'primary');
     const dangerColor = useThemeColor({}, 'danger');
-    const headerHeight = insets.top + 60;
+    const headerHeight = insets.top + 64;
     const { width: windowWidth, height: windowHeight } = useWindowDimensions();
     const previewViewportWidth = Math.max(windowWidth - 32, 1);
     const previewViewportHeight = Math.max(windowHeight - 180, 1);
@@ -530,8 +524,6 @@ export default function TripChatScreen() {
     const openSharedMedia = (payload: ParsedMediaMessage) => {
         setPreviewMedia(payload);
     };
-
-
 
     const typingText = useMemo(() => {
         if (typingUsers.length === 0) {
@@ -897,7 +889,7 @@ export default function TripChatScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['left', 'right', 'bottom']}>
             <Modal
                 visible={!!pendingMediaDraft}
                 transparent
@@ -905,74 +897,71 @@ export default function TripChatScreen() {
                 onRequestClose={() => !isSendingMedia && setPendingMediaDraft(null)}
             >
                 <KeyboardAvoidingView
-                    style={styles.composeOverlay}
+                    className="flex-1 bg-black/40"
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
                 >
-                    <View style={[styles.composeCard, { backgroundColor: backgroundColor }]}>
-                        <View
-                            style={[
-                                styles.composeHeader,
-                                { borderBottomColor: borderColor, paddingTop: modalTopInset },
-                            ]}
+                    <Box className="flex-1 rounded-t-[32px] overflow-hidden" style={{ backgroundColor }}>
+                        <HStack
+                            className="items-center justify-between px-4 pb-4 border-b"
+                            style={{ borderBottomColor: borderColor, paddingTop: modalTopInset }}
                         >
-                            <TouchableOpacity
+                            <Pressable
                                 onPress={() => setPendingMediaDraft(null)}
                                 disabled={isSendingMedia}
-                                style={styles.previewIconButton}
+                                className="w-10 h-10 rounded-full items-center justify-center bg-gray-50 border shadow-xs"
+                                style={{ borderColor }}
                             >
-                                <IconSymbol name="xmark" size={22} color={textColor} />
-                            </TouchableOpacity>
-                            <Text style={[styles.composeTitle, { color: textColor }]}>Send photo</Text>
-                            <View style={styles.composeHeaderSpacer} />
-                        </View>
+                                <IconSymbol name="xmark" size={20} color={textColor} />
+                            </Pressable>
+                            <Text className="text-base font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Send photo</Text>
+                            <Box className="w-10" />
+                        </HStack>
 
                         {pendingMediaDraft ? (
-                            <View style={styles.composeBody}>
+                            <Box className="flex-1 p-4 gap-4">
                                 <Image
                                     source={{ uri: pendingMediaDraft.localUri }}
-                                    style={styles.composeImagePreview}
+                                    className="w-full h-[340px] rounded-2xl bg-black"
                                     resizeMode="contain"
                                 />
                                 {pendingMediaDraft.replyTo ? (
-                                    <View style={[styles.composeReplyCard, { backgroundColor: cardColor, borderColor }]}>
-                                        <Text style={[styles.composeReplyName, { color: primaryColor }]}>
+                                    <VStack className="border rounded-2xl px-4 py-3 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+                                        <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-1" style={{ color: primaryColor }}>
                                             Replying to {pendingMediaDraft.replyTo.user.name}
                                         </Text>
-                                        <Text style={[styles.composeReplyText, { color: subtextColor }]} numberOfLines={1}>
+                                        <Text className="text-[13px] font-medium" style={{ color: subtextColor }} numberOfLines={1}>
                                             {summarizeMessageContent(pendingMediaDraft.replyTo.text)}
                                         </Text>
-                                    </View>
+                                    </VStack>
                                 ) : null}
-                                <View style={styles.composeFooter}>
-                                    <TextInput
-                                        value={pendingMediaDraft.caption}
-                                        onChangeText={(caption) =>
-                                            setPendingMediaDraft((current) => current ? { ...current, caption } : current)
-                                        }
-                                        placeholder="Add a caption (optional)"
-                                        placeholderTextColor={subtextColor}
-                                        multiline
-                                        maxLength={300}
-                                        style={[
-                                            styles.composeCaptionInput,
-                                            { color: textColor, backgroundColor: cardColor, borderColor },
-                                        ]}
-                                    />
-                                    <TouchableOpacity
-                                        onPress={handleSendPendingMedia}
-                                        disabled={isSendingMedia}
-                                        style={[
-                                            styles.composeSendButton,
-                                            { backgroundColor: isSendingMedia ? `${subtextColor}33` : primaryColor },
-                                        ]}
-                                    >
-                                        <IconSymbol name="paperplane.fill" size={18} color="#FFFFFF" />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
+                                <Box className="mt-auto">
+                                    <HStack className="items-end" space="md">
+                                        <TextInput
+                                            value={pendingMediaDraft.caption}
+                                            onChangeText={(caption) =>
+                                                setPendingMediaDraft((current) => current ? { ...current, caption } : current)
+                                            }
+                                            placeholder="Add a caption (optional)"
+                                            placeholderTextColor={subtextColor}
+                                            multiline
+                                            maxLength={300}
+                                            className="flex-1 min-h-[56px] max-h-[120px] border-2 rounded-[24px] px-4 py-3 text-[15px]"
+                                            style={{ color: textColor, backgroundColor: cardColor, borderColor, textAlignVertical: 'top' }}
+                                        />
+                                        <Pressable
+                                            onPress={handleSendPendingMedia}
+                                            disabled={isSendingMedia}
+                                            className="w-14 h-14 rounded-full items-center justify-center shadow-xl"
+                                            style={{ backgroundColor: isSendingMedia ? `${subtextColor}33` : primaryColor }}
+                                        >
+                                            <IconSymbol name="paperplane.fill" size={20} color="#FFFFFF" />
+                                        </Pressable>
+                                    </HStack>
+                                </Box>
+                            </Box>
                         ) : null}
-                    </View>
+                    </Box>
                 </KeyboardAvoidingView>
             </Modal>
 
@@ -982,53 +971,47 @@ export default function TripChatScreen() {
                 animationType="fade"
                 onRequestClose={() => setPreviewMedia(null)}
             >
-                <View style={styles.previewOverlay}>
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        style={styles.previewBackdrop}
+                <Box className="flex-1 bg-black/95">
+                    <Pressable
+                        className="absolute inset-0"
                         onPress={() => setPreviewMedia(null)}
                     />
 
-                    <View style={styles.previewContent}>
-                        <View style={[styles.previewHeader, { paddingTop: modalTopInset }]}>
-                            <TouchableOpacity
+                    <Box className="flex-1 px-4" style={{ paddingTop: modalTopInset }}>
+                        <HStack className="justify-between items-center mb-4">
+                            <Pressable
                                 onPress={() => setPreviewMedia(null)}
-                                style={styles.previewIconButton}
+                                className="w-10 h-10 rounded-full items-center justify-center bg-white/10"
                             >
                                 <IconSymbol name="xmark" size={22} color="#FFFFFF" />
-                            </TouchableOpacity>
-
-
-                        </View>
+                            </Pressable>
+                        </HStack>
 
                         {previewMedia ? (
-                            <View style={styles.previewBody}>
+                            <Box className="flex-1 justify-center items-center w-full">
                                 <Zoom
-                                    style={styles.previewZoom}
-                                    contentContainerStyle={styles.previewZoomContent}
+                                    style={{ flex: 1, width: '100%' }}
+                                    contentContainerStyle={{ flex: 1, justifyContent: 'center', alignItems: 'center' } as any}
                                     minScale={1}
                                     maxScale={5}
                                     doubleTapConfig={{ defaultScale: 2.5, maxZoomScale: 5 }}
                                 >
                                     <Image
                                         source={{ uri: previewMedia.url }}
-                                        style={[
-                                            styles.previewImage,
-                                            {
-                                                width: previewViewportWidth,
-                                                height: previewViewportHeight,
-                                            },
-                                        ]}
+                                        style={{
+                                            width: previewViewportWidth,
+                                            height: previewViewportHeight,
+                                        }}
                                         resizeMode="contain"
                                     />
                                 </Zoom>
                                 {previewMedia.caption ? (
-                                    <Text style={styles.previewCaption}>{previewMedia.caption}</Text>
+                                    <Text className="mt-4 text-white text-[15px] font-medium text-center leading-[22px]">{previewMedia.caption}</Text>
                                 ) : null}
-                            </View>
+                            </Box>
                         ) : null}
-                    </View>
-                </View>
+                    </Box>
+                </Box>
             </Modal>
 
             {reportTarget ? (
@@ -1052,33 +1035,31 @@ export default function TripChatScreen() {
             ) : null}
 
             <Box
-                style={[
-                    styles.customHeader,
-                    {
-                        backgroundColor,
-                        borderBottomColor: borderColor,
-                        paddingTop: insets.top + 8,
-                        height: headerHeight,
-                    },
-                ]}
+                className="absolute top-0 left-0 right-0 z-20 border-b flex-row items-center px-4"
+                style={{
+                    backgroundColor,
+                    borderBottomColor: borderColor,
+                    paddingTop: insets.top + 8,
+                    height: headerHeight,
+                }}
             >
                 <Pressable
                     onPress={() => router.back()}
-                    style={styles.headerIconButton}
+                    className="w-10 h-10 rounded-full items-center justify-center"
                 >
                     <IconSymbol name="chevron.left" size={22} color={textColor} />
                 </Pressable>
 
-                <VStack style={styles.headerTitleWrap}>
-                    <GSText className="text-lg font-bold" style={{ color: textColor }}>Ride Chat</GSText>
-                    <GSText className="text-xs" style={{ color: subtextColor }}>
-                        Chat with approved riders
-                    </GSText>
+                <VStack className="flex-1 items-center px-3">
+                    <Text className="text-[17px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Ride Chat</Text>
+                    <Text className="text-[10px] font-bold uppercase mt-0.5" style={{ color: subtextColor }}>
+                        Approved Riders only
+                    </Text>
                 </VStack>
 
                 <Pressable
                     onPress={() => router.push(`/trip-chat-members/${tripId}`)}
-                    style={styles.headerIconButton}
+                    className="w-10 h-10 rounded-full items-center justify-center"
                 >
                     <IconSymbol name="info.circle.fill" size={22} color={textColor} />
                 </Pressable>
@@ -1087,18 +1068,19 @@ export default function TripChatScreen() {
             {isLoadingAccess || isLoadingMessages ? (
                 <Box className="flex-1 items-center justify-center" style={{ backgroundColor, paddingTop: headerHeight }}>
                     <Spinner size="large" color={primaryColor} />
+                    <Text className="mt-4 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Synchronizing messages…</Text>
                 </Box>
             ) : isBlocked ? (
-                <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor, paddingTop: headerHeight }}>
-                    <Box className="w-[72px] h-[72px] rounded-3xl items-center justify-center mb-5" style={{ backgroundColor: `${primaryColor}12` }}>
+                <Box className="flex-1 items-center justify-center px-8" style={{ backgroundColor, paddingTop: headerHeight }}>
+                    <Box className="w-20 h-20 rounded-[32px] items-center justify-center mb-6 bg-gray-50 shadow-xl rotate-3">
                         <IconSymbol name="bubble.left.and.bubble.right.fill" size={34} color={primaryColor} />
                     </Box>
-                    <GSText className="text-xl font-bold mb-2 text-center" style={{ color: textColor }}>
-                        Chat unavailable
-                    </GSText>
-                    <GSText className="text-sm leading-6 text-center" style={{ color: subtextColor }}>
-                        This ride chat is only available for the captain and approved riders while the trip is active.
-                    </GSText>
+                    <Text className="text-2xl font-extrabold mb-2 text-center" style={{ color: textColor }}>
+                        Access Restricted
+                    </Text>
+                    <Text className="text-sm font-medium leading-6 text-center" style={{ color: subtextColor }}>
+                        This exclusive ride chat is only available for the captain and approved riders while the trip is live.
+                    </Text>
                 </Box>
             ) : (
                 <Box className="flex-1" style={{ paddingTop: headerHeight }}>
@@ -1117,27 +1099,27 @@ export default function TripChatScreen() {
                             if (currentMessage?.replyTo) {
                                 const isRight = position === 'right';
 
-                                const bubbleBg = isRight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.06)';
+                                const bubbleBg = isRight ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.06)';
                                 const barColor = isRight ? 'rgba(255,255,255,0.7)' : primaryColor;
                                 const nameColor = isRight ? '#FFFFFF' : primaryColor;
                                 const messageColor = isRight ? 'rgba(255,255,255,0.85)' : subtextColor;
 
                                 return (
-                                    <TouchableOpacity
-                                        activeOpacity={0.8}
+                                    <Pressable
                                         onPress={() => scrollToMessage(currentMessage.replyTo.documentId)}
-                                        style={[styles.replyBubbleView, { backgroundColor: bubbleBg }]}
+                                        className="flex-row rounded-lg mx-2 mt-1.5 mb-1 pr-2 overflow-hidden min-w-[140px]"
+                                        style={{ backgroundColor: bubbleBg }}
                                     >
-                                        <View style={[styles.replyBubbleBar, { backgroundColor: barColor }]} />
-                                        <View style={styles.replyBubbleContent}>
-                                            <Text style={[styles.replyBubbleName, { color: nameColor }]} numberOfLines={1}>
+                                        <Box className="w-1" style={{ backgroundColor: barColor }} />
+                                        <VStack className="py-2 pr-1.5 flex-1 ml-2">
+                                            <Text className="text-[11px] font-extrabold uppercase tracking-tight" style={{ color: nameColor }} numberOfLines={1}>
                                                 {currentMessage.replyTo.sender.username || currentMessage.replyTo.sender.name}
                                             </Text>
-                                            <Text style={[styles.replyBubbleMessage, { color: messageColor }]} numberOfLines={2}>
+                                            <Text className="text-[11px] font-medium mt-0.5" style={{ color: messageColor }} numberOfLines={2}>
                                                 {summarizeMessageContent(currentMessage.replyTo.message)}
                                             </Text>
-                                        </View>
-                                    </TouchableOpacity>
+                                        </VStack>
+                                    </Pressable>
                                 );
                             }
                             return null;
@@ -1145,7 +1127,7 @@ export default function TripChatScreen() {
                         bottomOffset={insets.bottom}
                         renderAvatarOnTop
                         keyboardShouldPersistTaps="handled"
-                        minInputToolbarHeight={60}
+                        minInputToolbarHeight={64}
                         keyboardAvoidingViewProps={{ keyboardVerticalOffset: headerHeight }}
                         loadEarlier={Boolean(hasNextPage)}
                         onLoadEarlier={() => {
@@ -1155,22 +1137,20 @@ export default function TripChatScreen() {
                         }}
                         isLoadingEarlier={isFetchingNextPage}
                         timeTextStyle={{
-                            right: { color: 'rgba(255,255,255,0.75)' },
-                            left: { color: subtextColor },
+                            right: { color: 'rgba(255,255,255,0.75)', fontSize: 10, fontWeight: '700' },
+                            left: { color: subtextColor, fontSize: 10, fontWeight: '700' },
                         }}
                         messagesContainerStyle={{ backgroundColor }}
                         textInputProps={{
                             onChangeText: handleComposerChange,
-                            placeholder: 'Message the group',
+                            placeholder: 'Message group...',
                             placeholderTextColor: subtextColor,
-                            style: [
-                                styles.input,
-                                {
-                                    color: textColor,
-                                    backgroundColor: cardColor,
-                                    borderColor,
-                                },
-                            ],
+                            className: "flex-1 border-2 rounded-[24px] px-4 py-3 text-[15px] min-h-[48px]",
+                            style: {
+                                color: textColor,
+                                backgroundColor: cardColor,
+                                borderColor,
+                            },
                         }}
                         messagesContainerRef={flatListRef as any}
                         listProps={{
@@ -1179,14 +1159,14 @@ export default function TripChatScreen() {
                                     flatListRef.current = r;
                                 }
                             },
-                            contentContainerStyle: giftedMessages.length === 0 ? styles.emptyList : undefined,
+                            contentContainerStyle: giftedMessages.length === 0 ? { flexGrow: 1, justifyContent: 'center' } : undefined,
                             onScrollToIndexFailed: (info: any) => {
                                 const offset = info.averageItemLength * info.index;
-                                if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
-                                    flatListRef.current.scrollToOffset({ offset, animated: true });
+                                if (flatListRef.current && typeof (flatListRef.current as any).scrollToOffset === 'function') {
+                                    (flatListRef.current as any).scrollToOffset({ offset, animated: true });
                                     setTimeout(() => {
-                                        if (flatListRef.current && typeof flatListRef.current.scrollToIndex === 'function') {
-                                            flatListRef.current.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
+                                        if (flatListRef.current && typeof (flatListRef.current as any).scrollToIndex === 'function') {
+                                            (flatListRef.current as any).scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
                                         }
                                     }, 100);
                                 }
@@ -1203,125 +1183,109 @@ export default function TripChatScreen() {
 
                             return (
                                 <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
-                                    <View style={[styles.messageActionWrap, { alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }]}>
+                                    <Box className="max-w-full" style={{ alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }}>
                                         {isMenuOpen ? (
-                                            <View style={[
-                                                styles.messageActionMenu,
-                                                {
-                                                    backgroundColor: cardColor,
-                                                    borderColor,
+                                            <VStack
+                                                className="border-2 rounded-2xl py-2 min-w-[150px] mb-2 shadow-xl"
+                                                style={{ 
+                                                    backgroundColor: cardColor, 
+                                                    borderColor: primaryColor + '40',
                                                     alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                                                },
-                                            ]}>
-                                                <TouchableOpacity
-                                                    activeOpacity={0.8}
-                                                    style={styles.messageActionItem}
+                                                }}
+                                            >
+                                                <Pressable
+                                                    className="flex-row items-center gap-2.5 px-4 py-2.5"
                                                     onPress={() => {
                                                         setReplyingTo(currentMessage);
                                                         setActiveMessageMenuId(null);
                                                     }}
                                                 >
                                                     <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
-                                                    <Text style={[styles.messageActionText, { color: textColor }]}>Reply</Text>
-                                                </TouchableOpacity>
+                                                    <Text className="text-[13px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Reply</Text>
+                                                </Pressable>
                                                 {!isCurrentUser ? (
-                                                    <TouchableOpacity
-                                                        activeOpacity={0.8}
-                                                        style={styles.messageActionItem}
+                                                    <Pressable
+                                                        className="flex-row items-center gap-2.5 px-4 py-2.5"
                                                         onPress={() => handleOpenReport(currentMessage)}
                                                     >
                                                         <IconSymbol name="exclamationmark.bubble.fill" size={16} color={dangerColor} />
-                                                        <Text style={[styles.messageActionText, { color: dangerColor }]}>Report user</Text>
-                                                    </TouchableOpacity>
+                                                        <Text className="text-[13px] font-extrabold uppercase tracking-widest" style={{ color: dangerColor }}>Report user</Text>
+                                                    </Pressable>
                                                 ) : null}
-                                                <TouchableOpacity
-                                                    activeOpacity={0.8}
-                                                    style={styles.messageActionItem}
+                                                <Pressable
+                                                    className="flex-row items-center gap-2.5 px-4 py-2.5 border-t"
+                                                    style={{ borderTopColor: borderColor }}
                                                     onPress={() => setActiveMessageMenuId(null)}
                                                 >
-                                                    <IconSymbol name="xmark" size={15} color={subtextColor} />
-                                                    <Text style={[styles.messageActionText, { color: subtextColor }]}>Close</Text>
-                                                </TouchableOpacity>
-                                            </View>
+                                                    <IconSymbol name="xmark" size={14} color={subtextColor} />
+                                                    <Text className="text-[11px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Dismiss</Text>
+                                                </Pressable>
+                                            </VStack>
                                         ) : null}
                                         {locationPayload ? (
-                                            <TouchableOpacity
-                                                activeOpacity={0.85}
+                                            <Pressable
                                                 onPress={() => openSharedLocation(locationPayload)}
-                                                style={[
-                                                    styles.locationBubble,
-                                                    {
-                                                        alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                                                        backgroundColor: isHighlighted
-                                                            ? (isCurrentUser ? '#2FBF71' : `${primaryColor}14`)
-                                                            : (isCurrentUser ? primaryColor : cardColor),
-                                                        borderColor: isHighlighted ? primaryColor : borderColor,
-                                                        borderWidth: isHighlighted ? 2 : 1,
-                                                    },
-                                                ]}
+                                                className="max-w-[270px] rounded-[24px] px-4 py-4 border-2 mb-1 shadow-sm"
+                                                style={{
+                                                    alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                    backgroundColor: isHighlighted
+                                                        ? (isCurrentUser ? '#2FBF71' : `${primaryColor}14`)
+                                                        : (isCurrentUser ? primaryColor : cardColor),
+                                                    borderColor: isHighlighted ? primaryColor : (isCurrentUser ? primaryColor + '40' : borderColor),
+                                                }}
                                             >
-                                                <View style={styles.locationBubbleHeader}>
-                                                    <IconSymbol
-                                                        name="location.fill"
-                                                        size={18}
-                                                        color={isCurrentUser ? '#FFFFFF' : primaryColor}
-                                                    />
+                                                <HStack className="items-center mb-2" space="sm">
+                                                    <Box className="w-8 h-8 rounded-full items-center justify-center bg-white/20">
+                                                        <IconSymbol
+                                                            name="location.fill"
+                                                            size={16}
+                                                            color={isCurrentUser ? '#FFFFFF' : primaryColor}
+                                                        />
+                                                    </Box>
                                                     <Text
-                                                        style={[
-                                                            styles.locationBubbleTitle,
-                                                            { color: isCurrentUser ? '#FFFFFF' : textColor },
-                                                        ]}
+                                                        className="flex-1 text-[15px] font-extrabold"
+                                                        style={{ color: isCurrentUser ? '#FFFFFF' : textColor }}
                                                     >
                                                         {locationPayload.label}
                                                     </Text>
-                                                </View>
+                                                </HStack>
                                                 <Text
-                                                    style={[
-                                                        styles.locationBubbleSubtitle,
-                                                        { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
-                                                    ]}
+                                                    className="text-[11px] font-bold uppercase tracking-tight"
+                                                    style={{ color: isCurrentUser ? 'rgba(255,255,255,0.85)' : subtextColor }}
                                                 >
-                                                    Tap to open in Google Maps
+                                                    Open in Google Maps
                                                 </Text>
-                                            </TouchableOpacity>
+                                            </Pressable>
                                         ) : mediaPayload ? (
-                                            <TouchableOpacity
-                                                activeOpacity={0.92}
+                                            <Pressable
                                                 onPress={() => openSharedMedia(mediaPayload)}
-                                                style={[
-                                                    styles.mediaBubble,
-                                                    {
-                                                        alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                                                        backgroundColor: isCurrentUser ? primaryColor : cardColor,
-                                                        borderColor: isHighlighted ? primaryColor : borderColor,
-                                                        borderWidth: isHighlighted ? 2 : 1,
-                                                    },
-                                                ]}
+                                                className="max-w-[270px] rounded-[24px] p-2.5 border-2 mb-1 shadow-sm overflow-hidden"
+                                                style={{
+                                                    alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                    backgroundColor: isCurrentUser ? primaryColor : cardColor,
+                                                    borderColor: isHighlighted ? primaryColor : (isCurrentUser ? primaryColor + '40' : borderColor),
+                                                }}
                                             >
                                                 <Image
                                                     source={{ uri: mediaPayload.url }}
-                                                    style={styles.mediaImage}
+                                                    className="w-[245px] h-[220px] rounded-[18px] bg-gray-100"
                                                     resizeMode="cover"
                                                 />
                                                 {mediaPayload.caption ? (
                                                     <Text
-                                                        style={[
-                                                            styles.mediaCaption,
-                                                            { color: isCurrentUser ? '#FFFFFF' : textColor },
-                                                        ]}
+                                                        className="text-sm font-medium mt-3 mx-1 leading-5"
+                                                        style={{ color: isCurrentUser ? '#FFFFFF' : textColor }}
                                                     >
                                                         {mediaPayload.caption}
                                                     </Text>
                                                 ) : null}
                                                 <Text
-                                                    style={[
-                                                        styles.mediaHint,
-                                                        { color: isCurrentUser ? 'rgba(255,255,255,0.82)' : subtextColor },
-                                                    ]}
+                                                    className="text-[10px] font-extrabold uppercase mt-2 mx-1 tracking-widest"
+                                                    style={{ color: isCurrentUser ? 'rgba(255,255,255,0.75)' : subtextColor }}
                                                 >
-                                                    Tap to open image
+                                                    View Image
                                                 </Text>
-                                            </TouchableOpacity>
+                                            </Pressable>
                                         ) : (
                                             <Bubble
                                                 {...props}
@@ -1329,509 +1293,132 @@ export default function TripChatScreen() {
                                                     right: {
                                                         backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
                                                         borderWidth: isHighlighted ? 2 : 0,
-                                                        borderColor: '#DCF8C6',
+                                                        borderColor: '#fff',
+                                                        borderRadius: 24,
+                                                        padding: 2,
                                                     },
                                                     left: {
                                                         backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
-                                                        borderWidth: isHighlighted ? 2 : 1,
+                                                        borderWidth: isHighlighted ? 2 : 2,
                                                         borderColor: isHighlighted ? primaryColor : borderColor,
+                                                        borderRadius: 24,
+                                                        padding: 2,
                                                     },
                                                 }}
                                                 textStyle={{
-                                                    right: { color: '#FFFFFF' },
-                                                    left: { color: textColor },
+                                                    right: { color: '#FFFFFF', fontSize: 14, lineHeight: 20, fontWeight: '500' },
+                                                    left: { color: textColor, fontSize: 14, lineHeight: 20, fontWeight: '500' },
                                                 }}
                                             />
                                         )}
-                                    </View>
+                                    </Box>
                                 </SwipeableMessageBubble>
                             );
                         }}
                         renderInputToolbar={(props: any) => (
-                            <View>
+                            <Box>
                                 {replyingTo && (
-                                    <View style={[styles.replyPreviewContainer, { backgroundColor: cardColor, borderColor }]}>
-                                        <View style={[styles.replyPreviewBar, { backgroundColor: primaryColor }]} />
-                                        <View style={styles.replyPreviewContent}>
-                                            <Text style={[styles.replyPreviewName, { color: primaryColor }]}>
+                                    <HStack className="px-4 py-3 border-t items-center" style={{ backgroundColor: cardColor, borderTopColor: borderColor }} space="md">
+                                        <Box className="w-1 h-10 rounded-full" style={{ backgroundColor: primaryColor }} />
+                                        <VStack className="flex-1">
+                                            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
                                                 {replyingTo.user.name}
                                             </Text>
-                                            <Text style={[styles.replyPreviewMessage, { color: subtextColor }]} numberOfLines={1}>
+                                            <Text className="text-[13px] font-medium" style={{ color: subtextColor }} numberOfLines={1}>
                                                 {replyingTo.text}
                                             </Text>
-                                        </View>
-                                        <TouchableOpacity
+                                        </VStack>
+                                        <Pressable
                                             onPress={() => setReplyingTo(null)}
-                                            style={styles.replyPreviewClose}
+                                            className="p-1.5"
                                         >
                                             <IconSymbol name="xmark.circle.fill" size={20} color={subtextColor} />
-                                        </TouchableOpacity>
-                                    </View>
+                                        </Pressable>
+                                    </HStack>
                                 )}
-                                <View style={[styles.toolbarRow, { backgroundColor }]}>
-                                    <TouchableOpacity
+                                <HStack className="items-end px-3 pb-3 pt-1 gap-2.5" style={{ backgroundColor }}>
+                                    <Pressable
                                         onPress={handlePickAndSendMedia}
                                         disabled={isSendingMedia || isSending}
-                                        style={[
-                                            styles.toolbarActionButton,
-                                            {
-                                                backgroundColor: isSendingMedia ? `${subtextColor}22` : `${primaryColor}14`,
-                                            },
-                                        ]}
+                                        className="w-12 h-12 rounded-full items-center justify-center border shadow-sm"
+                                        style={{
+                                            backgroundColor: isSendingMedia ? `${subtextColor}22` : `${primaryColor}10`,
+                                            borderColor: isSendingMedia ? borderColor : primaryColor + '20'
+                                        }}
                                     >
                                         <IconSymbol
                                             name="camera.fill"
-                                            size={20}
+                                            size={18}
                                             color={isSendingMedia ? subtextColor : primaryColor}
                                         />
-                                    </TouchableOpacity>
+                                    </Pressable>
                                     {chatAccess?.isCaptain ? (
-                                        <TouchableOpacity
+                                        <Pressable
                                             onPress={handleShareCurrentLocation}
                                             disabled={isSendingLocation || isSendingMedia}
-                                            style={[
-                                                styles.toolbarActionButton,
-                                                {
-                                                    backgroundColor: isSendingLocation ? `${subtextColor}22` : `${primaryColor}14`,
-                                                },
-                                            ]}
+                                            className="w-12 h-12 rounded-full items-center justify-center border shadow-sm"
+                                            style={{
+                                                backgroundColor: isSendingLocation ? `${subtextColor}22` : `${primaryColor}10`,
+                                                borderColor: isSendingLocation ? borderColor : primaryColor + '20'
+                                            }}
                                         >
                                             <IconSymbol
                                                 name="location.fill"
-                                                size={20}
+                                                size={18}
                                                 color={isSendingLocation ? subtextColor : primaryColor}
                                             />
-                                        </TouchableOpacity>
+                                        </Pressable>
                                     ) : null}
                                     <InputToolbar
                                         {...props}
-                                        containerStyle={[
-                                            styles.toolbar,
-                                            {
-                                                backgroundColor,
-                                            },
-                                        ]}
-                                        primaryStyle={styles.toolbarPrimary}
+                                        containerStyle={{
+                                            borderTopWidth: 0,
+                                            paddingTop: 0,
+                                            paddingHorizontal: 0,
+                                            paddingBottom: 0,
+                                            flex: 1,
+                                            backgroundColor: 'transparent',
+                                        }}
+                                        primaryStyle={{ alignItems: 'flex-end' }}
                                     />
-                                    <TouchableOpacity
+                                    <Pressable
                                         onPress={handlePressSend}
                                         disabled={!composerText.trim() || isSending || isSendingMedia}
-                                        style={[
-                                            styles.sendButton,
-                                            {
-                                                backgroundColor: composerText.trim() && !isSending && !isSendingMedia ? primaryColor : '#E5E7EB',
-                                            },
-                                        ]}
+                                        className="w-12 h-12 rounded-full items-center justify-center shadow-lg"
+                                        style={{
+                                            backgroundColor: composerText.trim() && !isSending && !isSendingMedia ? primaryColor : '#E5E7EB',
+                                        }}
                                     >
                                         <IconSymbol
                                             name="paperplane.fill"
                                             size={18}
                                             color={composerText.trim() && !isSending && !isSendingMedia ? '#FFFFFF' : '#9CA3AF'}
                                         />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
+                                    </Pressable>
+                                </HStack>
+                            </Box>
                         )}
                         renderSend={() => null}
                         renderChatEmpty={() => (
-                            <Box style={styles.emptyState}>
-                                <GSText className="text-xl font-bold mb-2 text-center" style={{ color: textColor }}>
-                                    No messages yet
-                                </GSText>
-                                <GSText className="text-sm leading-6 text-center" style={{ color: subtextColor }}>
-                                    Start the conversation with everyone on this ride.
-                                </GSText>
+                            <Box className="items-center px-10 py-10" style={{ transform: [{ rotate: '180deg' }] }}>
+                                <Text className="text-xl font-extrabold text-center uppercase tracking-widest" style={{ color: textColor }}>
+                                    Launch Pad
+                                </Text>
+                                <Text className="text-sm font-medium leading-6 text-center mt-2" style={{ color: subtextColor }}>
+                                    This is the start of your ride community. coordinate and ride safely!
+                                </Text>
                             </Box>
                         )}
-                        renderChatFooter={() => typingText ? (
-                            <Box style={styles.typingFooter}>
-                                <GSText className="text-sm italic" style={{ color: subtextColor }}>
+                        renderChatFooter={() => (typingText ? (
+                            <Box className="px-5 pb-3">
+                                <Text className="text-[11px] font-bold italic uppercase tracking-tight" style={{ color: subtextColor }}>
                                     {typingText}
-                                </GSText>
+                                </Text>
                             </Box>
-                        ) : null}
+                        ) : null)}
                     />
                 </Box>
             )}
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-    },
-    previewOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.92)',
-    },
-    composeOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.45)',
-    },
-    composeCard: {
-        flex: 1,
-        paddingTop: 8,
-        paddingBottom: 20,
-    },
-    composeHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    composeTitle: {
-        fontSize: 17,
-        fontWeight: '700',
-    },
-    composeHeaderSpacer: {
-        width: 40,
-        height: 40,
-    },
-    composeSendButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 4,
-    },
-    composeBody: {
-        flex: 1,
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        gap: 14,
-    },
-    composeImagePreview: {
-        width: '100%',
-        height: 340,
-        borderRadius: 20,
-        backgroundColor: '#000000',
-    },
-    composeReplyCard: {
-        borderWidth: 1,
-        borderRadius: 16,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-    },
-    composeReplyName: {
-        fontSize: 13,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    composeReplyText: {
-        fontSize: 13,
-    },
-    composeCaptionInput: {
-        flex: 1,
-        minHeight: 56,
-        maxHeight: 120,
-        borderWidth: 1,
-        borderRadius: 22,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        fontSize: 15,
-        textAlignVertical: 'top',
-    },
-    composeFooter: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        gap: 10,
-        marginTop: 'auto',
-    },
-    previewBackdrop: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    previewContent: {
-        flex: 1,
-        paddingTop: 56,
-        paddingBottom: 28,
-        paddingHorizontal: 16,
-    },
-    previewHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    previewIconButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.12)',
-    },
-    previewOpenButton: {
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 999,
-        backgroundColor: 'rgba(255,255,255,0.12)',
-    },
-    previewOpenButtonText: {
-        color: '#FFFFFF',
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    previewBody: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%',
-    },
-    previewZoom: {
-        flex: 1,
-        width: '100%',
-    },
-    previewZoomContent: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    previewImage: {
-        maxWidth: '100%',
-        maxHeight: '100%',
-    },
-    previewCaption: {
-        marginTop: 16,
-        color: '#FFFFFF',
-        fontSize: 15,
-        lineHeight: 22,
-        textAlign: 'center',
-    },
-    customHeader: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    chatWrapper: {
-        flex: 1,
-    },
-    headerIconButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitleWrap: {
-        flex: 1,
-        alignItems: 'center',
-        paddingHorizontal: 12,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    headerSubtitle: {
-        fontSize: 12,
-        marginTop: 2,
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-
-    },
-    emptyList: {
-        flexGrow: 1,
-        justifyContent: 'center',
-    },
-    emptyState: {
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        transform: [{ rotate: '180deg' }],
-    },
-    typingFooter: {
-        paddingHorizontal: 18,
-        paddingBottom: 8,
-    },
-    toolbarRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        paddingHorizontal: 8,
-        gap: 8,
-    },
-    toolbarActionButton: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    mediaBubble: {
-        maxWidth: 270,
-        borderRadius: 20,
-        padding: 8,
-        borderWidth: 1,
-        marginBottom: 4,
-        overflow: 'hidden',
-    },
-    mediaImage: {
-        width: 252,
-        height: 220,
-        borderRadius: 14,
-        backgroundColor: '#E5E7EB',
-    },
-    mediaCaption: {
-        fontSize: 14,
-        lineHeight: 20,
-        marginTop: 10,
-        marginHorizontal: 4,
-    },
-    mediaHint: {
-        fontSize: 12,
-        marginTop: 8,
-        marginHorizontal: 4,
-    },
-    locationBubble: {
-        maxWidth: 270,
-        borderRadius: 20,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        borderWidth: 1,
-        marginBottom: 4,
-    },
-    locationBubbleHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 6,
-    },
-    locationBubbleTitle: {
-        flex: 1,
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    locationBubbleSubtitle: {
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    messageActionWrap: {
-        maxWidth: '100%',
-    },
-    messageActionMenu: {
-        borderWidth: 1,
-        borderRadius: 16,
-        paddingVertical: 6,
-        minWidth: 150,
-        marginBottom: 8,
-    },
-    messageActionItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-    },
-    messageActionText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    typingText: {
-        fontSize: 13,
-        fontStyle: 'italic',
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    emptySubtitle: {
-        fontSize: 15,
-        lineHeight: 22,
-        textAlign: 'center',
-    },
-    toolbar: {
-        borderTopWidth: 0,
-        paddingTop: 6,
-        paddingHorizontal: 0,
-        paddingBottom: 6,
-        flex: 1,
-    },
-    toolbarPrimary: {
-        alignItems: 'flex-end',
-    },
-    input: {
-        borderWidth: 1,
-        borderRadius: 24,
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 12,
-        minHeight: 48,
-        fontSize: 15,
-    },
-    sendButton: {
-        width: 46,
-        height: 46,
-        borderRadius: 23,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    replyPreviewContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderTopWidth: 1,
-    },
-    replyPreviewBar: {
-        width: 4,
-        borderRadius: 2,
-        marginRight: 8,
-    },
-    replyPreviewContent: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    replyPreviewName: {
-        fontSize: 13,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    replyPreviewMessage: {
-        fontSize: 13,
-    },
-    replyPreviewClose: {
-        padding: 4,
-        justifyContent: 'center',
-    },
-    replyBubbleView: {
-        flexDirection: 'row',
-        borderRadius: 8,
-        marginHorizontal: 8,
-        marginTop: 6,
-        marginBottom: 2,
-        paddingRight: 8,
-        overflow: 'hidden',
-        minWidth: 140,
-    },
-    replyBubbleBar: {
-        width: 4,
-        marginRight: 8,
-    },
-    replyBubbleContent: {
-        paddingVertical: 8,
-        paddingRight: 6,
-        flex: 1,
-    },
-    replyBubbleName: {
-        fontSize: 12,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    replyBubbleMessage: {
-        fontSize: 12,
-    },
-});

@@ -2,13 +2,8 @@ import React, { useState, useCallback, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import TextRecognition from 'react-native-text-recognition';
 import {
-  View,
-  Text as RNText,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
-  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
@@ -29,6 +24,7 @@ import { useUserStore } from '@/store/user-store';
 import { userService } from '@/services/user-service';
 import { CITIES } from '@/constants/cities';
 import { ProfileSkeleton } from '@/features/profile/components/ProfileSkeleton';
+import { CustomAlert } from '@/components/CustomAlert';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
@@ -49,6 +45,7 @@ type ActionRowProps = {
   textColor: string;
   chevronColor: string;
   onPress: () => void;
+  showDivider?: boolean;
 };
 
 function ActionRow({
@@ -59,24 +56,30 @@ function ActionRow({
   textColor,
   chevronColor,
   onPress,
+  showDivider = true,
 }: ActionRowProps) {
+    const borderColor = useThemeColor({}, 'border');
+
   return (
-    <Pressable className="py-1" onPress={onPress}>
-      <HStack className="items-center justify-between">
-        <HStack space="md" className="items-center">
-          <Box
-            className="h-10 w-10 rounded-xl items-center justify-center"
-            style={{ backgroundColor: iconBackground }}
-          >
-            <IconSymbol name={icon as any} size={16} color={iconColor} />
-          </Box>
-          <Text className="text-base font-medium" style={{ color: textColor }}>
-            {label}
-          </Text>
+    <VStack >
+        <Pressable className="py-4 px-2" onPress={onPress}>
+        <HStack className="items-center justify-between">
+            <HStack space="md" className="items-center">
+            <Box
+                className="h-10 w-10 rounded-2xl items-center justify-center shadow-sm"
+                style={{ backgroundColor: iconBackground }}
+            >
+                <IconSymbol name={icon as any} size={18} color={iconColor} />
+            </Box>
+            <Text className="text-base font-bold" style={{ color: textColor }}>
+                {label}
+            </Text>
+            </HStack>
+            <IconSymbol name="chevron.right" size={16} color={chevronColor} />
         </HStack>
-        <IconSymbol name="chevron.right" size={16} color={chevronColor} />
-      </HStack>
-    </Pressable>
+        </Pressable>
+        {showDivider && <Divider className="mx-2" style={{ backgroundColor: borderColor }} />}
+    </VStack>
   );
 }
 
@@ -382,13 +385,19 @@ export default function ProfileScreen() {
 
   if (error && !profile) {
     return (
-      <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor }}>
-        <Text className="mb-4 text-center text-lg font-semibold" style={{ color: dangerColor }}>
-          Failed to load profile
-        </Text>
-        <Button onPress={() => refetch()}>
-          <ButtonText>Retry</ButtonText>
-        </Button>
+      <Box className="flex-1 items-center justify-center px-10" style={{ backgroundColor }}>
+        <Stack.Screen options={{ title: 'Profile', headerTitleStyle: { fontWeight: '800' } }} />
+        <VStack className="items-center" space="md">
+            <Box className="w-20 h-20 rounded-full bg-gray-50 items-center justify-center mb-2">
+                <IconSymbol name="person.crop.circle.badge.exclamationmark" size={40} color={subtextColor} />
+            </Box>
+            <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
+                Failed to load profile
+            </Text>
+            <Button className="rounded-full shadow-sm" onPress={() => refetch()}>
+                <ButtonText className="font-extrabold uppercase tracking-widest px-4">Retry</ButtonText>
+            </Button>
+        </VStack>
       </Box>
     );
   }
@@ -415,10 +424,11 @@ export default function ProfileScreen() {
     .join('');
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
       <Stack.Screen
         options={{
           title: 'Profile',
+          headerTitleStyle: { fontWeight: '800' },
           headerShown: true,
           headerTransparent: false,
           headerStyle: { backgroundColor: cardColor },
@@ -426,15 +436,15 @@ export default function ProfileScreen() {
           headerShadowVisible: false,
           headerRight: () =>
             profile ? (
-              <TouchableOpacity style={{ marginRight: 16 }} onPress={() => router.push('/settings')}>
+              <Pressable className="mr-4" onPress={() => router.push('/settings')}>
                 <IconSymbol name="gearshape.fill" size={24} color={primaryColor} />
-              </TouchableOpacity>
+              </Pressable>
             ) : null,
         }}
       />
 
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -444,9 +454,9 @@ export default function ProfileScreen() {
           />
         }
       >
-        <VStack className="items-center pb-6" space="sm">
-          <Pressable onPress={handlePickImage} disabled={isUploadingAvatar} className="relative mb-1">
-            <Avatar size="2xl">
+        <VStack className="items-center py-10" space="lg">
+          <Pressable onPress={handlePickImage} disabled={isUploadingAvatar} className="relative">
+            <Avatar size="2xl" className="border-4 shadow-xl" style={{ borderColor: cardColor }}>
               <AvatarFallbackText>{initials || 'MR'}</AvatarFallbackText>
               <AvatarImage
                 source={avatarUrl ? { uri: avatarUrl } : { uri: DUMMY_AVATAR }}
@@ -454,324 +464,257 @@ export default function ProfileScreen() {
               />
             </Avatar>
             {isUploadingAvatar ? (
-              <Box style={styles.avatarOverlay} className="items-center justify-center">
+              <Box className="absolute inset-0 bg-black/40 rounded-full items-center justify-center">
                 <Spinner color="#fff" size="small" />
               </Box>
             ) : (
               <Box
-                style={[styles.avatarEditIcon, { backgroundColor: primaryColor }]}
-                className="items-center justify-center"
+                className="absolute bottom-1 right-1 w-10 h-10 rounded-full border-4 items-center justify-center shadow-lg"
+                style={{ backgroundColor: primaryColor, borderColor: cardColor }}
               >
-                <IconSymbol name="camera.fill" size={14} color="#fff" />
+                <IconSymbol name="camera.fill" size={16} color="#fff" />
               </Box>
             )}
           </Pressable>
 
-          <Text className="text-center text-2xl font-bold" style={{ color: textColor }}>
-            {name}
-          </Text>
-
-          {profile?.city ? (
-            <HStack space="xs" className="items-center mt-1">
-              <IconSymbol name="mappin.circle.fill" size={12} color={primaryColor} />
-              <Text className="text-sm font-medium" style={{ color: subtextColor }}>
-                {profile.city}
-              </Text>
-            </HStack>
-          ) : null}
-
-          <Text className="mt-1 text-sm text-center" style={{ color: subtextColor }}>
-            {user?.email}
-          </Text>
+          <VStack className="items-center" space="xs">
+            <Text className="text-3xl font-extrabold text-center" style={{ color: textColor }}>
+                {name}
+            </Text>
+            {profile?.city ? (
+                <HStack space="xs" className="items-center px-3 py-1 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
+                    <IconSymbol name="mappin.circle.fill" size={12} color={primaryColor} />
+                    <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                        {profile.city}
+                    </Text>
+                </HStack>
+            ) : (
+                <Text className="text-sm font-medium" style={{ color: subtextColor }}>
+                    {user?.email}
+                </Text>
+            )}
+          </VStack>
 
           {!profile ? (
             <Pressable
-              className="mt-3 rounded-full px-4 py-2"
-              style={{ backgroundColor: `${primaryColor}15` }}
+              className="mt-2 rounded-2xl px-8 py-3 border shadow-sm"
+              style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor }}
               onPress={handlePresentModalPress}
             >
-              <Text className="font-semibold" style={{ color: primaryColor }}>
-                Complete your profile →
+              <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                Complete profile →
               </Text>
             </Pressable>
           ) : isVerified ? (
-            <VStack className="items-center mt-2" space="sm">
-              <Box className="rounded-full px-3 py-1" style={{ backgroundColor: successBgColor }}>
-                <Text className="text-xs font-semibold" style={{ color: successColor }}>
-                  Verified
+            <VStack className="items-center" space="sm">
+              <Box className="rounded-full px-5 py-1.5 border shadow-sm" style={{ backgroundColor: successBgColor, borderColor: successColor + '20' }}>
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: successColor }}>
+                  Verified Account
                 </Text>
               </Box>
-              {isGovernmentIdVerified ? (
+              {isGovernmentIdVerified && (
                 <HStack
                   space="xs"
-                  className="items-center rounded-full px-3 py-1.5"
-                  style={{ backgroundColor: `${primaryColor}14` }}
+                  className="items-center rounded-full px-4 py-1.5 border shadow-sm"
+                  style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor + '20' }}
                 >
                   <IconSymbol name="checkmark.shield.fill" size={12} color={primaryColor} />
-                  <Text className="text-xs font-bold" style={{ color: primaryColor }}>
-                    Government ID verified
+                  <Text className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                    Government ID confirmed
                   </Text>
                 </HStack>
-              ) : null}
+              )}
             </VStack>
           ) : (
-            <VStack className="items-center mt-2" space="sm">
-              <Box className="rounded-full px-3 py-1" style={{ backgroundColor: dangerBgColor }}>
-                <Text className="text-xs font-semibold" style={{ color: dangerColor }}>
-                  Unverified
+            <VStack className="items-center" space="md">
+              <Box className="rounded-full px-5 py-1.5 border shadow-sm" style={{ backgroundColor: dangerBgColor, borderColor: dangerColor + '20' }}>
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: dangerColor }}>
+                  Unverified Status
                 </Text>
               </Box>
-              <Pressable onPress={handleVerifyNow} disabled={isVerifyingGovernmentId}>
-                <Text className="font-semibold" style={{ color: primaryColor }}>
-                  {isVerifyingGovernmentId ? 'Verifying Aadhaar...' : 'Verify now?'}
-                </Text>
+              <Pressable 
+                className="px-6 py-2.5 rounded-2xl border-2 border-dashed" 
+                style={{ borderColor: primaryColor }}
+                onPress={handleVerifyNow} 
+                disabled={isVerifyingGovernmentId}
+              >
+                  {isVerifyingGovernmentId ? (
+                    <HStack space="sm" className="items-center px-2">
+                        <Spinner size="small" color={primaryColor} />
+                        <Text className="text-xs font-bold uppercase tracking-tight" style={{ color: primaryColor }}>Processing ID...</Text>
+                    </HStack>
+                  ) : (
+                    <Text className="text-xs font-bold uppercase tracking-tight" style={{ color: primaryColor }}>Verify Identity now?</Text>
+                  )}
               </Pressable>
-              {isVerifyingGovernmentId ? (
-                <HStack space="sm" className="items-center px-4">
-                  <Spinner size="small" color={primaryColor} />
-                  <Text className="flex-1 text-center text-xs leading-5" style={{ color: subtextColor }}>
-                    Running OCR, uploading ID, and updating your verification status...
-                  </Text>
-                </HStack>
-              ) : null}
             </VStack>
           )}
         </VStack>
 
-        <Box className="rounded-2xl p-4 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-          <Text className="text-base font-semibold mb-3" style={{ color: textColor }}>
-            Statistics
+        <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+          <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-6" style={{ color: subtextColor }}>
+            Performance
           </Text>
 
-          <Pressable className="py-1" onPress={() => router.push('/ratings')}>
-            <HStack className="items-center justify-between">
-              <HStack space="sm" className="items-center">
-                <IconSymbol name="star.fill" size={14} color="#F59E0B" />
-                <Text className="text-sm" style={{ color: subtextColor }}>
-                  Rating
-                </Text>
-              </HStack>
-              <HStack space="sm" className="items-center">
-                <Text className="text-sm font-medium" style={{ color: textColor }}>
-                  {Number(rating).toFixed(1)}
-                </Text>
-                <IconSymbol name="chevron.right" size={12} color={subtextColor} />
-              </HStack>
-            </HStack>
-          </Pressable>
+          <HStack className="justify-between items-center">
+            <Pressable className="flex-1 items-center" onPress={() => router.push('/ratings')}>
+                <VStack className="items-center" space="xs">
+                    <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                        <IconSymbol name="star.fill" size={20} color="#F59E0B" />
+                    </Box>
+                    <Text className="text-xl font-extrabold" style={{ color: textColor }}>{Number(rating).toFixed(1)}</Text>
+                    <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Rating</Text>
+                </VStack>
+            </Pressable>
 
-          <Pressable
-            className="pt-4"
-            onPress={() => router.push({ pathname: '/my-activity', params: { tab: 'completed' } })}
-          >
-            <HStack className="items-center justify-between">
-              <HStack space="sm" className="items-center">
-                <IconSymbol name="flag.checkered" size={14} color={primaryColor} />
-                <Text className="text-sm" style={{ color: subtextColor }}>
-                  Completed Trips
-                </Text>
-              </HStack>
-              <HStack space="sm" className="items-center">
-                <Text className="text-sm font-medium" style={{ color: textColor }}>
-                  {completedTripsCount}
-                </Text>
-                <IconSymbol name="chevron.right" size={12} color={subtextColor} />
-              </HStack>
-            </HStack>
-          </Pressable>
+            <Divider className="h-10 w-px" style={{ backgroundColor: borderColor }} />
+
+            <Pressable className="flex-1 items-center" onPress={() => router.push({ pathname: '/my-activity', params: { tab: 'completed' } })}>
+                <VStack className="items-center" space="xs">
+                    <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                        <IconSymbol name="flag.checkered" size={18} color={primaryColor} />
+                    </Box>
+                    <Text className="text-xl font-extrabold" style={{ color: textColor }}>{completedTripsCount}</Text>
+                    <Text className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: subtextColor }}>Trip Count</Text>
+                </VStack>
+            </Pressable>
+
+            <Divider className="h-10 w-px" style={{ backgroundColor: borderColor }} />
+
+            <Pressable className="flex-1 items-center" onPress={() => router.push('/profile-analytics')}>
+                <VStack className="items-center" space="xs">
+                    <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                        <IconSymbol name="chart.bar.fill" size={18} color="#8B5CF6" />
+                    </Box>
+                    <Text className="text-xl font-extrabold" style={{ color: textColor }}>View</Text>
+                    <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Insights</Text>
+                </VStack>
+            </Pressable>
+          </HStack>
         </Box>
 
-        <Box className="rounded-2xl p-4 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-          <Text className="text-base font-semibold mb-3" style={{ color: textColor }}>
-            Account Information
+        <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+          <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-6" style={{ color: subtextColor }}>
+            Account Details
           </Text>
 
-          <HStack className="justify-between mb-3">
-            <HStack space="sm" className="items-center">
-              <IconSymbol name="at" size={14} color={subtextColor} />
-              <Text className="text-sm" style={{ color: subtextColor }}>
-                Username
-              </Text>
+          <VStack space="xl">
+            <HStack className="justify-between items-center">
+                <HStack space="md" className="items-center">
+                    <Box className="w-10 h-10 rounded-full bg-gray-50 items-center justify-center shadow-sm">
+                        <IconSymbol name="at" size={16} color={subtextColor} />
+                    </Box>
+                    <VStack >
+                        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Username</Text>
+                        <Text className="text-base font-bold" style={{ color: textColor }}>{user?.username}</Text>
+                    </VStack>
+                </HStack>
             </HStack>
-            <Text className="text-sm font-medium" style={{ color: textColor }}>
-              {user?.username}
-            </Text>
-          </HStack>
 
-          <HStack className="justify-between mb-3">
-            <HStack space="sm" className="items-center">
-              <IconSymbol name="phone.fill" size={14} color="#10B981" />
-              <Text className="text-sm" style={{ color: subtextColor }}>
-                Phone
-              </Text>
+            <HStack className="justify-between items-center">
+                <HStack space="md" className="items-center">
+                    <Box className="w-10 h-10 rounded-full bg-gray-50 items-center justify-center shadow-sm">
+                        <IconSymbol name="phone.fill" size={16} color="#10B981" />
+                    </Box>
+                    <VStack >
+                        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Phone</Text>
+                        <Text className="text-base font-bold" style={{ color: textColor }}>{phone}</Text>
+                    </VStack>
+                </HStack>
             </HStack>
-            <Text className="text-sm font-medium" style={{ color: textColor }}>
-              {phone}
-            </Text>
-          </HStack>
 
-          <HStack className="justify-between mb-3">
-            <HStack space="sm" className="items-center">
-              <IconSymbol
-                name="person.fill"
-                size={14}
-                color={
-                  profileGender === 'men'
-                    ? '#3B82F6'
-                    : profileGender === 'women'
-                      ? '#EC4899'
-                      : '#94A3B8'
-                }
-              />
-              <Text className="text-sm" style={{ color: subtextColor }}>
-                Gender
-              </Text>
+            <HStack className="justify-between items-center">
+                <HStack space="md" className="items-center">
+                    <Box className="w-10 h-10 rounded-full bg-gray-50 items-center justify-center shadow-sm">
+                        <IconSymbol
+                            name="person.fill"
+                            size={16}
+                            color={profileGender === 'men' ? '#3B82F6' : profileGender === 'women' ? '#EC4899' :  subtextColor }
+                        />
+                    </Box>
+                    <VStack >
+                        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Gender</Text>
+                        <Text className="text-base font-bold capitalize" style={{ color: textColor }}>{profileGender || 'Not set'}</Text>
+                    </VStack>
+                </HStack>
             </HStack>
-            <Text className="text-sm font-medium" style={{ color: textColor }}>
-              {profileGender ? (profileGender === 'men' ? 'Male' : 'Female') : 'N/A'}
-            </Text>
-          </HStack>
 
-          <HStack className="justify-between mb-3">
-            <HStack space="sm" className="items-center">
-              <IconSymbol name="envelope.fill" size={14} color="#3B82F6" />
-              <Text className="text-sm" style={{ color: subtextColor }}>
-                Email
-              </Text>
-            </HStack>
-            <Text
-              className="text-sm font-medium max-w-[55%] text-right"
-              style={{ color: textColor }}
-              numberOfLines={2}
-            >
-              {user?.email}
-            </Text>
-          </HStack>
-
-          {profile?.city ? (
-            <HStack className="justify-between mb-3">
-              <HStack space="sm" className="items-center">
-                <IconSymbol name="mappin.circle.fill" size={14} color="#F59E0B" />
-                <Text className="text-sm" style={{ color: subtextColor }}>
-                  City
-                </Text>
-              </HStack>
-              <Text className="text-sm font-bold" style={{ color: textColor }}>
-                {profile.city}
-              </Text>
-            </HStack>
-          ) : null}
-
-          {aadhaarNumber ? (
-            <HStack className="justify-between">
-              <HStack space="sm" className="items-center">
-                <IconSymbol name="checkmark.shield.fill" size={14} color={successColor} />
-                <Text className="text-sm" style={{ color: subtextColor }}>
-                  Aadhaar
-                </Text>
-              </HStack>
-              <Text className="text-sm font-bold" style={{ color: textColor }}>
-                {maskAadhaarNumber(aadhaarNumber)}
-              </Text>
-            </HStack>
-          ) : null}
+            {aadhaarNumber && (
+                <HStack className="justify-between items-center">
+                    <HStack space="md" className="items-center">
+                        <Box className="w-10 h-10 rounded-full bg-gray-50 items-center justify-center shadow-sm">
+                            <IconSymbol name="checkmark.shield.fill" size={16} color={successColor} />
+                        </Box>
+                        <VStack >
+                            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Government ID</Text>
+                            <Text className="text-base font-bold" style={{ color: textColor }}>{maskAadhaarNumber(aadhaarNumber)}</Text>
+                        </VStack>
+                    </HStack>
+                </HStack>
+            )}
+          </VStack>
         </Box>
 
-        <Box className="rounded-2xl p-4 mb-5" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+        <Box className="mx-6 rounded-[32px] p-4 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+          <Text className="text-[10px] font-extrabold uppercase tracking-widest mt-2 ml-4 mb-2" style={{ color: subtextColor }}>
+            Actions
+          </Text>
           <ActionRow
             icon="pencil"
-            label={!profile ? 'Complete Profile' : 'Edit Profile'}
+            label={!profile ? 'Complete Profile' : 'Edit Profile Information'}
             iconColor={primaryColor}
-            iconBackground={`${primaryColor}15`}
+            iconBackground={`${primaryColor}10`}
             textColor={textColor}
             chevronColor={subtextColor}
             onPress={handlePresentModalPress}
           />
-          <Divider className="my-3" style={{ backgroundColor: borderColor }} />
-          <ActionRow
-            icon="chart.bar.fill"
-            label="Show Analytics"
-            iconColor={primaryColor}
-            iconBackground={`${primaryColor}15`}
-            textColor={textColor}
-            chevronColor={subtextColor}
-            onPress={() => router.push('/profile-analytics')}
-          />
-          <Divider className="my-3" style={{ backgroundColor: borderColor }} />
-          <ActionRow
-            icon="flag.checkered"
-            label="My Activity"
-            iconColor={primaryColor}
-            iconBackground={`${primaryColor}15`}
-            textColor={textColor}
-            chevronColor={subtextColor}
-            onPress={() => router.push('/my-activity')}
-          />
-          <Divider className="my-3" style={{ backgroundColor: borderColor }} />
           <ActionRow
             icon="bell.fill"
-            label="Notifications"
+            label="Notification Preferences"
             iconColor="#F87171"
-            iconBackground="#F8717115"
+            iconBackground="#F8717110"
             textColor={textColor}
             chevronColor={subtextColor}
             onPress={() => router.push('/notifications')}
           />
-          <Divider className="my-3" style={{ backgroundColor: borderColor }} />
           <ActionRow
             icon="rectangle.portrait.and.arrow.right"
             label="Sign Out"
             iconColor={dangerColor}
-            iconBackground={`${dangerColor}15`}
+            iconBackground={`${dangerColor}10`}
             textColor={dangerColor}
             chevronColor={subtextColor}
             onPress={() => setShowSignOutModal(true)}
+            showDivider={false}
           />
         </Box>
+
+        <VStack className="items-center py-12" space="xs">
+            <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
+            <Text className="text-[8px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
+                Joining since 2026 • My Ride Partner Community
+            </Text>
+        </VStack>
       </ScrollView>
 
-      <Modal
+      <CustomAlert
         visible={showSignOutModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowSignOutModal(false)}
-      >
-        <Box style={styles.signOutOverlay}>
-          <Box style={[styles.signOutModal, { backgroundColor: cardColor }]}>
-            <Box style={[styles.signOutIconWrap, { backgroundColor: `${dangerColor}12` }]}>
-              <IconSymbol
-                name="rectangle.portrait.and.arrow.right"
-                size={28}
-                color={dangerColor}
-              />
-            </Box>
-            <Text style={[styles.signOutTitle, { color: textColor }]}>Sign Out?</Text>
-            <Text style={[styles.signOutSubtitle, { color: subtextColor }]}>
-              You&apos;ll need to log back in to access your account.
-            </Text>
-            <HStack space="md" style={styles.signOutActions}>
-              <Button
-                variant="outline"
-                className="flex-1"
-                style={{ borderColor, borderWidth: 1.5 }}
-                onPress={() => setShowSignOutModal(false)}
-              >
-                <ButtonText style={{ color: textColor }}>Cancel</ButtonText>
-              </Button>
-              <Button
-                action="negative"
-                className="flex-1"
-                onPress={() => {
-                  setShowSignOutModal(false);
-                  signOut();
-                }}
-              >
-                <ButtonText>Sign Out</ButtonText>
-              </Button>
-            </HStack>
-          </Box>
-        </Box>
-      </Modal>
+        title="Sign Out?"
+        message="You'll need to log back in to access your account."
+        icon="rectangle.portrait.and.arrow.right"
+        onClose={() => setShowSignOutModal(false)}
+        primaryButton={{
+          text: 'Sign Out',
+          onPress: () => {
+            setShowSignOutModal(false);
+            signOut();
+          },
+        }}
+        secondaryButton={{
+          text: 'Cancel',
+          onPress: () => setShowSignOutModal(false),
+        }}
+      />
 
       <BottomSheetModal
         ref={bottomSheetModalRef}
@@ -785,304 +728,124 @@ export default function ProfileScreen() {
         keyboardBehavior="fillParent"
         keyboardBlurBehavior="restore"
       >
-        <BottomSheetScrollView contentContainerStyle={styles.modalContent}>
-          <View style={styles.modalHeaderRow}>
-            <RNText style={[styles.modalTitle, { color: textColor }]}>
+        <BottomSheetScrollView contentContainerStyle={{ padding: 24, paddingBottom: 60 }}>
+          <HStack className="justify-between items-center mb-10">
+            <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
               {profile ? 'Edit Profile' : 'Complete Profile'}
-            </RNText>
-            <TouchableOpacity onPress={() => bottomSheetModalRef.current?.dismiss()}>
-              <IconSymbol name="xmark" size={20} color={subtextColor} />
-            </TouchableOpacity>
-          </View>
+            </Text>
+            <Pressable className="w-10 h-10 rounded-full bg-gray-50 items-center justify-center shadow-sm" onPress={() => bottomSheetModalRef.current?.dismiss()}>
+              <IconSymbol name="xmark" size={16} color={subtextColor} />
+            </Pressable>
+          </HStack>
 
-          <RNText style={[styles.modalLabel, { color: subtextColor }]}>FULL NAME</RNText>
-          <BottomSheetTextInput
-            style={[styles.input, { color: textColor, borderColor }]}
-            placeholder="John Doe"
-            placeholderTextColor={subtextColor}
-            value={fullName}
-            onChangeText={setFullName}
-          />
+          <VStack space="xl">
+            <VStack space="xs">
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Full Name</Text>
+                <BottomSheetTextInput
+                    style={{ height: 60, borderWidth: 2, borderRadius: 20, paddingHorizontal: 20, fontSize: 16, color: textColor, borderColor }}
+                    placeholder="Enter your legal name"
+                    placeholderTextColor={subtextColor}
+                    value={fullName}
+                    onChangeText={setFullName}
+                />
+            </VStack>
 
-          <RNText style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>
-            PHONE NUMBER
-          </RNText>
-          <BottomSheetTextInput
-            style={[styles.input, { color: textColor, borderColor }]}
-            placeholder="+91 9876543210"
-            placeholderTextColor={subtextColor}
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-          />
+            <VStack space="xs">
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Phone Number</Text>
+                <BottomSheetTextInput
+                    style={{ height: 60, borderWidth: 2, borderRadius: 20, paddingHorizontal: 20, fontSize: 16, color: textColor, borderColor }}
+                    placeholder="+91 XXXXX XXXXX"
+                    placeholderTextColor={subtextColor}
+                    keyboardType="phone-pad"
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                />
+            </VStack>
 
-          <RNText style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>
-            GENDER
-          </RNText>
-          <View style={styles.genderRow}>
-            <TouchableOpacity
-              style={[
-                styles.genderButton,
-                { borderColor },
-                gender === 'men' && { backgroundColor: primaryColor, borderColor: primaryColor },
-              ]}
-              onPress={() => setGender('men')}
-            >
-              <RNText
-                style={[
-                  styles.genderButtonText,
-                  gender === 'men' ? { color: '#fff' } : { color: textColor },
-                ]}
-              >
-                Male
-              </RNText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.genderButton,
-                { borderColor },
-                gender === 'women' && { backgroundColor: primaryColor, borderColor: primaryColor },
-              ]}
-              onPress={() => setGender('women')}
-            >
-              <RNText
-                style={[
-                  styles.genderButtonText,
-                  gender === 'women' ? { color: '#fff' } : { color: textColor },
-                ]}
-              >
-                Female
-              </RNText>
-            </TouchableOpacity>
-          </View>
-
-          <RNText style={[styles.modalLabel, { color: subtextColor, marginTop: 16 }]}>
-            CITY
-          </RNText>
-          <TouchableOpacity
-            style={[styles.input, { borderColor, justifyContent: 'center' }]}
-            onPress={() => setShowCityPicker(!showCityPicker)}
-          >
-            <View style={styles.citySelectorRow}>
-              <RNText style={{ color: city ? textColor : subtextColor, fontSize: 16 }}>
-                {city || 'Select your city'}
-              </RNText>
-              <IconSymbol name="chevron.down" size={16} color={subtextColor} />
-            </View>
-          </TouchableOpacity>
-
-          {showCityPicker ? (
-            <View
-              style={[
-                styles.cityPickerCard,
-                {
-                  backgroundColor: `${subtextColor}05`,
-                  borderColor: `${borderColor}50`,
-                },
-              ]}
-            >
-              <BottomSheetTextInput
-                style={[
-                  styles.input,
-                  {
-                    height: 44,
-                    marginBottom: 8,
-                    borderColor: `${borderColor}30`,
-                    fontSize: 14,
-                    backgroundColor: cardColor,
-                  },
-                ]}
-                placeholder="Search city..."
-                placeholderTextColor={subtextColor}
-                value={citySearch}
-                onChangeText={setCitySearch}
-                autoFocus={false}
-              />
-              <ScrollView nestedScrollEnabled style={{ maxHeight: 180 }}>
-                {CITIES.filter((entry) =>
-                  entry.toLowerCase().includes(citySearch.toLowerCase())
-                ).map((entry) => (
-                  <TouchableOpacity
-                    key={entry}
-                    style={[
-                      styles.cityOption,
-                      { backgroundColor: city === entry ? `${primaryColor}10` : 'transparent' },
-                    ]}
-                    onPress={() => selectCity(entry)}
-                  >
-                    <RNText
-                      style={{
-                        fontSize: 15,
-                        color: city === entry ? primaryColor : textColor,
-                        fontWeight: city === entry ? '700' : '400',
-                      }}
+            <VStack space="xs">
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Gender</Text>
+                <HStack space="md">
+                    <Pressable
+                        className="flex-1 h-14 rounded-2xl items-center justify-center border-2 shadow-sm"
+                        style={{ 
+                            borderColor: gender === 'men' ? primaryColor : borderColor, 
+                            backgroundColor: gender === 'men' ? primaryColor : `${subtextColor}05` 
+                        }}
+                        onPress={() => setGender('men')}
                     >
-                      {entry}
-                    </RNText>
-                    {city === entry ? (
-                      <IconSymbol name="checkmark" size={14} color={primaryColor} />
-                    ) : null}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          ) : null}
+                        <Text className="text-xs font-extrabold uppercase tracking-widest" style={{ color: gender === 'men' ? '#fff' : textColor }}>Male</Text>
+                    </Pressable>
+                    <Pressable
+                        className="flex-1 h-14 rounded-2xl items-center justify-center border-2 shadow-sm"
+                        style={{ 
+                            borderColor: gender === 'women' ? primaryColor : borderColor, 
+                            backgroundColor: gender === 'women' ? primaryColor : `${subtextColor}05` 
+                        }}
+                        onPress={() => setGender('women')}
+                    >
+                        <Text className="text-xs font-extrabold uppercase tracking-widest" style={{ color: gender === 'women' ? '#fff' : textColor }}>Female</Text>
+                    </Pressable>
+                </HStack>
+            </VStack>
 
-          <TouchableOpacity
-            style={[styles.saveButton, { backgroundColor: primaryColor, marginTop: 24 }]}
-            onPress={handleSubmit}
-            disabled={isPending}
-          >
-            {isPending ? (
-              <Spinner color="#fff" size="small" />
-            ) : (
-              <RNText style={styles.saveButtonText}>
-                {profile ? 'Update Profile' : 'Save Profile'}
-              </RNText>
-            )}
-          </TouchableOpacity>
+            <VStack space="xs">
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Preferred City</Text>
+                <Pressable
+                    className="h-[60px] border-2 rounded-[20px] px-5 flex-row items-center justify-between"
+                    style={{ borderColor }}
+                    onPress={() => setShowCityPicker(!showCityPicker)}
+                >
+                    <Text style={{ color: city ? textColor : subtextColor }} className="text-base font-medium">
+                        {city || 'Select your community city'}
+                    </Text>
+                    <IconSymbol name="chevron.down" size={16} color={subtextColor} />
+                </Pressable>
+
+                {showCityPicker && (
+                    <Box className="mt-2 rounded-[24px] border-2 p-3 shadow-sm" style={{ backgroundColor: `${subtextColor}05`, borderColor: `${borderColor}50` }}>
+                        <BottomSheetTextInput
+                            style={{ height: 48, borderWidth: 1.5, borderRadius: 16, paddingHorizontal: 16, fontSize: 14, color: textColor, borderColor: `${borderColor}30`, backgroundColor: cardColor, marginBottom: 12 }}
+                            placeholder="Type city name..."
+                            placeholderTextColor={subtextColor}
+                            value={citySearch}
+                            onChangeText={setCitySearch}
+                        />
+                        <ScrollView nestedScrollEnabled className="max-h-[200px]">
+                            {CITIES.filter((entry) =>
+                                entry.toLowerCase().includes(citySearch.toLowerCase())
+                            ).map((entry) => (
+                                <Pressable
+                                    key={entry}
+                                    className="py-3 px-4 rounded-xl flex-row justify-between items-center mb-1"
+                                    style={{ backgroundColor: city === entry ? `${primaryColor}15` : 'transparent' }}
+                                    onPress={() => selectCity(entry)}
+                                >
+                                    <Text className="text-sm font-bold" style={{ color: city === entry ? primaryColor : textColor }}>{entry}</Text>
+                                    {city === entry && <IconSymbol name="checkmark" size={14} color={primaryColor} />}
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </Box>
+                )}
+            </VStack>
+
+            <Button 
+                className="h-16 rounded-[24px] mt-6 shadow-lg" 
+                style={{ backgroundColor: primaryColor }}
+                onPress={handleSubmit} 
+                disabled={isPending}
+            >
+                {isPending ? (
+                    <Spinner color="#fff" size="small" />
+                ) : (
+                    <ButtonText className="text-base font-extrabold uppercase tracking-widest">
+                        {profile ? 'Update Profile' : 'Save & Continue'}
+                    </ButtonText>
+                )}
+            </Button>
+          </VStack>
         </BottomSheetScrollView>
       </BottomSheetModal>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  container: {
-    padding: 20,
-  },
-  avatarOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 64,
-  },
-  avatarEditIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  cardShadow: {
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  modalContent: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  modalLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: 1,
-  },
-  input: {
-    height: 56,
-    borderWidth: 1.5,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    fontSize: 16,
-  },
-  citySelectorRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cityPickerCard: {
-    borderRadius: 12,
-    marginTop: 8,
-    maxHeight: 250,
-    borderWidth: 1,
-    padding: 8,
-  },
-  cityOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  saveButton: {
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 32,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  genderRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  genderButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  genderButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  signOutOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  signOutModal: {
-    width: '100%',
-    borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
-  },
-  signOutIconWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  signOutTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  signOutSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 28,
-  },
-  signOutActions: {
-    width: '100%',
-  },
-});

@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
   TextInput,
   Platform,
   Switch,
@@ -88,53 +86,50 @@ function FormField({
   const dangerColor = useThemeColor({}, 'danger');
 
   return (
-    <VStack space="xs" style={styles.fieldContainer}>
-      <Text className="text-sm font-semibold" style={{ color: textColor }}>
+    <VStack space="xs" className="mb-6">
+      <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
         {label}
       </Text>
-      <TouchableOpacity
-        activeOpacity={onPress ? 0.7 : 1}
+      <Pressable
         onPress={onPress}
-        style={[
-          styles.inputContainer,
-          {
-            borderColor: error ? dangerColor : borderColor,
-            backgroundColor: 'rgba(0,0,0,0.02)',
-            minHeight: multiline ? 120 : 52,
-            alignItems: multiline ? 'flex-start' : 'center',
-            paddingTop: multiline ? 14 : 0,
-          },
-        ]}
+        className="rounded-2xl border-2 px-4 shadow-sm"
+        style={{
+          borderColor: error ? dangerColor : borderColor,
+          backgroundColor: 'rgba(0,0,0,0.02)',
+          minHeight: multiline ? 120 : 60,
+          alignItems: multiline ? 'flex-start' : 'center',
+          paddingTop: multiline ? 14 : 0,
+        }}
       >
-        <IconSymbol
-          name={icon}
-          size={18}
-          color={subtextColor}
-          style={{ marginTop: multiline ? 4 : 0 }}
-        />
-        <TextInput
-          placeholder={placeholder}
-          placeholderTextColor={subtextColor}
-          style={[
-            styles.input,
-            {
-              color: textColor,
-              textAlignVertical: multiline ? 'top' : 'center',
-              minHeight: multiline ? 90 : undefined,
-            },
-          ]}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={keyboardType}
-          editable={editable && !onPress}
-          pointerEvents={onPress ? 'none' : 'auto'}
-          multiline={multiline}
-          numberOfLines={numberOfLines}
-          onFocus={onFocus}
-        />
-      </TouchableOpacity>
+        <HStack className="w-full h-full items-center" space="md">
+            <IconSymbol
+            name={icon}
+            size={18}
+            color={subtextColor}
+            style={{ marginTop: multiline ? 4 : 0 }}
+            />
+            <TextInput
+            placeholder={placeholder}
+            placeholderTextColor={subtextColor}
+            className="flex-1 text-base font-medium"
+            style={{
+                color: textColor,
+                textAlignVertical: multiline ? 'top' : 'center',
+                minHeight: multiline ? 90 : undefined,
+            }}
+            value={value}
+            onChangeText={onChangeText}
+            keyboardType={keyboardType}
+            editable={editable && !onPress}
+            pointerEvents={onPress ? 'none' : 'auto'}
+            multiline={multiline}
+            numberOfLines={numberOfLines}
+            onFocus={onFocus}
+            />
+        </HStack>
+      </Pressable>
       {error ? (
-        <Text className="text-xs font-medium" style={{ color: dangerColor }}>
+        <Text className="text-[10px] font-bold uppercase tracking-tight ml-1" style={{ color: dangerColor }}>
           {error}
         </Text>
       ) : null}
@@ -496,10 +491,10 @@ export default function CreateScreen() {
 
   if (isEditing && isEditTripLoading && !hasLoadedEditTrip) {
     return (
-      <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor }}>
-        <Spinner color={primaryColor} />
-        <Text className="mt-3 text-sm" style={{ color: subtextColor }}>
-          Loading trip details…
+      <Box className="flex-1 items-center justify-center px-10" style={{ backgroundColor }}>
+        <Spinner size="large" color={primaryColor} />
+        <Text className="mt-4 text-sm font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
+          Synchronizing ride data…
         </Text>
       </Box>
     );
@@ -520,7 +515,7 @@ export default function CreateScreen() {
           setFrom(address);
           setErrors((current) => ({ ...current, from: undefined }));
         }}
-        title="Select Starting Point"
+        title="Pickup Point"
       />
 
       <LocationSearchModal
@@ -530,13 +525,13 @@ export default function CreateScreen() {
           setTo(address);
           setErrors((current) => ({ ...current, to: undefined }));
         }}
-        title="Select Destination"
+        title="Drop Destination"
       />
 
       <CustomAlert
         visible={showProfileAlert}
-        title="Complete Your Profile"
-        message={`You need to provide your Name, Phone Number, Gender, and City before you can ${isEditing ? 'edit' : 'publish'} a ride.`}
+        title="Incomplete Profile"
+        message={`You need to provide your full details before you can ${isEditing ? 'edit' : 'publish'} a ride.`}
         primaryButton={{
           text: 'Go to Profile',
           onPress: () => {
@@ -551,10 +546,10 @@ export default function CreateScreen() {
 
       <CustomAlert
         visible={showSharePrompt}
-        title="Share This Ride"
+        title="Ride is Live! 🚀"
         message={
           publishedTrip
-            ? `Your ride from ${publishedTrip.startingPoint} to ${publishedTrip.destination} is live. Share it now through WhatsApp or text.`
+            ? `Your route from ${publishedTrip.startingPoint} to ${publishedTrip.destination} is now public. Share it with your community.`
             : 'Your ride is live. Share it now through WhatsApp or text.'
         }
         primaryButton={{
@@ -566,7 +561,7 @@ export default function CreateScreen() {
           onPress: () => navigateToPublishedTrip(),
         }}
         tertiaryButton={{
-          text: 'Text',
+          text: 'Direct Text',
           onPress: shareViaText,
         }}
         onClose={() => navigateToPublishedTrip()}
@@ -574,30 +569,30 @@ export default function CreateScreen() {
       />
 
       <KeyboardAvoidingView
-        style={[styles.safe, { backgroundColor }]}
+        style={{ flex: 1, backgroundColor }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={styles.container}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
-          <VStack space="sm">
-            <Text className="text-3xl font-bold" style={{ color: textColor }}>
-              {isEditing ? 'Edit Ride' : 'Publish Ride'}
+          <VStack space="xs" className="mb-8">
+            <Text className="text-4xl font-extrabold" style={{ color: textColor }}>
+              {isEditing ? 'Edit Trip' : 'New Trip'}
             </Text>
-            <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+            <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
               {isEditing
-                ? 'You can update this trip until it starts, as long as no passenger has been approved yet.'
-                : 'Share your route and timing so riders can request to join.'}
+                ? 'Update your trip details. Approved passengers will be notified of changes.'
+                : 'Enter your route and timing details to start sharing your ride.'}
             </Text>
           </VStack>
 
           <Box
-            className="rounded-3xl p-5 mt-5 mb-6"
-            style={[styles.cardShadow, { backgroundColor: cardColor }]}
+            className="rounded-[32px] p-6 mb-8 shadow-sm border"
+            style={{ backgroundColor: cardColor, borderColor }}
           >
             <FormField
               label="Starting Point"
@@ -621,7 +616,7 @@ export default function CreateScreen() {
               <Box className="flex-1">
                 <FormField
                   label="Date"
-                  placeholder="Select Date"
+                  placeholder="Ride Date"
                   icon="calendar"
                   value={formatDate(date)}
                   error={errors.date}
@@ -631,7 +626,7 @@ export default function CreateScreen() {
               <Box className="flex-1">
                 <FormField
                   label="Time"
-                  placeholder="Select Time"
+                  placeholder="Ride Time"
                   icon="clock.fill"
                   value={formatTime(time)}
                   error={errors.time}
@@ -662,7 +657,7 @@ export default function CreateScreen() {
 
             <FormField
               label="Available Seats"
-              placeholder="Max 4"
+              placeholder="Min 1, Max 4"
               icon="person.fill"
               value={seats}
               error={errors.seats}
@@ -673,11 +668,14 @@ export default function CreateScreen() {
               keyboardType="numeric"
             />
 
-            <VStack space="sm" style={styles.fieldContainer}>
-              <HStack className="items-center justify-between">
-                <Text className="text-sm font-semibold flex-1" style={{ color: textColor }}>
-                  Calculate price on completion
-                </Text>
+            <VStack space="sm" className="mb-6">
+              <HStack className="items-center justify-between px-1">
+                <VStack  className="flex-1">
+                    <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Fare Logic</Text>
+                    <Text className="text-sm font-bold" style={{ color: textColor }}>
+                    Auto-calculate expenses
+                    </Text>
+                </VStack>
                 <Switch
                   value={isPriceCalculated}
                   onValueChange={(value) => {
@@ -691,9 +689,9 @@ export default function CreateScreen() {
                 />
               </HStack>
 
-              {!isPriceCalculated ? (
+              {!isPriceCalculated && (
                 <FormField
-                  label="Price per Seat (₹)"
+                  label="Fixed Price per Seat (₹)"
                   placeholder="e.g. 200"
                   icon="indianrupeesign.circle.fill"
                   value={price}
@@ -704,12 +702,12 @@ export default function CreateScreen() {
                   }}
                   keyboardType="numeric"
                 />
-              ) : null}
+              )}
             </VStack>
 
             <FormField
-              label="Trip Description & Rules"
-              placeholder="E.g. max 1 medium bag per person, etc."
+              label="Trip Bio & Ground Rules"
+              placeholder="Tell riders about luggage, music, or stopovers..."
               icon="doc.text.fill"
               value={description}
               error={errors.description}
@@ -722,8 +720,8 @@ export default function CreateScreen() {
               onFocus={handleDescriptionFocus}
             />
 
-            <VStack space="sm" style={styles.fieldContainer}>
-              <Text className="text-sm font-semibold" style={{ color: textColor }}>
+            <VStack space="xs" className="mb-2">
+              <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
                 Gender Preference
               </Text>
               <HStack space="sm">
@@ -732,7 +730,7 @@ export default function CreateScreen() {
                   return (
                     <Pressable
                       key={option.key}
-                      className="flex-1 h-11 rounded-xl border items-center justify-center"
+                      className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
                       style={{
                         borderColor: active ? primaryColor : borderColor,
                         backgroundColor: active ? primaryColor : 'transparent',
@@ -740,7 +738,7 @@ export default function CreateScreen() {
                       onPress={() => setGenderPreference(option.key)}
                     >
                       <Text
-                        className="text-sm font-semibold text-center"
+                        className="text-[10px] font-extrabold uppercase tracking-widest text-center"
                         style={{ color: active ? '#fff' : textColor }}
                       >
                         {option.label}
@@ -752,76 +750,37 @@ export default function CreateScreen() {
             </VStack>
           </Box>
 
-          <Text className="text-xs text-center leading-5 px-5" style={{ color: subtextColor }}>
-            {isEditing
-              ? 'Changes stay editable only until the ride starts and before any passenger is approved.'
-              : 'By publishing, you agree to share the ride cost fairly with co-passengers.'}
-          </Text>
+          <VStack className="items-center px-4" space="xs">
+            <IconSymbol name="shield.lefthalf.filled" size={24} color={primaryColor} />
+            <Text className="text-[9px] font-extrabold uppercase tracking-widest text-center leading-4" style={{ color: subtextColor }}>
+                By publishing, you commit to driving safely and adhering to the My Ride Partner community guidelines. Ride safely!
+            </Text>
+          </VStack>
 
           <Button
-            className="mt-5 rounded-2xl"
-            style={[
-              styles.publishButtonShadow,
-              {
+            className="mt-10 h-16 rounded-[24px] shadow-xl"
+            style={{
                 backgroundColor: primaryColor,
-                opacity: publishMutation.isPending ? 0.7 : 1,
-              },
-            ]}
+                opacity: publishMutation.isPending ? 0.8 : 1,
+            }}
             onPress={handlePublish}
             disabled={publishMutation.isPending}
           >
             {publishMutation.isPending ? (
               <Spinner color="#fff" />
             ) : (
-              <ButtonText style={{ color: '#FFFFFF' }}>
-                {isEditing ? 'Save Changes' : 'Create Trip'}
-              </ButtonText>
+                <HStack space="md" className="items-center">
+                    <ButtonText className="text-base font-extrabold uppercase tracking-widest">
+                        {isEditing ? 'Update Ride' : 'Launch Ride'}
+                    </ButtonText>
+                    <IconSymbol name="paperplane.fill" size={16} color="white" />
+                </HStack>
             )}
           </Button>
 
-          <Divider className="mt-6 opacity-0" />
+          <Box className="h-10" />
         </ScrollView>
       </KeyboardAvoidingView>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    paddingTop: 20,
-  },
-  container: {
-    paddingLeft: 20,
-    paddingRight: 20,
-    paddingBottom: 96,
-  },
-  cardShadow: {
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 15,
-    elevation: 2,
-  },
-  fieldContainer: {
-    marginBottom: 16,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  input: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-    paddingTop: 14,
-    paddingBottom: 14,
-  },
-  publishButtonShadow: {
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-});

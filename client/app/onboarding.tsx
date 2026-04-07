@@ -2,9 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Dimensions,
-  StyleSheet,
-  Text,
-  View,
 } from 'react-native';
 import AppIntroSlider from 'react-native-app-intro-slider';
 import { useRouter } from 'expo-router';
@@ -12,6 +9,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Pressable } from '@/components/ui/pressable';
 
 const { width } = Dimensions.get('window');
 
@@ -132,13 +135,21 @@ export default function OnboardingScreen() {
   };
 
   const renderItem = ({ item }: { item: (typeof slides)[0] }) => (
-    <View style={[styles.slide, { backgroundColor }]}>
-      <View style={styles.heroSection}>
-        <View style={[styles.heroGlow, { backgroundColor: `${item.colors[0]}10` }]} />
+    <Box className="flex-1 px-6 pt-6 pb-8" style={{ backgroundColor }}>
+      <Box className="flex-[0.4] items-center justify-center">
+        <Box 
+          className="absolute rounded-full" 
+          style={{ width: width * 0.72, height: width * 0.72, backgroundColor: `${item.colors[0]}10` }} 
+        />
         <Animated.View
           style={[
-            styles.iconCircle,
             {
+              width: 144,
+              height: 144,
+              borderRadius: 72,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1.5,
               backgroundColor: `${item.colors[0]}16`,
               borderColor: `${item.colors[0]}28`,
               transform: [{ scale: pulseAnim }],
@@ -147,46 +158,69 @@ export default function OnboardingScreen() {
         >
           <IconSymbol name={item.icon as any} size={58} color={item.colors[0]} />
         </Animated.View>
-      </View>
+      </Box>
 
-      <View style={styles.contentSection}>
-        <View style={[styles.eyebrowPill, { backgroundColor: `${item.colors[0]}14` }]}>
-          <Text style={[styles.eyebrowText, { color: item.colors[0] }]}>{item.eyebrow}</Text>
-        </View>
+      <VStack className="flex-[0.6] pb-5" space="md">
+        <Box 
+          className="self-start px-3 py-1.5 rounded-full" 
+          style={{ backgroundColor: `${item.colors[0]}14` }}
+        >
+          <Text className="text-xs font-bold uppercase tracking-wider" style={{ color: item.colors[0] }}>
+            {item.eyebrow}
+          </Text>
+        </Box>
 
-        <Text style={[styles.title, { color: textColor }]}>{item.title}</Text>
-        <Text style={[styles.text, { color: subtextColor }]}>{item.text}</Text>
+        <Text className="text-3xl font-extrabold leading-9" style={{ color: textColor }}>
+          {item.title}
+        </Text>
+        <Text className="text-base leading-6 mb-2" style={{ color: subtextColor }}>
+          {item.text}
+        </Text>
 
-        <View style={[styles.pointsCard, { backgroundColor: cardColor, borderColor }]}>
+        <Box 
+          className="border rounded-[22px] p-4 gap-3.5" 
+          style={{ backgroundColor: cardColor, borderColor }}
+        >
           {item.points.map((point) => (
-            <View key={point} style={styles.pointRow}>
-              <View style={[styles.pointIcon, { backgroundColor: `${item.colors[0]}14` }]}>
-                <IconSymbol name="checkmark" size={12} color={item.colors[0]} />
-              </View>
-              <Text style={[styles.pointText, { color: textColor }]}>{point}</Text>
-            </View>
+            <HStack key={point} className="items-start" space="sm">
+              <Box 
+                className="w-5 h-5 rounded-full items-center justify-center mt-0.5" 
+                style={{ backgroundColor: `${item.colors[0]}14` }}
+              >
+                <IconSymbol name="checkmark" size={10} color={item.colors[0]} />
+              </Box>
+              <Text className="flex-1 text-sm font-medium leading-5" style={{ color: textColor }}>
+                {point}
+              </Text>
+            </HStack>
           ))}
-        </View>
-      </View>
-    </View>
+        </Box>
+      </VStack>
+    </Box>
   );
 
   const renderDoneButton = () => (
-    <View style={[styles.buttonCircle, { backgroundColor: primaryColor }]}>
+    <Box 
+      className="w-12 h-12 rounded-full items-center justify-center shadow-md" 
+      style={{ backgroundColor: primaryColor }}
+    >
       <IconSymbol name="checkmark" color="rgba(255, 255, 255, 0.95)" size={22} />
-    </View>
+    </Box>
   );
 
   const renderNextButton = () => (
-    <View style={[styles.buttonCircle, { backgroundColor: `${primaryColor}12` }]}>
+    <Box 
+      className="w-12 h-12 rounded-full items-center justify-center shadow-sm" 
+      style={{ backgroundColor: `${primaryColor}12` }}
+    >
       <IconSymbol name="chevron.right" color={primaryColor} size={22} />
-    </View>
+    </Box>
   );
 
   const renderSkipButton = () => (
-    <View style={styles.skipButton}>
-      <Text style={[styles.skipText, { color: subtextColor }]}>Skip</Text>
-    </View>
+    <Box className="h-12 justify-center px-2">
+      <Text className="text-base font-semibold" style={{ color: subtextColor }}>Skip</Text>
+    </Box>
   );
 
   return (
@@ -207,100 +241,3 @@ export default function OnboardingScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  slide: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
-  },
-  heroSection: {
-    flex: 0.4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroGlow: {
-    position: 'absolute',
-    width: width * 0.72,
-    height: width * 0.72,
-    borderRadius: width,
-  },
-  iconCircle: {
-    width: 144,
-    height: 144,
-    borderRadius: 72,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  contentSection: {
-    flex: 0.6,
-    paddingBottom: 20,
-  },
-  eyebrowPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    marginBottom: 16,
-  },
-  eyebrowText: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '800',
-    marginBottom: 14,
-  },
-  text: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 22,
-  },
-  pointsCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 18,
-    gap: 14,
-  },
-  pointRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  pointIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-    marginRight: 12,
-  },
-  pointText: {
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
-  },
-  buttonCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  skipButton: {
-    height: 46,
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  skipText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

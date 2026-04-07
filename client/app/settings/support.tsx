@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking, ScrollView, StyleSheet } from 'react-native';
+import { Linking, ScrollView } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -19,7 +19,7 @@ const FAQS = [
       "Tap the 'Publish' tab at the bottom of the screen, fill in your trip details, vehicle info, and price, then publish it.",
   },
   {
-    question: 'How do I join a ride?',
+    question: 'How do join a ride?',
     answer:
       "Find a suitable ride on the 'Find' or 'Explore' page, open the trip details, and tap the request button.",
   },
@@ -44,64 +44,70 @@ export default function HelpSupportScreen() {
   const borderColor = useThemeColor({}, 'border');
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Help & Support' }} />
+    <ScrollView style={{ flex: 1, backgroundColor }} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Stack.Screen options={{ title: 'Help & Support', headerTitleStyle: { fontWeight: '800' } }} />
 
-      <Text className="text-xs font-bold uppercase ml-2 mb-2 mt-2" style={{ color: subtextColor }}>
-        Contact Us
-      </Text>
-      <Box className="rounded-2xl p-4 mb-6" style={{ backgroundColor: cardColor }}>
-        <Pressable onPress={() => Linking.openURL(`mailto:${CONFIG.SUPPORT_EMAIL}`)}>
+      <VStack className="px-6 py-8" space="xs">
+          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Help & Support</Text>
+          <Text className="text-sm font-medium" style={{ color: subtextColor }}>Find answers to common questions or reach out to us.</Text>
+      </VStack>
+
+      <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: subtextColor }}>
+          Contact Us
+        </Text>
+        <Pressable 
+            className="rounded-2xl p-4 border" 
+            style={{ backgroundColor: `${primaryColor}05`, borderColor: `${primaryColor}20` }}
+            onPress={() => Linking.openURL(`mailto:${CONFIG.SUPPORT_EMAIL}`)}
+        >
           <HStack className="items-center justify-between">
             <HStack space="md" className="items-center flex-1">
               <Box
-                className="h-10 w-10 rounded-full items-center justify-center"
-                style={{ backgroundColor: `${primaryColor}15` }}
+                className="h-10 w-10 rounded-full items-center justify-center shadow-sm"
+                style={{ backgroundColor: primaryColor }}
               >
-                <IconSymbol name="envelope.fill" size={20} color={primaryColor} />
+                <IconSymbol name="envelope.fill" size={18} color="#fff" />
               </Box>
               <VStack className="flex-1" space="xs">
-                <Text className="text-base font-semibold" style={{ color: textColor }}>
+                <Text className="text-base font-bold" style={{ color: textColor }}>
                   Email Support
                 </Text>
-                <Text className="text-sm" style={{ color: subtextColor }}>
+                <Text className="text-xs font-semibold" style={{ color: primaryColor }}>
                   {CONFIG.SUPPORT_EMAIL}
                 </Text>
               </VStack>
             </HStack>
-            <IconSymbol name="chevron.right" size={20} color={subtextColor} />
+            <IconSymbol name="chevron.right" size={16} color={primaryColor} />
           </HStack>
         </Pressable>
       </Box>
 
-      <Text className="text-xs font-bold uppercase ml-2 mb-2" style={{ color: subtextColor }}>
-        Frequently Asked Questions
-      </Text>
-      <Box className="rounded-2xl overflow-hidden" style={{ backgroundColor: cardColor }}>
-        {FAQS.map((faq, index) => (
-          <React.Fragment key={faq.question}>
-            <Box className="p-4">
-              <Text className="text-[15px] font-bold mb-2" style={{ color: textColor }}>
-                {faq.question}
-              </Text>
-              <Text className="text-sm leading-5" style={{ color: subtextColor }}>
-                {faq.answer}
-              </Text>
-            </Box>
-            {index < FAQS.length - 1 ? <Divider style={{ backgroundColor: borderColor }} /> : null}
-          </React.Fragment>
-        ))}
+      <Box className="mx-6 rounded-[32px] p-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-5" style={{ color: subtextColor }}>
+          Frequently Asked Questions
+        </Text>
+        <VStack space="xl">
+            {FAQS.map((faq, index) => (
+                <VStack key={faq.question} space="sm">
+                <Text className="text-lg font-bold" style={{ color: textColor }}>
+                    {faq.question}
+                </Text>
+                <Text className="text-sm font-medium leading-7" style={{ color: subtextColor }}>
+                    {faq.answer}
+                </Text>
+                {index < FAQS.length - 1 && <Divider className="mt-4" style={{ backgroundColor: borderColor }} />}
+                </VStack>
+            ))}
+        </VStack>
       </Box>
+
+      <VStack className="items-center py-12" space="xs">
+          <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+          Our support team is here to help
+        </Text>
+      </VStack>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-});

@@ -1,48 +1,53 @@
-import { PropsWithChildren, useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
-
+import React, { PropsWithChildren, useState } from 'react';
+import { LayoutAnimation } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { getThemeColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeStore } from '@/store/theme-store';
+import { Box } from '@/components/ui/box';
+import { Pressable } from '@/components/ui/pressable';
+import { HStack } from '@/components/ui/hstack';
 
 export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const theme = useColorScheme() ?? 'light';
   const palette = useThemeStore((state) => state.palette);
   const colors = getThemeColors(palette);
+  const iconColor = theme === 'light' ? colors.light.icon : colors.dark.icon;
+
+  const toggleOpen = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsOpen((value) => !value);
+  };
 
   return (
-    <ThemedView>
-      <TouchableOpacity
-        style={styles.heading}
-        onPress={() => setIsOpen((value) => !value)}
-        activeOpacity={0.8}>
-        <IconSymbol
-          name="chevron.right"
-          size={18}
-          weight="medium"
-          color={theme === 'light' ? colors.light.icon : colors.dark.icon}
-          style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
-        />
+    <Box>
+      <Pressable
+        onPress={toggleOpen}
+        className="flex-row items-center py-2"
+        style={{ gap: 8 }}
+      >
+        <Box 
+            className="w-6 h-6 items-center justify-center rounded-full bg-gray-50/50"
+            style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
+        >
+            <IconSymbol
+              name="chevron.right"
+              size={14}
+              weight="bold"
+              color={iconColor}
+            />
+        </Box>
 
-        <ThemedText type="defaultSemiBold">{title}</ThemedText>
-      </TouchableOpacity>
-      {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
-    </ThemedView>
+        <ThemedText type="defaultSemiBold" className="flex-1">{title}</ThemedText>
+      </Pressable>
+      
+      {isOpen && (
+        <Box className="mt-2 ml-8 pb-4">
+            {children}
+        </Box>
+      )}
+    </Box>
   );
 }
-
-const styles = StyleSheet.create({
-  heading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  content: {
-    marginTop: 6,
-    marginLeft: 24,
-  },
-});

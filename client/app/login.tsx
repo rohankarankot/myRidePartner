@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-    StyleSheet,
-    TouchableOpacity,
-    Text,
-    View,
-    ActivityIndicator,
     Dimensions,
     Platform,
     Linking,
@@ -30,6 +25,14 @@ import Animated, {
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import Toast from 'react-native-toast-message';
+
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Pressable } from '@/components/ui/pressable';
+import { Button, ButtonText } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 const { width, height } = Dimensions.get('window');
 
@@ -127,32 +130,72 @@ export default function LoginScreen() {
     };
 
     return (
-        <View style={[styles.container, { backgroundColor }]}>
+        <Box className="flex-1 overflow-hidden" style={{ backgroundColor }}>
             <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+            
             {/* Background Decorative Elements */}
-            <View style={[styles.bgCircle, { top: -height * 0.1, right: -width * 0.2, backgroundColor: primaryColor + '10' }]} />
-            <View style={[styles.bgCircle, { bottom: height * 0.1, left: -width * 0.3, backgroundColor: primaryColor + '05', width: 300, height: 300 }]} />
+            <Box 
+              className="absolute rounded-full" 
+              style={{ 
+                top: -height * 0.1, 
+                right: -width * 0.2, 
+                backgroundColor: primaryColor + '10',
+                width: 400,
+                height: 400
+              }} 
+            />
+            <Box 
+              className="absolute rounded-full" 
+              style={{ 
+                bottom: height * 0.1, 
+                left: -width * 0.3, 
+                backgroundColor: primaryColor + '05', 
+                width: 300, 
+                height: 300 
+              }} 
+            />
 
-            <Animated.View exiting={FadeInUp} style={styles.content}>
+            <Animated.View exiting={FadeInUp} style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 30 }}>
                 {/* Branding Section */}
-                <Animated.View entering={FadeInUp.delay(200).duration(800)} style={styles.brandContainer}>
-                    <Animated.View style={[styles.logoContainer, { backgroundColor: primaryColor }, animatedLogoStyle]}>
+                <Animated.View entering={FadeInUp.delay(200).duration(800)} style={{ alignItems: 'center', marginBottom: 50 }}>
+                    <Animated.View 
+                      style={[
+                        { 
+                          width: 80, 
+                          height: 80, 
+                          borderRadius: 24, 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          marginBottom: 20,
+                          backgroundColor: primaryColor,
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 8 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 15,
+                          elevation: 10,
+                        }, 
+                        animatedLogoStyle
+                      ]}
+                    >
                         <IconSymbol name="car.fill" size={40} color="#fff" />
                     </Animated.View>
-                    <Text style={[styles.title, { color: textColor }]}>My Ride Partner</Text>
-                    <Text style={[styles.tagline, { color: subtextColor }]}>
-                        commuting made
+                    <Text className="text-3xl font-extrabold tracking-tighter" style={{ color: textColor }}>
+                      My Ride Partner
                     </Text>
-                    <Text style={[styles.tagline, { color: subtextColor }]}>
-                        simplified and affordable
-                    </Text>
-
+                    <VStack className="items-center mt-2">
+                        <Text className="text-base font-medium" style={{ color: subtextColor }}>
+                            commuting made
+                        </Text>
+                        <Text className="text-base font-medium" style={{ color: subtextColor }}>
+                            simplified and affordable
+                        </Text>
+                    </VStack>
                 </Animated.View>
 
                 {/* Login Card */}
-                <Animated.View entering={FadeInDown.delay(400).duration(800)} style={styles.cardWrapper}>
+                <Animated.View entering={FadeInDown.delay(400).duration(800)} style={{ borderRadius: 28, overflow: 'hidden', elevation: 5 }}>
                     {Platform.OS === 'ios' ? (
-                        <BlurView intensity={colorScheme === 'dark' ? 20 : 40} style={styles.blurContainer}>
+                        <BlurView intensity={colorScheme === 'dark' ? 20 : 40} style={{ padding: 30 }}>
                             <LoginCardContent
                                 isLoggingIn={isLoggingIn}
                                 isTermsAccepted={isTermsAccepted}
@@ -163,7 +206,10 @@ export default function LoginScreen() {
                             />
                         </BlurView>
                     ) : (
-                        <View style={[styles.androidCard, { backgroundColor: cardColor, borderColor: textColor + '10' }]}>
+                        <Box 
+                          className="p-8 rounded-[28px] border" 
+                          style={{ backgroundColor: cardColor, borderColor: textColor + '10' }}
+                        >
                             <LoginCardContent
                                 isLoggingIn={isLoggingIn}
                                 isTermsAccepted={isTermsAccepted}
@@ -172,195 +218,79 @@ export default function LoginScreen() {
                                 subtextColor={subtextColor}
                                 primaryColor={primaryColor}
                             />
-                        </View>
+                        </Box>
                     )}
                 </Animated.View>
 
                 {/* Footer Section */}
-                <Animated.View entering={FadeIn.delay(800)} style={styles.footer}>
-                    <View style={styles.termsRow}>
-                        <TouchableOpacity
+                <Animated.View entering={FadeIn.delay(800)} style={{ marginTop: 30, alignItems: 'center' }}>
+                    <HStack className="items-center px-5" space="sm">
+                        <Pressable
                             onPress={() => setIsTermsAccepted(!isTermsAccepted)}
-                            style={styles.checkbox}
-                            activeOpacity={0.7}
+                            className="p-1"
                         >
                             <IconSymbol
                                 name={isTermsAccepted ? "checkmark.circle.fill" : "checkmark.circle"}
                                 size={22}
                                 color={isTermsAccepted ? primaryColor : subtextColor}
                             />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => router.push('/terms')} style={{ display: 'flex' }}>
-                            <Text style={[styles.footerText, { color: subtextColor }]}>
-                                By continuing, you agree to
-                            </Text>
-                            <Text style={{ color: primaryColor, textDecorationLine: 'underline' }}>Terms and Privacy Policy.</Text>
-
-                        </TouchableOpacity>
-                    </View>
+                        </Pressable>
+                        <Pressable onPress={() => router.push('/terms')} className="flex-1">
+                            <VStack>
+                                <Text className="text-sm opacity-80" style={{ color: subtextColor }}>
+                                    By continuing, you agree to
+                                </Text>
+                                <Text className="text-sm font-semibold underline" style={{ color: primaryColor }}>
+                                  Terms and Privacy Policy.
+                                </Text>
+                            </VStack>
+                        </Pressable>
+                    </HStack>
                 </Animated.View>
 
             </Animated.View>
-            <View style={{ display: 'flex', alignItems: 'center', position: 'absolute', bottom: 70, left: 0, right: 0 }}>
-                <Text style={{ color: textColor, fontSize: 14 }}>🚩 An initiative by MH13 Community 🚩</Text>
-                <TouchableOpacity onPress={() => Linking.openURL('https://github.com/rohankarankot/myRidePartner')}>
-                    <Text style={{ color: primaryColor, fontSize: 12, marginTop: 10, width: '100%', textAlign: 'center', textDecorationLine: 'underline' }}>Contributions are welcomed</Text>
-                </TouchableOpacity>
-
-            </View>
-        </View >
+            
+            <VStack className="absolute bottom-16 left-0 right-0 items-center" space="xs">
+                <Text className="text-sm font-medium" style={{ color: textColor }}>
+                  🚩 An initiative by MH13 Community 🚩
+                </Text>
+                <Pressable onPress={() => Linking.openURL('https://github.com/rohankarankot/myRidePartner')}>
+                    <Text className="text-xs underline text-center" style={{ color: primaryColor }}>
+                      Contributions are welcomed
+                    </Text>
+                </Pressable>
+            </VStack>
+        </Box >
     );
 }
 
 const LoginCardContent = ({ isLoggingIn, isTermsAccepted, onLogin, textColor, subtextColor, primaryColor }: any) => (
-    <View style={styles.cardInner}>
-        <Text style={[styles.cardTitle, { color: textColor }]}>Sign In</Text>
-        <Text style={[styles.cardSubtitle, { color: subtextColor }]}>
-            Join the community of verified travelers.
-        </Text>
+    <VStack className="items-center" space="lg">
+        <VStack className="items-center mb-2" space="xs">
+            <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Sign In</Text>
+            <Text className="text-sm text-center px-4" style={{ color: subtextColor }}>
+                Join the community of verified travelers.
+            </Text>
+        </VStack>
 
-        <TouchableOpacity
-            style={[
-                styles.button,
-                { backgroundColor: primaryColor },
-                (!isTermsAccepted || isLoggingIn) && styles.buttonDisabled
-            ]}
+        <Button
+            size="xl"
             onPress={onLogin}
             disabled={isLoggingIn || !isTermsAccepted}
-            activeOpacity={0.8}
+            className="w-full rounded-2xl h-14"
+            style={{ 
+              backgroundColor: primaryColor,
+              opacity: (isLoggingIn || !isTermsAccepted) ? 0.4 : 1 
+            }}
         >
             {isLoggingIn ? (
-                <ActivityIndicator color="#fff" />
+                <Spinner color="#fff" />
             ) : (
-                <View style={styles.buttonContent}>
-                    <IconSymbol name={"google.logo" as any} size={20} color="#fff" style={styles.googleIcon} />
-                    <Text style={styles.buttonText}>Continue with Google</Text>
-                </View>
+                <HStack className="items-center" space="md">
+                    <IconSymbol name={"google.logo" as any} size={20} color="#fff" />
+                    <ButtonText className="text-white font-bold text-lg">Continue with Google</ButtonText>
+                </HStack>
             )}
-        </TouchableOpacity>
-    </View>
+        </Button>
+    </VStack>
 );
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        overflow: 'hidden',
-    },
-    bgCircle: {
-        position: 'absolute',
-        width: 400,
-        height: 400,
-        borderRadius: 200,
-    },
-    content: {
-        flex: 1,
-        justifyContent: 'center',
-        paddingHorizontal: 30,
-    },
-    brandContainer: {
-        alignItems: 'center',
-        marginBottom: 50,
-    },
-    logoContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 15,
-        elevation: 10,
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: '900',
-        letterSpacing: -1,
-    },
-    tagline: {
-        fontSize: 16,
-        marginTop: 8,
-        fontWeight: '500',
-    },
-    cardWrapper: {
-        borderRadius: 28,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 5,
-    },
-    blurContainer: {
-        padding: 30,
-        borderRadius: 28,
-    },
-    androidCard: {
-        padding: 30,
-        borderRadius: 28,
-        borderWidth: 1,
-    },
-    cardInner: {
-        alignItems: 'center',
-    },
-    cardTitle: {
-        fontSize: 22,
-        fontWeight: '800',
-        marginBottom: 8,
-    },
-    cardSubtitle: {
-        fontSize: 14,
-        textAlign: 'center',
-        marginBottom: 35,
-        lineHeight: 20,
-    },
-    button: {
-        width: '100%',
-        height: 56,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    buttonContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    googleIcon: {
-        marginRight: 12,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 17,
-        fontWeight: '700',
-    },
-    buttonDisabled: {
-        opacity: 0.15,
-        elevation: 0,
-        shadowOpacity: 0,
-    },
-    footer: {
-        marginTop: 30,
-        alignItems: 'center',
-    },
-    termsRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-    },
-    checkbox: {
-        marginRight: 10,
-    },
-    footerText: {
-        fontSize: 14,
-        textAlign: 'left',
-        opacity: 0.8,
-        lineHeight: 20,
-    },
-});

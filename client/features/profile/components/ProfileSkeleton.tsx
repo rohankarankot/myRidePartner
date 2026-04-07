@@ -1,115 +1,76 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Skeleton } from '@/components/skeleton';
+import { Skeleton } from '@/components/skeleton/Skeleton';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { AppCard } from '@/components/ui/app-card';
-import { Spacing } from '@/constants/ui';
+import { Box } from '@/components/ui/box';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
 
 export function ProfileSkeleton() {
   const backgroundColor = useThemeColor({}, 'background');
+  const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
 
   return (
-    <View style={[styles.screen, { backgroundColor }]}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Skeleton width={110} height={110} borderRadius={55} />
-          <Skeleton width={180} height={22} borderRadius={11} style={styles.headerLine} />
-          <Skeleton width={120} height={14} borderRadius={7} style={styles.compactLine} />
-          <Skeleton width="42%" height={14} borderRadius={7} style={styles.compactLine} />
-          <Skeleton width={112} height={28} borderRadius={14} style={styles.badge} />
-        </View>
+    <Box className="flex-1" style={{ backgroundColor }}>
+      <VStack className="p-6" space="xl">
+        <VStack className="items-center mb-6" space="md">
+          <Skeleton width={120} height={120} borderRadius={60} />
+          <VStack className="items-center" space="xs">
+            <Skeleton width={200} height={20} borderRadius={10} />
+            <Skeleton width={140} height={14} borderRadius={7} />
+            <Skeleton width={100} height={14} borderRadius={7} />
+          </VStack>
+          <Skeleton width={120} height={32} borderRadius={16} className="mt-2" />
+        </VStack>
 
-        <AppCard style={styles.card}>
-          <Skeleton width={84} height={18} borderRadius={9} />
-          <View style={[styles.row, { borderBottomColor: borderColor }]}>
-            <Skeleton width="36%" height={14} borderRadius={7} />
-            <Skeleton width={48} height={18} borderRadius={9} />
-          </View>
-          <View style={styles.row}>
-            <Skeleton width="44%" height={14} borderRadius={7} />
-            <Skeleton width={34} height={18} borderRadius={9} />
-          </View>
-        </AppCard>
+        <Box className="rounded-[32px] p-6 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+          <Skeleton width={100} height={18} borderRadius={9} className="mb-4" />
+          <VStack space="md">
+            <HStack className="justify-between items-center py-2 border-b" style={{ borderBottomColor: borderColor }}>
+              <Skeleton width="40%" height={14} borderRadius={7} />
+              <Skeleton width={60} height={18} borderRadius={9} />
+            </HStack>
+            <HStack className="justify-between items-center py-2">
+              <Skeleton width="50%" height={14} borderRadius={7} />
+              <Skeleton width={40} height={18} borderRadius={9} />
+            </HStack>
+          </VStack>
+        </Box>
 
-        <AppCard style={styles.card}>
-          <Skeleton width={150} height={18} borderRadius={9} />
-          {Array.from({ length: 5 }).map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.row,
-                index < 4 && { borderBottomColor: borderColor },
-              ]}
-            >
-              <Skeleton width="34%" height={14} borderRadius={7} />
-              <Skeleton width={index === 0 ? 92 : index === 3 ? 140 : 84} height={16} borderRadius={8} />
-            </View>
-          ))}
-        </AppCard>
+        <Box className="rounded-[32px] p-6 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+          <Skeleton width={160} height={18} borderRadius={9} className="mb-4" />
+          <VStack space="md">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <HStack 
+                key={index} 
+                className={`justify-between items-center py-2 ${index < 3 ? 'border-b' : ''}`} 
+                style={{ borderBottomColor: index < 3 ? borderColor : 'transparent' }}
+              >
+                <Skeleton width="35%" height={14} borderRadius={7} />
+                <Skeleton width={index === 0 ? 100 : index === 2 ? 150 : 90} height={16} borderRadius={8} />
+              </HStack>
+            ))}
+          </VStack>
+        </Box>
 
-        <AppCard style={styles.card}>
-          {Array.from({ length: 4 }).map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.actionRow,
-                index < 3 && { borderBottomColor: borderColor },
-              ]}
-            >
-              <View style={styles.actionLeft}>
-                <Skeleton width={42} height={42} borderRadius={14} />
-                <Skeleton width={index === 0 ? 110 : index === 1 ? 136 : index === 2 ? 102 : 88} height={16} borderRadius={8} />
-              </View>
-              <Skeleton width={14} height={14} borderRadius={7} />
-            </View>
-          ))}
-        </AppCard>
-      </View>
-    </View>
+        <Box className="rounded-[32px] p-6 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+          <VStack space="md">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <HStack 
+                key={index} 
+                className={`justify-between items-center py-3 ${index < 2 ? 'border-b' : ''}`} 
+                style={{ borderBottomColor: index < 2 ? borderColor : 'transparent' }}
+              >
+                <HStack className="items-center" space="md">
+                  <Skeleton width={44} height={44} borderRadius={16} />
+                  <Skeleton width={index === 0 ? 120 : index === 1 ? 140 : 110} height={16} borderRadius={8} />
+                </HStack>
+                <Skeleton width={16} height={16} borderRadius={8} />
+              </HStack>
+            ))}
+          </VStack>
+        </Box>
+      </VStack>
+    </Box>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  container: {
-    padding: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  headerLine: {
-    marginTop: 16,
-  },
-  compactLine: {
-    marginTop: 10,
-  },
-  badge: {
-    marginTop: 14,
-  },
-  card: {
-    marginBottom: 18,
-  },
-  row: {
-    paddingVertical: Spacing.md + 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  actionRow: {
-    paddingVertical: Spacing.md + 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  actionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-});

@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, RefreshControl, KeyboardAvoidingView, Platform, Keyboard, BackHandler, Share } from 'react-native';
+import {
+    Dimensions,
+    Platform,
+    Linking,
+    BackHandler,
+    Share,
+    Keyboard,
+    RefreshControl,
+    ScrollView,
+    Alert,
+    Modal,
+} from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,8 +36,9 @@ import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { TripDetailsSkeleton } from '@/features/trips/components/TripDetailsSkeleton';
 import { buildTripStartDateTime, canCaptainEditTrip, hasApprovedPassengers } from '@/features/trips/utils/trip-editability';
 import { buildTripShareMessage } from '@/features/trips/utils/trip-share';
+
 import { Box } from '@/components/ui/box';
-import { Text as GSText } from '@/components/ui/text';
+import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
@@ -34,6 +46,9 @@ import { Divider } from '@/components/ui/divider';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Spinner } from '@/components/ui/spinner';
+import { Input, InputField } from '@/components/ui/input';
+
+const { width } = Dimensions.get('window');
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -45,30 +60,20 @@ export default function TripDetailsScreen() {
 
     const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender || !profile.city;
 
-    // ── Socket Room Management ────────────────────────────────────────
     useEffect(() => {
         if (documentId) {
-            console.log(`[Socket] Joining trip room: ${documentId}`);
             socketService.joinTrip(documentId as string);
-
             const handleTripUpdate = (data: any) => {
-                console.log('[Socket] Trip updated:', data);
-                // Invalidate queries to instantly fetch the new API state
                 queryClient.invalidateQueries({ queryKey: ['trip-details', documentId] });
                 queryClient.invalidateQueries({ queryKey: ['trips'] });
             };
-
             socketService.on('trip_updated', handleTripUpdate);
-
             return () => {
-                console.log(`[Socket] Leaving trip room: ${documentId}`);
                 socketService.off('trip_updated', handleTripUpdate);
                 socketService.leaveTrip(documentId as string);
             };
         }
     }, [documentId, queryClient]);
-
-
 
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showCompletionPriceModal, setShowCompletionPriceModal] = useState(false);
@@ -80,9 +85,7 @@ export default function TripDetailsScreen() {
     const [showProfileAlert, setShowProfileAlert] = useState(false);
     const [showGenderAlert, setShowGenderAlert] = useState(false);
 
-    // Join Request State
     const joinSheetRef = useRef<BottomSheetModal>(null);
-    const joinSnapPoints = useMemo(() => ['70%'], []);
     const [sheetIndex, setSheetIndex] = useState(-1);
     const handleSheetChanges = useCallback((index: number) => {
         setSheetIndex(index);
@@ -96,21 +99,21 @@ export default function TripDetailsScreen() {
             }
             return false;
         };
-
         const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
         return () => backHandler.remove();
     }, [sheetIndex]);
+
     const renderBackdrop = useCallback(
         (props: any) => (
             <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.5} />
         ),
         []
     );
+
     const [selectedSeats, setSelectedSeats] = useState(1);
     const [requestMessage, setRequestMessage] = useState('');
     const [sharePhoneNumber, setSharePhoneNumber] = useState(false);
 
-    // Rating State
     const [showRatingModal, setShowRatingModal] = useState(false);
     const [selectedStars, setSelectedStars] = useState(0);
     const [ratingComment, setRatingComment] = useState('');
@@ -132,17 +135,14 @@ export default function TripDetailsScreen() {
         queryFn: async () => {
             if (!documentId) return null;
             const tripData = await tripService.getTripById(documentId as string);
-
             let creatorProfile = null;
             if (tripData.creator?.id) {
                 creatorProfile = await userService.getUserProfile(tripData.creator.id);
             }
-
             let requests: JoinRequest[] = [];
             if (user) {
                 requests = await joinRequestService.getJoinRequestsForTrip(documentId as string);
             }
-
             return { trip: tripData, creatorProfile, requests };
         },
         enabled: !!documentId,
@@ -154,7 +154,6 @@ export default function TripDetailsScreen() {
         enabled: !!documentId && !!user,
     });
 
-    // Check if user has already rated this trip
     const { data: userRating, refetch: refetchRating, isLoading: isUserRatingLoading } = useQuery({
         queryKey: ['user-rating', documentId, user?.id],
         queryFn: () => ratingService.getRatingForTripByUser(documentId as string, user!.id),
@@ -170,7 +169,6 @@ export default function TripDetailsScreen() {
 
     const isPassenger = user ? tripDetails?.requests?.find(r => r.passenger.id === user.id && r.status === 'APPROVED') : false;
 
-    // Show rating modal if trip is completed and user is a passenger and hasn't rated yet
     useEffect(() => {
         if (
             tripDetails?.trip?.status === 'COMPLETED' &&
@@ -185,7 +183,6 @@ export default function TripDetailsScreen() {
     }, [tripDetails?.trip?.status, isPassenger, userRating, loading, isUserRatingLoading, isSubmittingRating]);
 
     const trip = tripDetails?.trip || null;
-    console.log(trip);
     const creatorProfile = tripDetails?.creatorProfile || null;
     const joinRequests = tripDetails?.requests || [];
     const approvedPassengerCount = joinRequests.filter((request) => request.status === 'APPROVED').length;
@@ -201,22 +198,10 @@ export default function TripDetailsScreen() {
     });
 
     const getEditTripBlockedReason = () => {
-        if (!trip || user?.id !== trip.creator?.id) {
-            return '';
-        }
-
-        if (trip.status !== 'PUBLISHED') {
-            return 'Editing is only available while the ride is still published.';
-        }
-
-        if (hasApprovedPassengers(joinRequests)) {
-            return `Editing is locked once passengers have been approved for this ride${approvedPassengerCount > 0 ? ` (${approvedPassengerCount} approved)` : ''}.`;
-        }
-
-        if (hasTripStartedByTime) {
-            return 'Editing is no longer available after the scheduled start time.';
-        }
-
+        if (!trip || user?.id !== trip.creator?.id) return '';
+        if (trip.status !== 'PUBLISHED') return 'Editing is only available while the ride is still published.';
+        if (hasApprovedPassengers(joinRequests)) return `Editing is locked once passengers have been approved for this ride.`;
+        if (hasTripStartedByTime) return 'Editing is no longer available after the scheduled start time.';
         return '';
     };
 
@@ -228,33 +213,22 @@ export default function TripDetailsScreen() {
 
     const handleInitiateJoin = () => {
         if (!user || !documentId || !trip) return;
-
         if (isCreatorBlocked) {
-            Toast.show({
-                type: 'error',
-                text1: 'Captain blocked',
-                text2: 'Unblock this captain to request joining the ride.',
-            });
+            Toast.show({ type: 'error', text1: 'Captain blocked', text2: 'Unblock this captain to request joining the ride.' });
             return;
         }
-
         if (isProfileIncomplete) {
             setShowProfileAlert(true);
             return;
         }
-
-        // Gender Preference Check
         if (trip.genderPreference !== 'both' && trip.genderPreference !== profile?.gender) {
             setShowGenderAlert(true);
             return;
         }
-
         if (trip.availableSeats <= 0) {
             Alert.alert('No Seats Available', 'This trip is already full.');
             return;
         }
-
-        // Reset and show modal to select seats
         setSelectedSeats(1);
         setRequestMessage('');
         setSharePhoneNumber(false);
@@ -263,7 +237,6 @@ export default function TripDetailsScreen() {
 
     const confirmJoinRequest = async () => {
         if (!user || !documentId || !trip) return;
-
         joinSheetRef.current?.dismiss();
         Keyboard.dismiss();
         setIsJoining(true);
@@ -276,18 +249,9 @@ export default function TripDetailsScreen() {
                 sharePhoneNumber,
             });
             refetch();
-            Toast.show({
-                type: 'success',
-                text1: 'Request Sent',
-                text2: `Requested ${selectedSeats} ${selectedSeats === 1 ? 'seat' : 'seats'} to join the trip.`
-            });
+            Toast.show({ type: 'success', text1: 'Request Sent', text2: `Requested ${selectedSeats} seats.` });
         } catch (error) {
-            console.error('Join request error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to send join request.'
-            });
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to send request.' });
         } finally {
             setIsJoining(false);
         }
@@ -296,46 +260,23 @@ export default function TripDetailsScreen() {
     const handleUpdateJoinStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
         try {
             await joinRequestService.updateJoinRequestStatus(requestId, status);
-
-            // Invalidate the trip-details query so React Query refetches fresh data
-            // This is more reliable than a timeout – it waits for the query to re-run
             await queryClient.invalidateQueries({ queryKey: ['trip-details', documentId] });
-
-            Toast.show({
-                type: 'success',
-                text1: `Request ${status.toLowerCase()}`,
-                text2: `You have ${status.toLowerCase()} the join request.`
-            });
+            Toast.show({ type: 'success', text1: `Request ${status.toLowerCase()}` });
         } catch (error) {
-            console.error('Update status error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to update request status.'
-            });
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to update request.' });
         }
     };
 
     const handleCancelTrip = async () => {
         if (!agreeToCancel || !documentId) return;
-
         setIsCancelling(true);
         try {
             await tripService.updateTripStatus(documentId as string, { status: 'CANCELLED' });
-            Toast.show({
-                type: 'success',
-                text1: 'Trip Cancelled',
-                text2: 'The trip has been successfully cancelled.'
-            });
+            Toast.show({ type: 'success', text1: 'Trip Cancelled' });
             setShowCancelModal(false);
             router.push('/(tabs)/activity');
         } catch (error) {
-            console.error('Cancel trip error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to cancel trip. Please try again.'
-            });
+            Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to cancel.' });
         } finally {
             setIsCancelling(false);
         }
@@ -344,38 +285,15 @@ export default function TripDetailsScreen() {
     const updateTripStatusMutation = useOptimisticMutation({
         mutationFn: ({ status, pricePerSeat }: { status: TripStatus; pricePerSeat?: number }) =>
             tripService.updateTripStatus(documentId as string, { status, pricePerSeat }),
-        queryKeys: [
-            ['trip-details', documentId, user?.id],
-            ['trips', user?.id] // For Activity Screen Sync
-        ],
+        queryKeys: [['trip-details', documentId, user?.id], ['trips', user?.id]],
         optimisticUpdateFn: ({ status, pricePerSeat }, currentQueryClient) => {
             if (!user) return;
-
-            // 1. Update trip detail cache
             currentQueryClient.setQueryData(['trip-details', documentId, user.id], (oldData: any) => {
                 if (!oldData) return oldData;
-                return {
-                    ...oldData,
-                    trip: {
-                        ...oldData.trip,
-                        status,
-                        ...(pricePerSeat !== undefined ? { pricePerSeat } : {}),
-                    }
-                };
-            });
-
-            // 2. Update trips list cache
-            currentQueryClient.setQueryData(['trips', user.id], (oldTrips: Trip[] | undefined) => {
-                if (!oldTrips) return oldTrips;
-                return oldTrips.map(t =>
-                    t.documentId === documentId
-                        ? { ...t, status, ...(pricePerSeat !== undefined ? { pricePerSeat } : {}) }
-                        : t
-                );
+                return { ...oldData, trip: { ...oldData.trip, status, ...(pricePerSeat !== undefined ? { pricePerSeat } : {}) } };
             });
         },
         successMessage: { title: 'Status Updated' },
-        errorMessage: { title: 'Update Failed', subtitle: 'Could not communicate with the server. Reverting changes.' }
     });
 
     const handleUpdateTripStatus = (status: TripStatus) => {
@@ -385,37 +303,25 @@ export default function TripDetailsScreen() {
 
     const handleCompleteTrip = () => {
         if (!trip) return;
-
         if (trip.isPriceCalculated && !trip.pricePerSeat) {
             setCompletionPriceInput('');
             setShowCompletionPriceModal(true);
             return;
         }
-
         handleUpdateTripStatus('COMPLETED');
     };
 
     const handleConfirmCompletionPrice = async () => {
         if (!documentId) return;
-
-        const parsedPrice = Number.parseFloat(completionPriceInput.trim());
+        const parsedPrice = parseFloat(completionPriceInput.trim());
         if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-            Toast.show({
-                type: 'error',
-                text1: 'Invalid amount',
-                text2: 'Enter the final price per person to complete this ride.',
-            });
+            Toast.show({ type: 'error', text1: 'Invalid amount' });
             return;
         }
-
         setIsCompletingTrip(true);
         try {
-            await updateTripStatusMutation.mutateAsync({
-                status: 'COMPLETED',
-                pricePerSeat: parsedPrice,
-            });
+            await updateTripStatusMutation.mutateAsync({ status: 'COMPLETED', pricePerSeat: parsedPrice });
             setShowCompletionPriceModal(false);
-            setCompletionPriceInput('');
         } finally {
             setIsCompletingTrip(false);
         }
@@ -423,7 +329,6 @@ export default function TripDetailsScreen() {
 
     const handleSubmitRating = async () => {
         if (!user || !documentId || !trip || selectedStars === 0) return;
-
         setIsSubmittingRating(true);
         try {
             await ratingService.createRating({
@@ -435,18 +340,6 @@ export default function TripDetailsScreen() {
             });
             setShowRatingModal(false);
             await refetchRating();
-            Toast.show({
-                type: 'success',
-                text1: 'Rating Submitted',
-                text2: 'Thank you for your feedback!'
-            });
-        } catch (error) {
-            console.error('Rating submission error:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to submit rating.'
-            });
         } finally {
             setIsSubmittingRating(false);
         }
@@ -459,883 +352,198 @@ export default function TripDetailsScreen() {
 
     const handleEditTrip = () => {
         if (!trip || !canEditTrip) return;
-        router.push({
-            pathname: '/(tabs)/create',
-            params: { editTripId: trip.documentId },
-        });
+        router.push({ pathname: '/(tabs)/create', params: { editTripId: trip.documentId } });
     };
 
     const handleShareTrip = async () => {
         if (!trip) return;
-
         try {
-            await Share.share({
-                message: buildTripShareMessage(trip),
-            });
+            await Share.share({ message: buildTripShareMessage(trip) });
         } catch (error) {
-            console.error('Trip share failed:', error);
-            Toast.show({
-                type: 'error',
-                text1: 'Share failed',
-                text2: 'Unable to open the share sheet right now.',
-            });
+            console.error('Share failed', error);
         }
     };
 
-    const handleReportSubmit = async (payload: ReportPayload) => {
-        await saveReport(payload);
-        Toast.show({
-            type: 'success',
-            text1: 'Report submitted',
-            text2: 'We will review this and take action if needed.',
-        });
-    };
+    if (loading) return <TripDetailsSkeleton />;
+    if (!trip) return (
+        <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
+            <Text style={{ color: subtextColor }}>Trip not found.</Text>
+        </Box>
+    );
 
-    const handleConfirmBlock = async () => {
-        const creatorId = trip?.creator?.id;
-        if (!creatorId) return;
-
-        try {
-            if (isCreatorBlocked) {
-                await unblockUser(creatorId);
-                Toast.show({
-                    type: 'success',
-                    text1: 'Captain unblocked',
-                    text2: 'You can see and join their rides again.',
-                });
-            } else {
-                await blockUser(creatorId);
-                Toast.show({
-                    type: 'success',
-                    text1: 'Captain blocked',
-                    text2: 'Their rides will be hidden from discovery on this device.',
-                });
-                router.back();
-            }
-        } catch {
-            Toast.show({
-                type: 'error',
-                text1: 'Action failed',
-                text2: 'Please try again.',
-            });
-        } finally {
-            setShowBlockAlert(false);
-        }
-    };
+    const isCreator = user?.id === trip.creator?.id;
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
-            {trip?.creator?.id && (
-                <ReportModal
-                    visible={showReportModal}
-                    onClose={() => setShowReportModal(false)}
-                    onSubmit={handleReportSubmit}
-                    reportedUserId={trip.creator.id}
-                    reportedUserName={creatorProfile?.fullName || trip.creator.username}
-                    reporterUserId={user?.id}
-                    tripDocumentId={trip.documentId}
-                    source="trip"
-                />
-            )}
-            <CustomAlert
-                visible={showProfileAlert}
-                title="Complete Your Profile"
-                message="You need to provide your Name, Phone Number, Gender, and City before you can request to join a ride."
-                primaryButton={{
-                    text: "Go to Profile",
-                    onPress: () => {
-                        setShowProfileAlert(false);
-                        router.push('/(tabs)/profile');
-                    }
-                }}
-                onClose={() => setShowProfileAlert(false)}
-                icon="person.crop.circle.badge.exclamationmark"
-            />
-            <CustomAlert
-                visible={showGenderAlert}
-                title="Gender Preference Mismatch"
-                message={`This trip is specifically for ${trip?.genderPreference === 'men' ? 'men' : 'women'}. Please look for rides that match your gender or have no preference.`}
-                primaryButton={{
-                    text: "Got it",
-                    onPress: () => setShowGenderAlert(false)
-                }}
-                onClose={() => setShowGenderAlert(false)}
-                icon="person.2.slash.fill"
-            />
-            <CustomAlert
-                visible={showBlockAlert}
-                title={isCreatorBlocked ? 'Unblock captain?' : 'Block captain?'}
-                message={
-                    isCreatorBlocked
-                        ? 'This will allow this captain’s rides to appear again in discovery.'
-                        : 'You will hide this captain’s rides from discovery on this device and stop joining this ride until unblocked.'
-                }
-                primaryButton={{
-                    text: isCreatorBlocked ? 'Unblock' : 'Block',
-                    onPress: handleConfirmBlock,
-                }}
-                secondaryButton={{
-                    text: 'Cancel',
-                    onPress: () => setShowBlockAlert(false),
-                }}
-                onClose={() => setShowBlockAlert(false)}
-                icon={isCreatorBlocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
-            />
-            <Stack.Screen
-                options={{
-                    title: loading ? 'Loading details...' : 'Trip Details',
-                    headerShown: true,
-                    headerTransparent: false,
-                    headerStyle: { backgroundColor },
-                    headerTintColor: textColor,
-                    headerShadowVisible: false,
-                    headerBackTitle: 'Back',
-                    headerRight: () =>
-                        trip && user?.id === trip.creator?.id ? (
-                            <TouchableOpacity
-                                onPress={handleShareTrip}
-                                style={styles.headerActionButton}
-                                accessibilityRole="button"
-                                accessibilityLabel="Share trip"
-                            >
-                                <IconSymbol name="square.and.arrow.up" size={20} color={primaryColor} />
-                            </TouchableOpacity>
-                        ) : null,
-                }}
+        <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
+            <Stack.Screen 
+              options={{ 
+                title: 'Trip Details', 
+                headerStyle: { backgroundColor }, 
+                headerTintColor: textColor,
+                headerRight: () => isCreator ? (
+                  <Pressable onPress={handleShareTrip} className="p-2">
+                    <IconSymbol name="square.and.arrow.up" size={20} color={primaryColor} />
+                  </Pressable>
+                ) : null
+              }} 
             />
 
-            {loading ? (
-                <TripDetailsSkeleton />
-            ) : !trip ? (
-                <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor }}>
-                    <GSText className="text-base text-center" style={{ color: subtextColor }}>
-                        Trip not found.
-                    </GSText>
+            <ScrollView 
+              contentContainerStyle={{ padding: 16 }}
+              refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={primaryColor} />}
+            >
+                {/* Route Header */}
+                <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
+                    <HStack className="items-start" space="md">
+                        <VStack className="items-center pt-1" space="xs">
+                            <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: primaryColor }} />
+                            <Box className="w-px h-12" style={{ backgroundColor: borderColor }} />
+                            <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: '#10B981' }} />
+                        </VStack>
+                        <VStack className="flex-1" space="xl">
+                            <HStack className="justify-between items-center">
+                                <Text className="flex-1 text-lg font-bold" style={{ color: textColor }}>{trip.startingPoint}</Text>
+                                <Box className="px-2 py-1 rounded-lg" style={{ backgroundColor: getTripStatusColor(trip.status, successColor, dangerColor, primaryColor, subtextColor) }}>
+                                    <Text className="text-[10px] font-bold text-white uppercase">{trip.status}</Text>
+                                </Box>
+                            </HStack>
+                            <Text className="text-lg font-bold" style={{ color: textColor }}>{trip.destination}</Text>
+                        </VStack>
+                    </HStack>
                 </Box>
-            ) : (
-                <ScrollView
-                    contentContainerStyle={styles.container}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isRefreshing}
-                            onRefresh={handleRefresh}
-                            tintColor={primaryColor}
-                            colors={[primaryColor]}
+
+                {/* Info Grid */}
+                <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
+                    <HStack className="justify-between">
+                        <InfoItem icon="calendar" label="Date" value={trip.date} textColor={textColor} subtextColor={subtextColor} />
+                        <InfoItem icon="clock" label="Time" value={trip.time} textColor={textColor} subtextColor={subtextColor} />
+                    </HStack>
+                    <Divider className="my-4" style={{ backgroundColor: borderColor }} />
+                    <HStack className="justify-between">
+                        <InfoItem icon="users" label="Seats" value={`${trip.availableSeats}`} textColor={textColor} subtextColor={subtextColor} />
+                        <InfoItem 
+                          icon="credit-card" 
+                          label="Price" 
+                          value={trip.pricePerSeat ? `₹${trip.pricePerSeat}` : trip.isPriceCalculated ? 'Later' : 'Free'} 
+                          textColor={textColor} 
+                          subtextColor={subtextColor} 
                         />
-                    }
+                    </HStack>
+                </Box>
+
+                {/* Chat Action */}
+                {canOpenChat && (
+                    <Button onPress={handleOpenChat} className="rounded-2xl h-14 mb-4" style={{ backgroundColor: primaryColor }}>
+                        <HStack space="sm" className="items-center">
+                          <IconSymbol name="bubble.left.fill" size={20} color="#fff" />
+                          <ButtonText className="font-bold text-white">Open Ride Chat</ButtonText>
+                        </HStack>
+                    </Button>
+                )}
+
+                {/* Description */}
+                {trip.description && (
+                    <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
+                        <Text className="text-lg font-bold mb-2" style={{ color: textColor }}>Note</Text>
+                        <Text style={{ color: subtextColor }}>{trip.description}</Text>
+                    </Box>
+                )}
+
+                {/* Captain Card */}
+                <Pressable 
+                  onPress={() => router.push(`/user/${trip.creator?.id}`)}
+                  className="rounded-3xl p-5 mb-4 shadow-sm" 
+                  style={{ backgroundColor: cardColor }}
                 >
-                    {(() => {
-                        const isCreator = user?.id === trip.creator?.id;
-                        return (
-                            <>
-                                {/* Route Header */}
-                                <Box className="rounded-3xl p-5 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-                                    <HStack className="items-start">
-                                        <VStack className="items-center mr-4 pt-1">
-                                            <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: primaryColor }} />
-                                            <Box className="w-px h-11 my-2" style={{ backgroundColor: borderColor }} />
-                                            <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: '#10B981' }} />
-                                        </VStack>
+                    <Text className="text-lg font-bold mb-4" style={{ color: textColor }}>Captain</Text>
+                    <HStack className="items-center" space="md">
+                        <Avatar size="lg">
+                            <AvatarFallbackText>{creatorProfile?.fullName}</AvatarFallbackText>
+                            {getAvatarUrl(creatorProfile) && <AvatarImage source={{ uri: getAvatarUrl(creatorProfile) }} alt="Avatar" />}
+                        </Avatar>
+                        <VStack>
+                            <Text className="font-bold" style={{ color: textColor }}>{creatorProfile?.fullName}</Text>
+                            <Text className="text-xs" style={{ color: subtextColor }}>{creatorProfile?.rating || 'New'}</Text>
+                        </VStack>
+                    </HStack>
+                </Pressable>
 
-                                        <VStack className="flex-1">
-                                            <HStack className="items-start justify-between">
-                                                <GSText className="flex-1 text-lg font-bold" style={{ color: textColor }}>
-                                                    {trip.startingPoint}
-                                                </GSText>
-                                                <Box
-                                                    className="rounded-xl px-3 py-1 ml-3"
-                                                    style={{ backgroundColor: getTripStatusColor(trip.status, successColor, dangerColor, primaryColor, subtextColor) }}
-                                                >
-                                                    <GSText className="text-[11px] font-extrabold text-white">
-                                                        {trip.status}
-                                                    </GSText>
-                                                </Box>
-                                            </HStack>
-                                            <GSText className="text-lg font-bold mt-6" style={{ color: textColor }}>
-                                                {trip.destination}
-                                            </GSText>
-                                        </VStack>
+                {/* Join Requests for Creator */}
+                {isCreator && (
+                    <VStack space="md" className="mb-6">
+                        <Text className="text-lg font-bold" style={{ color: textColor }}>Requests ({joinRequests.length})</Text>
+                        {joinRequests.map(req => (
+                            <Box key={req.id} className="rounded-2xl p-4 border" style={{ backgroundColor: cardColor, borderColor }}>
+                                <HStack className="justify-between items-center mb-3">
+                                    <HStack space="sm" className="items-center">
+                                      <Avatar size="sm">
+                                          <AvatarFallbackText>{req.passenger.username}</AvatarFallbackText>
+                                      </Avatar>
+                                      <VStack>
+                                        <Text className="font-bold" style={{ color: textColor }}>{req.passenger.username}</Text>
+                                        <Text className="text-xs" style={{ color: subtextColor }}>{req.requestedSeats} seats</Text>
+                                      </VStack>
                                     </HStack>
-                                </Box>
-
-                                {/* Trip Info */}
-                                <Box className="rounded-3xl p-5 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-                                    <View style={styles.infoRow}>
-                                        <InfoItem icon="house.fill" label="Date" value={trip.date} textColor={textColor} subtextColor={subtextColor} />
-                                        <InfoItem icon="clock.fill" label="Time" value={trip.time} textColor={textColor} subtextColor={subtextColor} />
-                                    </View>
-                                    <Divider style={{ backgroundColor: borderColor, marginVertical: 16 }} />
-                                    <View style={styles.infoRow}>
-                                        <InfoItem icon="person.2.fill" label="Available Seats" value={`${trip.availableSeats}`} textColor={textColor} subtextColor={subtextColor} />
-                                        <InfoItem
-                                            icon="indianrupeesign.circle.fill"
-                                            label="Price per seat"
-                                            value={trip.pricePerSeat ? `₹${trip.pricePerSeat}` : trip.isPriceCalculated ? 'Calculated on completion' : 'Not set'}
-                                            textColor={textColor}
-                                            subtextColor={subtextColor}
-                                        />
-                                    </View>
-                                    <Divider style={{ backgroundColor: borderColor, marginVertical: 16 }} />
-                                    <View style={styles.infoRow}>
-                                        <InfoItem icon="person.fill" label="Gender Preference" value={trip.genderPreference === 'men' ? 'Only Men' : trip.genderPreference === 'women' ? 'Only Women' : 'Any'} textColor={textColor} subtextColor={subtextColor} />
-                                    </View>
-                                </Box>
-
-                                {canOpenChat && (
-                                    <Button
-                                        className="rounded-2xl mb-4"
-                                        style={{ backgroundColor: primaryColor }}
-                                        onPress={handleOpenChat}
-                                    >
-                                        <IconSymbol name="message.fill" size={18} color="#fff" />
-                                        <ButtonText style={{ color: '#FFFFFF' }}>Open Ride Chat</ButtonText>
-                                    </Button>
-                                )}
-
-                                {isCreator && (
-                                    <Pressable
-                                        className="rounded-2xl border px-4 py-4 mb-4 flex-row items-center justify-center"
-                                        style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}10` }}
-                                        onPress={handleShareTrip}
-                                    >
-                                        <IconSymbol name="square.and.arrow.up" size={18} color={primaryColor} />
-                                        <GSText className="text-base font-bold ml-2" style={{ color: primaryColor }}>
-                                            Share Ride Link
-                                        </GSText>
-                                    </Pressable>
-                                )}
-
-                                {/* Description / Captain's Note */}
-                                {trip.description && (
-                                    <Box className="rounded-3xl p-5 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-                                        <GSText className="text-lg font-bold mb-2" style={{ color: textColor }}>
-                                            Captain&apos;s Note
-                                        </GSText>
-                                        <GSText className="text-sm leading-6" style={{ color: subtextColor }}>
-                                            {trip.description}
-                                        </GSText>
+                                    <Box className="px-2 py-0.5 rounded-md" style={{ backgroundColor: getStatusColor(req.status, successColor, dangerColor, subtextColor) }}>
+                                        <Text className="text-[10px] text-white font-bold">{req.status}</Text>
                                     </Box>
-                                )}
-
-                                {/* Captain Info */}
-                                <Pressable
-                                    className="rounded-3xl p-5 mb-4"
-                                    style={[styles.cardShadow, { backgroundColor: cardColor }]}
-                                    onPress={() => router.push(`/user/${trip.creator?.id}`)}
-                                >
-                                    <GSText className="text-lg font-bold mb-4" style={{ color: textColor }}>
-                                        Captain
-                                    </GSText>
-                                    <HStack className="items-center" space="md">
-                                        <Avatar size="lg">
-                                            <AvatarFallbackText>
-                                                {creatorProfile?.fullName || trip.creator?.username || 'Captain'}
-                                            </AvatarFallbackText>
-                                            {getAvatarUrl(creatorProfile) ? (
-                                                <AvatarImage
-                                                    source={{ uri: getAvatarUrl(creatorProfile) as string }}
-                                                    alt={creatorProfile?.fullName || trip.creator?.username || 'Captain'}
-                                                />
-                                            ) : null}
-                                        </Avatar>
-                                        <VStack className="flex-1" space="xs">
-                                            <GSText className="text-base font-bold" style={{ color: textColor }}>
-                                                {creatorProfile?.fullName || trip.creator?.username}
-                                            </GSText>
-                                            <GSText className="text-sm" style={{ color: subtextColor }}>
-                                                {creatorProfile?.rating ? `${Number(creatorProfile.rating).toFixed(1)} ★` : 'New'} | Your ride leader
-                                            </GSText>
-                                        </VStack>
+                                </HStack>
+                                {req.status === 'PENDING' && (
+                                    <HStack space="md">
+                                        <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => handleUpdateJoinStatus(req.documentId, 'REJECTED')}>
+                                            <ButtonText className="text-white">Reject</ButtonText>
+                                        </Button>
+                                        <Button className="flex-1 bg-green-500 rounded-lg" onPress={() => handleUpdateJoinStatus(req.documentId, 'APPROVED')}>
+                                            <ButtonText className="text-white">Approve</ButtonText>
+                                        </Button>
                                     </HStack>
-                                </Pressable>
-
-                                {user?.id !== trip.creator?.id && (
-                                    <Box className="rounded-3xl p-5 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-                                        <GSText className="text-lg font-bold mb-4" style={{ color: textColor }}>
-                                            Safety
-                                        </GSText>
-                                        {isCreatorBlocked && (
-                                            <Box className="rounded-2xl px-4 py-3 mb-4 flex-row items-center" style={{ backgroundColor: `${dangerColor}10` }}>
-                                                <IconSymbol name="hand.raised.fill" size={18} color={dangerColor} />
-                                                <GSText className="text-sm font-medium ml-3 flex-1" style={{ color: dangerColor }}>
-                                                    This captain is blocked on this device.
-                                                </GSText>
-                                            </Box>
-                                        )}
-                                        <VStack space="sm">
-                                            <Pressable
-                                                className="rounded-2xl border px-4 py-4 flex-row items-center justify-center"
-                                                style={{ borderColor: isCreatorBlocked ? dangerColor : borderColor }}
-                                                onPress={() => setShowBlockAlert(true)}
-                                                disabled={isBlocking || isUnblocking}
-                                            >
-                                                <IconSymbol
-                                                    name={isCreatorBlocked ? 'person.crop.circle.badge.checkmark' : 'hand.raised.fill'}
-                                                    size={16}
-                                                    color={isCreatorBlocked ? dangerColor : textColor}
-                                                />
-                                                <GSText className="text-base font-semibold ml-2" style={{ color: isCreatorBlocked ? dangerColor : textColor }}>
-                                                    {isCreatorBlocked ? 'Unblock Captain' : 'Block Captain'}
-                                                </GSText>
-                                            </Pressable>
-
-                                            <Pressable
-                                                className="rounded-2xl border px-4 py-4 flex-row items-center justify-center"
-                                                style={{ borderColor }}
-                                                onPress={() => setShowReportModal(true)}
-                                            >
-                                                <IconSymbol name="flag.fill" size={16} color="#F59E0B" />
-                                                <GSText className="text-base font-semibold ml-2" style={{ color: textColor }}>
-                                                    Report Captain
-                                                </GSText>
-                                            </Pressable>
-                                        </VStack>
-                                    </Box>
                                 )}
+                            </Box>
+                        ))}
+                    </VStack>
+                )}
 
-                                {/* Actions */}
-                                {isCreator ? (
-                                    <Box className="mb-2">
-                                        <GSText className="text-lg font-bold mb-3" style={{ color: textColor }}>
-                                            Join Requests {joinRequests.length > 0 ? `(${joinRequests.length})` : ''}
-                                        </GSText>
+                {/* Bottom Actions */}
+                {!isCreator && !userJoinRequest && (
+                    <Button onPress={handleInitiateJoin} className="rounded-2xl h-14" style={{ backgroundColor: primaryColor }}>
+                        <ButtonText className="font-bold text-white">Join Ride</ButtonText>
+                    </Button>
+                )}
+            </ScrollView>
 
-                                        {joinRequests.length === 0 ? (
-                                            <Box className="rounded-3xl p-5 mb-4 border" style={[styles.cardShadow, { backgroundColor: cardColor, borderColor, borderStyle: 'dashed' }]}>
-                                                <GSText className="text-sm text-center" style={{ color: subtextColor }}>
-                                                    No requests yet.
-                                                </GSText>
-                                            </Box>
-                                        ) : (
-                                            joinRequests.map((request) => (
-                                                <Box key={request.id} className="rounded-3xl p-5 mb-4 border" style={[styles.cardShadow, { backgroundColor: cardColor, borderColor }]}>
-                                                    <HStack className="items-start">
-                                                        <Box className="h-10 w-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: primaryColor }}>
-                                                            <GSText className="text-sm font-extrabold text-white">
-                                                                {request.passenger.username?.charAt(0).toUpperCase()}
-                                                            </GSText>
-                                                        </Box>
-                                                        <VStack className="flex-1" space="xs">
-                                                            <GSText className="text-base font-bold" style={{ color: textColor }}>
-                                                                {request.passenger.username}
-                                                            </GSText>
-                                                            <GSText className="text-sm" style={{ color: subtextColor }}>
-                                                                {request.requestedSeats} {request.requestedSeats === 1 ? 'seat' : 'seats'} requested
-                                                            </GSText>
-                                                            <GSText className="text-sm" style={{ color: subtextColor }}>
-                                                                {request.sharePhoneNumber
-                                                                    ? (request.passenger.userProfile?.phoneNumber || 'Phone unavailable')
-                                                                    : maskPhoneNumber(request.passenger.userProfile?.phoneNumber)}
-                                                            </GSText>
-                                                        </VStack>
-                                                        <Box className="rounded-xl px-3 py-1 ml-3" style={{ backgroundColor: getStatusColor(request.status, successColor, dangerColor, subtextColor) }}>
-                                                            <GSText className="text-[11px] font-extrabold text-white">{request.status}</GSText>
-                                                        </Box>
-                                                    </HStack>
-
-                                                    {request.message ? (
-                                                        <Box className="rounded-2xl px-4 py-3 mt-4" style={{ backgroundColor: `${subtextColor}15` }}>
-                                                            <GSText className="text-sm" style={{ color: textColor }}>
-                                                                &quot;{request.message}&quot;
-                                                            </GSText>
-                                                        </Box>
-                                                    ) : null}
-
-                                                    {request.status === 'PENDING' && (
-                                                        <HStack className="mt-4" space="sm">
-                                                            <Pressable
-                                                                className="flex-1 rounded-2xl border px-4 py-3 items-center justify-center"
-                                                                style={{ borderColor: dangerColor }}
-                                                                onPress={() => handleUpdateJoinStatus(request.documentId, 'REJECTED')}
-                                                            >
-                                                                <GSText className="text-base font-semibold" style={{ color: dangerColor }}>
-                                                                    Decline
-                                                                </GSText>
-                                                            </Pressable>
-                                                            <Pressable
-                                                                className="flex-1 rounded-2xl px-4 py-3 items-center justify-center"
-                                                                style={{ backgroundColor: '#10B981' }}
-                                                                onPress={() => handleUpdateJoinStatus(request.documentId, 'APPROVED')}
-                                                            >
-                                                                <GSText className="text-base font-semibold text-white">Approve</GSText>
-                                                            </Pressable>
-                                                        </HStack>
-                                                    )}
-                                                </Box>
-                                            ))
-                                        )}
-
-                                        {trip.status === 'PUBLISHED' && (
-                                            canEditTrip ? (
-                                                <Pressable
-                                                    className="rounded-2xl border px-4 py-4 mb-4 flex-row items-center justify-center"
-                                                    style={{ borderColor: primaryColor }}
-                                                    onPress={handleEditTrip}
-                                                >
-                                                    <IconSymbol name="square.and.pencil" size={18} color={primaryColor} />
-                                                    <GSText className="text-base font-bold ml-2" style={{ color: primaryColor }}>
-                                                        Edit Trip
-                                                    </GSText>
-                                                </Pressable>
-                                            ) : (
-                                                <Box className="rounded-3xl p-5 mb-4 border" style={{ backgroundColor: `${subtextColor}10`, borderColor }}>
-                                                    <GSText className="text-base font-bold mb-2" style={{ color: textColor }}>
-                                                        Trip editing unavailable
-                                                    </GSText>
-                                                    <GSText className="text-sm leading-6" style={{ color: subtextColor }}>
-                                                        {getEditTripBlockedReason()}
-                                                    </GSText>
-                                                </Box>
-                                            )
-                                        )}
-
-                                        {trip.status === 'PUBLISHED' && (
-                                            <Button
-                                                className="rounded-2xl mb-4"
-                                                style={{ backgroundColor: primaryColor }}
-                                                onPress={() => handleUpdateTripStatus('STARTED')}
-                                            >
-                                                <ButtonText style={{ color: '#FFFFFF' }}>Start Trip</ButtonText>
-                                            </Button>
-                                        )}
-
-                                        {trip.status === 'STARTED' && (
-                                            <Button
-                                                className="rounded-2xl mb-4"
-                                                style={{ backgroundColor: successColor }}
-                                                onPress={handleCompleteTrip}
-                                            >
-                                                <ButtonText>Complete Trip</ButtonText>
-                                            </Button>
-                                        )}
-
-                                        {(trip.status === 'PUBLISHED' || trip.status === 'STARTED') && (
-                                            <Pressable
-                                                className="rounded-2xl border px-4 py-4 mb-6 items-center justify-center"
-                                                style={{ borderColor: dangerColor }}
-                                                onPress={() => setShowCancelModal(true)}
-                                            >
-                                                <GSText className="text-base font-bold" style={{ color: dangerColor }}>
-                                                    Cancel Trip
-                                                </GSText>
-                                            </Pressable>
-                                        )}
-                                    </Box>
-                                ) : (
-                                    <Box className="mb-2">
-                                        {trip.status !== 'PUBLISHED' && !userJoinRequest && (
-                                            <Box className="rounded-3xl p-5 mb-4 flex-row items-start" style={{ backgroundColor: `${subtextColor}15` }}>
-                                                <IconSymbol name="info.circle.fill" size={24} color={subtextColor} />
-                                                <VStack className="flex-1 ml-3" space="xs">
-                                                    <GSText className="text-base font-bold" style={{ color: textColor }}>
-                                                        Riding Booking Closed
-                                                    </GSText>
-                                                    <GSText className="text-sm leading-6" style={{ color: subtextColor }}>
-                                                        This trip is currently {trip.status.toLowerCase()} and is no longer accepting requests.
-                                                    </GSText>
-                                                </VStack>
-                                            </Box>
-                                        )}
-                                        {userJoinRequest ? (
-                                            <Box className="rounded-3xl p-5 mb-4 flex-row items-start" style={[{
-                                                backgroundColor: trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? `${successColor}10` :
-                                                    userJoinRequest.status === 'APPROVED' ? `${successColor}15` :
-                                                        userJoinRequest.status === 'REJECTED' ? `${dangerColor}15` : `${primaryColor}15`
-                                            }]}>
-                                                <IconSymbol
-                                                    name={trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? 'star.fill' :
-                                                        userJoinRequest.status === 'APPROVED' ? 'checkmark.circle.fill' :
-                                                            userJoinRequest.status === 'REJECTED' ? 'xmark.circle.fill' : 'clock.fill'}
-                                                    size={24}
-                                                    color={trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? '#F59E0B' :
-                                                        userJoinRequest.status === 'APPROVED' ? successColor :
-                                                            userJoinRequest.status === 'REJECTED' ? dangerColor : primaryColor}
-                                                />
-                                                <VStack className="flex-1 ml-3" space="xs">
-                                                    <GSText className="text-base font-bold" style={{
-                                                        color: trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? '#92400E' :
-                                                            userJoinRequest.status === 'APPROVED' ? successColor :
-                                                                userJoinRequest.status === 'REJECTED' ? dangerColor : primaryColor
-                                                    }}>
-                                                        {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ?
-                                                            (userRating ? 'Trip Completed' : 'Rate your Ride') :
-                                                            `Request ${userJoinRequest.status.charAt(0) + userJoinRequest.status.slice(1).toLowerCase()}`}
-                                                    </GSText>
-                                                    <GSText className="text-sm leading-6" style={{ color: subtextColor }}>
-                                                        {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ?
-                                                            (userRating ? 'Thank you for providing feedback!' : `How was your ride with ${creatorProfile?.fullName || trip.creator?.username}?`) :
-                                                            (userJoinRequest.status === 'APPROVED' ? 'You are part of this trip! See you there.' :
-                                                                userJoinRequest.status === 'REJECTED' ? 'The captain has declined your request.' :
-                                                                    'Waiting for captain to approve your request.')}
-                                                    </GSText>
-
-                                                    {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' && !userRating && (
-                                                        <Pressable
-                                                            className="self-start rounded-xl px-4 py-3 mt-3"
-                                                            style={{ backgroundColor: '#F59E0B' }}
-                                                            onPress={() => setShowRatingModal(true)}
-                                                        >
-                                                            <GSText className="text-sm font-bold text-white">Rate Captain</GSText>
-                                                        </Pressable>
-                                                    )}
-                                                </VStack>
-                                            </Box>
-                                        ) : (
-                                            <Button
-                                                className="rounded-2xl mb-6"
-                                                style={{
-                                                    backgroundColor: primaryColor,
-                                                    opacity: (trip.availableSeats === 0 || trip.status !== 'PUBLISHED' || isCreatorBlocked) ? 0.6 : 1,
-                                                }}
-                                                onPress={handleInitiateJoin}
-                                                disabled={isJoining || trip.availableSeats === 0 || trip.status !== 'PUBLISHED' || isCreatorBlocked}
-                                            >
-                                                {isJoining ? (
-                                                    <Spinner color="#fff" />
-                                                ) : (
-                                                    <ButtonText style={{ color: '#FFFFFF' }}>
-                                                        {isCreatorBlocked ? 'Captain Blocked' :
-                                                            trip.status !== 'PUBLISHED' ? 'Ride Unavailable' :
-                                                            trip.availableSeats === 0 ? 'Fully Booked' : 'Request to Join'}
-                                                    </ButtonText>
-                                                )}
-                                            </Button>
-                                        )}
-                                    </Box>
-                                )}
-                            </>
-                        );
-                    })()}
-                </ScrollView>
-            )}
-
-            {/* Join Request Seats Modal */}
+            {/* Custom Modals & Alerts */}
+            <ReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} onSubmit={saveReport} reportedUserId={trip.creator?.id ?? 0} reportedUserName={creatorProfile?.fullName} tripDocumentId={trip.documentId} source="trip" />
+            <CustomAlert visible={showProfileAlert} title="Profile Incomplete" message="Please update your profile details first." primaryButton={{ text: "Go to Profile", onPress: () => router.push('/(tabs)/profile') }} onClose={() => setShowProfileAlert(false)} />
+            <CustomAlert visible={showGenderAlert} title="Gender Mismatch" message="This ride matches a different gender preference." primaryButton={{ text: "OK", onPress: () => setShowGenderAlert(false) }} onClose={() => setShowGenderAlert(false)} />
+            
             <BottomSheetModal
                 ref={joinSheetRef}
                 index={0}
-                snapPoints={joinSnapPoints}
-                onChange={handleSheetChanges}
+                snapPoints={['50%']}
                 backdropComponent={renderBackdrop}
-                backgroundStyle={{ backgroundColor: cardColor }}
-                handleIndicatorStyle={{ backgroundColor: subtextColor }}
-                enablePanDownToClose
-                keyboardBehavior="fillParent"
+                onChange={handleSheetChanges}
             >
-                <BottomSheetView style={[styles.modalContent, { paddingBottom: Platform.OS === 'ios' ? 40 : 20 }]}>
-                    <View style={styles.modalHeader}>
-                        <View style={[styles.iconCircle, { backgroundColor: `${primaryColor}18` }]}>
-                            <IconSymbol name="person.2.fill" size={24} color={primaryColor} />
-                        </View>
-                        <Text style={[styles.modalTitle, { color: textColor }]}>Request to Join</Text>
-                    </View>
-
-                    <Text style={[styles.modalDescription, { color: subtextColor, marginBottom: 20 }]}>
-                        How many seats would you like to request?
-                    </Text>
-
-                    {/* Seat Selector */}
-                    <View style={styles.seatSelectorRow}>
-                        <TouchableOpacity
-                            style={[styles.seatBtn, { backgroundColor: `${subtextColor}15` }]}
-                            onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}
-                        >
-                            <IconSymbol name="minus" size={20} color={textColor} />
-                        </TouchableOpacity>
-                        <Text style={[styles.seatValue, { color: textColor }]}>{selectedSeats}</Text>
-                        <TouchableOpacity
-                            style={[styles.seatBtn, { backgroundColor: `${primaryColor}15` }]}
-                            onPress={() => setSelectedSeats(Math.min(trip?.availableSeats || 1, selectedSeats + 1))}
-                            disabled={selectedSeats >= (trip?.availableSeats || 1)}
-                        >
-                            <IconSymbol name="plus" size={20} color={primaryColor} />
-                        </TouchableOpacity>
-                    </View>
-                    <Text style={[styles.availableText, { color: subtextColor }]}>
-                        Max {trip?.availableSeats} {trip?.availableSeats === 1 ? 'seat' : 'seats'} available
-                    </Text>
-
-                    <View style={[styles.commentBox, { borderColor, backgroundColor: `${subtextColor}05`, width: '100%', marginBottom: 20 }]}>
-                        <BottomSheetTextInput
-                            style={[styles.commentInput, { color: textColor }]}
-                            placeholder="Add a message to the captain (optional)..."
-                            placeholderTextColor={subtextColor}
-                            multiline
-                            numberOfLines={3}
-                            value={requestMessage}
-                            onChangeText={setRequestMessage}
-                        />
-                    </View>
-
-                    <View style={[styles.privacyCard, { backgroundColor: `${primaryColor}08`, borderColor: `${primaryColor}20` }]}>
-                        <View style={styles.privacyHeader}>
-                            <View style={[styles.privacyIcon, { backgroundColor: `${primaryColor}16` }]}>
-                                <IconSymbol name="phone.fill" size={16} color={primaryColor} />
-                            </View>
-                            <View style={styles.privacyCopy}>
-                                <Text style={[styles.privacyTitle, { color: textColor }]}>
-                                    Show your phone number in this ride?
-                                </Text>
-                                <Text style={[styles.privacyDescription, { color: subtextColor }]}>
-                                    The captain and approved riders can use it to coordinate pickup. If you choose no, we will show a masked version instead.
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.privacyActions}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.privacyChoice,
-                                    {
-                                        backgroundColor: sharePhoneNumber ? primaryColor : 'transparent',
-                                        borderColor: sharePhoneNumber ? primaryColor : borderColor,
-                                    },
-                                ]}
-                                onPress={() => setSharePhoneNumber(true)}
-                            >
-                                <Text style={[styles.privacyChoiceText, { color: sharePhoneNumber ? '#fff' : textColor }]}>
-                                    Yes, show it
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[
-                                    styles.privacyChoice,
-                                    {
-                                        backgroundColor: !sharePhoneNumber ? cardColor : 'transparent',
-                                        borderColor: !sharePhoneNumber ? primaryColor : borderColor,
-                                    },
-                                ]}
-                                onPress={() => setSharePhoneNumber(false)}
-                            >
-                                <Text style={[styles.privacyChoiceText, { color: !sharePhoneNumber ? primaryColor : textColor }]}>
-                                    No, mask it
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    <View style={styles.modalActions}>
-                        <TouchableOpacity
-                            style={[styles.modalButton, styles.secondaryButton, { borderColor }]}
-                            onPress={() => joinSheetRef.current?.dismiss()}
-                        >
-                            <Text style={[styles.secondaryButtonText, { color: textColor }]}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.modalButton, { backgroundColor: primaryColor }]}
-                            onPress={confirmJoinRequest}
-                        >
-                            <Text style={{ color: '#fff', fontWeight: '700' }}>Confirm Request</Text>
-                        </TouchableOpacity>
-                    </View>
+                <BottomSheetView style={{ padding: 24 }}>
+                    <Text className="text-xl font-bold mb-4">Join Ride</Text>
+                    <VStack space="lg">
+                        <HStack className="justify-between items-center">
+                            <Text>Seats</Text>
+                            <HStack space="md" className="items-center">
+                                <Pressable onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
+                                    <Text>-</Text>
+                                </Pressable>
+                                <Text className="font-bold">{selectedSeats}</Text>
+                                <Pressable onPress={() => setSelectedSeats(Math.min(trip.availableSeats, selectedSeats + 1))} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
+                                    <Text>+</Text>
+                                </Pressable>
+                            </HStack>
+                        </HStack>
+                        <Button className="h-14 rounded-xl" style={{ backgroundColor: primaryColor }} onPress={confirmJoinRequest} disabled={isJoining}>
+                            {isJoining ? <Spinner color="#fff" /> : <ButtonText className="text-white font-bold">Request to Join</ButtonText>}
+                        </Button>
+                    </VStack>
                 </BottomSheetView>
             </BottomSheetModal>
-
-            {/* Cancellation Modal */}
-            <Modal
-                visible={showCancelModal}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowCancelModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: cardColor }]}>
-                        <View style={styles.modalHeader}>
-                            <View style={[styles.warningIcon, { backgroundColor: `${dangerColor}18` }]}>
-                                <IconSymbol name="exclamationmark.triangle" size={24} color={dangerColor} />
-                            </View>
-                            <Text style={[styles.modalTitle, { color: textColor }]}>Cancel Trip?</Text>
-                        </View>
-
-                        <Text style={[styles.modalDescription, { color: subtextColor }]}>
-                            Are you sure you want to cancel this trip? This action cannot be undone and will notify all joined members.
-                        </Text>
-
-                        <TouchableOpacity
-                            style={styles.checkboxContainer}
-                            onPress={() => setAgreeToCancel(!agreeToCancel)}
-                            activeOpacity={0.7}
-                        >
-                            <View style={[
-                                styles.checkbox,
-                                { borderColor: agreeToCancel ? primaryColor : borderColor, backgroundColor: agreeToCancel ? primaryColor : 'transparent' }
-                            ]}>
-                                {agreeToCancel && <IconSymbol name="checkmark" size={12} color="#fff" />}
-                            </View>
-                            <Text style={[styles.checkboxLabel, { color: textColor }]}>
-                                I understand that this trip will be permanently removed.
-                            </Text>
-                        </TouchableOpacity>
-
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity
-                                style={[styles.modalButton, styles.secondaryButton, { borderColor }]}
-                                onPress={() => setShowCancelModal(false)}
-                                disabled={isCancelling}
-                            >
-                                <Text style={[styles.secondaryButtonText, { color: textColor }]}>Keep Trip</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.modalButton,
-                                    styles.confirmCancelButton,
-                                    { backgroundColor: agreeToCancel ? dangerColor : `${dangerColor}40` }
-                                ]}
-                                onPress={handleCancelTrip}
-                                disabled={!agreeToCancel || isCancelling}
-                            >
-                                {isCancelling ? (
-                                    <ActivityIndicator size="small" color="#fff" />
-                                ) : (
-                                    <Text style={styles.confirmCancelButtonText}>Confirm Cancel</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Rating Modal */}
-            <Modal
-                visible={showRatingModal}
-                transparent={true}
-                animationType="slide"
-            >
-                <KeyboardAvoidingView
-                    style={{ flex: 1 }}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                >
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { backgroundColor: cardColor, paddingBottom: 32 }]}>
-                            <View style={styles.modalHeader}>
-                                <View style={[styles.starCircle, { backgroundColor: `${primaryColor}18` }]}>
-                                    <IconSymbol name="star.fill" size={32} color={primaryColor} />
-                                </View>
-                                <Text style={[styles.modalTitle, { color: textColor }]}>Rate your Captain</Text>
-                                <Text style={[styles.modalSubtitle, { color: subtextColor }]}>
-                                    How was your ride with {creatorProfile?.fullName || trip?.creator?.username}?
-                                </Text>
-                            </View>
-
-                            <View style={styles.starsRow}>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <TouchableOpacity
-                                        key={star}
-                                        onPress={() => setSelectedStars(star)}
-                                        activeOpacity={0.7}
-                                        style={styles.starButton}
-                                    >
-                                        <IconSymbol
-                                            name={star <= selectedStars ? "star.fill" : "star"}
-                                            size={40}
-                                            color={star <= selectedStars ? "#F59E0B" : borderColor}
-                                        />
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
-                            <View style={[styles.commentBox, { borderColor, backgroundColor: `${subtextColor}05` }]}>
-                                <TextInput
-                                    style={[styles.commentInput, { color: textColor }]}
-                                    placeholder="Add a comment (optional)..."
-                                    placeholderTextColor={subtextColor}
-                                    multiline
-                                    numberOfLines={3}
-                                    value={ratingComment}
-                                    onChangeText={setRatingComment}
-                                />
-                            </View>
-
-                            <View style={styles.modalActions}>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, styles.secondaryButton, { borderColor }]}
-                                    onPress={() => setShowRatingModal(false)}
-                                    disabled={isSubmittingRating}
-                                >
-                                    <Text style={[styles.secondaryButtonText, { color: textColor }]}>Maybe Later</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.modalButton,
-                                        { backgroundColor: selectedStars > 0 ? primaryColor : `${primaryColor}40` }
-                                    ]}
-                                    onPress={handleSubmitRating}
-                                    disabled={selectedStars === 0 || isSubmittingRating}
-                                >
-                                    {isSubmittingRating ? (
-                                        <ActivityIndicator size="small" color="#fff" />
-                                    ) : (
-                                        <Text style={{ color: '#fff', fontWeight: '700' }}>Submit Rating</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                </KeyboardAvoidingView>
-            </Modal>
-
-            <Modal
-                visible={showCompletionPriceModal}
-                transparent
-                animationType="fade"
-                onRequestClose={() => !isCompletingTrip && setShowCompletionPriceModal(false)}
-            >
-                <KeyboardAvoidingView
-                    style={{ flex: 1 }}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                >
-                    <View style={styles.modalOverlay}>
-                        <View style={[styles.modalContent, { backgroundColor: cardColor, paddingBottom: 32 }]}>
-                            <View style={styles.modalHeader}>
-                                <View style={[styles.starCircle, { backgroundColor: `${successColor}18` }]}>
-                                    <IconSymbol name="indianrupeesign.circle.fill" size={28} color={successColor} />
-                                </View>
-                                <Text style={[styles.modalTitle, { color: textColor }]}>Enter Final Ride Price</Text>
-                                <Text style={[styles.modalSubtitle, { color: subtextColor }]}>
-                                    This ride uses calculated pricing. Enter the final amount per person before marking it completed.
-                                </Text>
-                            </View>
-
-                            <View style={[styles.completionPriceBox, { borderColor, backgroundColor: `${subtextColor}05` }]}>
-                                <Text style={[styles.completionPriceLabel, { color: subtextColor }]}>Price per person</Text>
-                                <View style={styles.completionPriceRow}>
-                                    <Text style={[styles.completionPriceCurrency, { color: textColor }]}>₹</Text>
-                                    <TextInput
-                                        style={[styles.completionPriceInput, { color: textColor }]}
-                                        value={completionPriceInput}
-                                        onChangeText={setCompletionPriceInput}
-                                        placeholder="0"
-                                        placeholderTextColor={subtextColor}
-                                        keyboardType="decimal-pad"
-                                        autoFocus
-                                    />
-                                </View>
-                            </View>
-
-                            <View style={styles.modalActions}>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, styles.secondaryButton, { borderColor }]}
-                                    onPress={() => setShowCompletionPriceModal(false)}
-                                    disabled={isCompletingTrip}
-                                >
-                                    <Text style={[styles.secondaryButtonText, { color: textColor }]}>Cancel</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, { backgroundColor: successColor }]}
-                                    onPress={handleConfirmCompletionPrice}
-                                    disabled={isCompletingTrip}
-                                >
-                                    {isCompletingTrip ? (
-                                        <ActivityIndicator size="small" color="#fff" />
-                                    ) : (
-                                        <Text style={{ color: '#fff', fontWeight: '700' }}>Complete Ride</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        </View>
-                    </View>
-                </KeyboardAvoidingView>
-            </Modal>
         </SafeAreaView>
     );
 }
@@ -1345,7 +553,7 @@ const getTripStatusColor = (status: TripStatus, success: string, danger: string,
         case 'COMPLETED': return success;
         case 'STARTED': return primary;
         case 'CANCELLED': return danger;
-        case 'PUBLISHED': return '#10B981'; // Green for active listing
+        case 'PUBLISHED': return '#10B981';
         default: return sub;
     }
 };
@@ -1355,613 +563,16 @@ const getStatusColor = (status: string, success: string, danger: string, sub: st
         case 'APPROVED': return success;
         case 'REJECTED': return danger;
         case 'CANCELLED': return sub;
-        default: return '#F59E0B'; // Amber for PENDING
+        default: return '#F59E0B';
     }
 };
 
 const InfoItem = ({ icon, label, value, textColor, subtextColor }: any) => (
-    <View style={styles.infoItem}>
-        <View style={styles.infoIconLabel}>
-            <IconSymbol name={icon} size={16} color={subtextColor} />
-            <Text style={[styles.infoLabel, { color: subtextColor }]}>{label}</Text>
-        </View>
-        <Text style={[styles.infoValue, { color: textColor }]}>{value}</Text>
-    </View>
+    <VStack className="flex-1" space="xs">
+        <HStack className="items-center" space="xs">
+            <IconSymbol name={icon as any} size={16} color={subtextColor} />
+            <Text className="text-xs font-medium uppercase" style={{ color: subtextColor }}>{label}</Text>
+        </HStack>
+        <Text className="text-base font-bold" style={{ color: textColor }}>{value}</Text>
+    </VStack>
 );
-
-const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-    },
-    headerActionButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    container: {
-        padding: 16,
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cardShadow: {
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
-    },
-    card: {
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 2,
-    },
-    routeRow: {
-        flexDirection: 'row',
-    },
-    iconColumn: {
-        alignItems: 'center',
-        marginRight: 16,
-        paddingVertical: 4,
-    },
-    dot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-    },
-    line: {
-        width: 2,
-        height: 40,
-        marginVertical: 4,
-    },
-    addressList: {
-        flex: 1,
-        justifyContent: 'space-between',
-    },
-    addressRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    address: {
-        fontSize: 16,
-        fontWeight: '600',
-        flex: 1,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-    },
-    infoItem: {
-        flex: 1,
-    },
-    infoIconLabel: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginBottom: 4,
-    },
-    infoLabel: {
-        fontSize: 12,
-        fontWeight: '500',
-    },
-    infoValue: {
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    divider: {
-        height: 1,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: 16,
-    },
-    creatorRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    avatarPlaceholder: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    avatarText: {
-        color: '#fff',
-        fontSize: 20,
-        fontWeight: '700',
-    },
-    creatorDetails: {
-        flex: 1,
-    },
-    creatorName: {
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    creatorSub: {
-        fontSize: 13,
-    },
-    joinButton: {
-        height: 56,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 12,
-        marginBottom: 30,
-    },
-    joinButtonText: {
-        color: '#fff',
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    creatorActions: {
-        marginTop: 8,
-    },
-    editTripButton: {
-        minHeight: 50,
-        borderRadius: 14,
-        borderWidth: 1,
-        paddingHorizontal: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        marginBottom: 12,
-    },
-    editTripButtonText: {
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    editTripHintCard: {
-        borderRadius: 14,
-        borderWidth: 1,
-        padding: 14,
-        gap: 4,
-        marginBottom: 12,
-    },
-    editTripHintTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    editTripHintText: {
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    safetyBanner: {
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 14,
-    },
-    safetyBannerText: {
-        fontSize: 13,
-        fontWeight: '600',
-        flex: 1,
-    },
-    safetyActions: {
-        gap: 12,
-    },
-    safetyButton: {
-        minHeight: 48,
-        borderRadius: 14,
-        borderWidth: 1,
-        paddingHorizontal: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    safetyButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    requestCard: {
-        padding: 16,
-        borderRadius: 14,
-        borderWidth: 1,
-        marginBottom: 12,
-    },
-    requestHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    tinyAvatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 10,
-    },
-    tinyAvatarText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 16,
-    },
-    requestInfo: {
-        flex: 1,
-    },
-    requestName: {
-        fontSize: 15,
-        fontWeight: 'bold',
-    },
-    requestSub: {
-        fontSize: 13,
-        marginTop: 2,
-    },
-    requestMeta: {
-        fontSize: 12,
-        marginTop: 4,
-        fontWeight: '500',
-    },
-    requestMessageContainer: {
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 16,
-        marginHorizontal: 4,
-    },
-    requestMessageText: {
-        fontSize: 14,
-        fontStyle: 'italic',
-    },
-    requestActions: {
-        flexDirection: 'row',
-        gap: 10,
-    },
-    actionButton: {
-        flex: 1,
-        height: 36,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    approveButton: {
-        backgroundColor: '#10B981',
-    },
-    rejectButton: {
-        borderWidth: 1,
-    },
-    startTripButton: {
-        height: 50,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 8,
-    },
-    completeTripButton: {
-        height: 50,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 8,
-    },
-    lifecycleButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    chatButton: {
-        borderRadius: 16,
-        paddingVertical: 15,
-        paddingHorizontal: 18,
-        marginBottom: 16,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 10,
-    },
-    chatButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    shareButton: {
-        borderRadius: 16,
-        borderWidth: 1,
-        paddingVertical: 15,
-        paddingHorizontal: 18,
-        marginBottom: 16,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 10,
-    },
-    shareButtonText: {
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    cancelButton: {
-        height: 50,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 20,
-        marginBottom: 30,
-    },
-    cancelButtonText: {
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 24,
-    },
-    modalContent: {
-        width: '100%',
-        borderRadius: 24,
-        padding: 24,
-        alignItems: 'center',
-    },
-    modalHeader: {
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    warningIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
-    },
-    modalTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-    },
-    modalDescription: {
-        fontSize: 15,
-        textAlign: 'center',
-        lineHeight: 22,
-        marginBottom: 24,
-    },
-    checkboxContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 24,
-        paddingHorizontal: 8,
-    },
-    checkbox: {
-        width: 22,
-        height: 22,
-        borderRadius: 6,
-        borderWidth: 2,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
-    },
-    checkboxLabel: {
-        flex: 1,
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    modalActions: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    modalButton: {
-        flex: 1,
-        height: 52,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    secondaryButton: {
-        borderWidth: 1,
-    },
-    secondaryButtonText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    iconCircle: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    seatSelectorRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginVertical: 16,
-        gap: 24,
-    },
-    seatBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    seatValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        minWidth: 32,
-        textAlign: 'center',
-    },
-    availableText: {
-        textAlign: 'center',
-        marginBottom: 24,
-        fontSize: 13,
-    },
-    confirmCancelButton: {
-        // backgroundColor set dynamically
-    },
-    confirmCancelButtonText: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    statusBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-    },
-    statusText: {
-        color: '#fff',
-        fontSize: 10,
-        fontWeight: '700',
-    },
-    statusBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 16,
-        gap: 16,
-        marginTop: 12,
-        marginBottom: 30,
-    },
-    statusContent: {
-        flex: 1,
-    },
-    statusTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    statusDesc: {
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    starCircle: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    modalSubtitle: {
-        fontSize: 15,
-        textAlign: 'center',
-        marginTop: 8,
-    },
-    starsRow: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 8,
-        marginVertical: 24,
-    },
-    starButton: {
-        padding: 4,
-    },
-    commentBox: {
-        width: '100%',
-        borderRadius: 12,
-        borderWidth: 1,
-        padding: 12,
-        marginBottom: 24,
-    },
-    completionPriceBox: {
-        width: '100%',
-        borderRadius: 12,
-        borderWidth: 1,
-        padding: 16,
-        marginBottom: 24,
-    },
-    completionPriceLabel: {
-        fontSize: 13,
-        fontWeight: '600',
-        marginBottom: 10,
-    },
-    completionPriceRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    completionPriceCurrency: {
-        fontSize: 24,
-        fontWeight: '700',
-    },
-    completionPriceInput: {
-        flex: 1,
-        fontSize: 24,
-        fontWeight: '700',
-        paddingVertical: 0,
-    },
-    commentInput: {
-        fontSize: 15,
-        height: 80,
-        textAlignVertical: 'top',
-    },
-    privacyCard: {
-        width: '100%',
-        borderRadius: 16,
-        borderWidth: 1,
-        padding: 14,
-        marginBottom: 20,
-    },
-    privacyHeader: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 12,
-    },
-    privacyIcon: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    privacyCopy: {
-        flex: 1,
-    },
-    privacyTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-    privacyDescription: {
-        fontSize: 12,
-        lineHeight: 18,
-    },
-    privacyActions: {
-        flexDirection: 'row',
-        gap: 10,
-        marginTop: 14,
-    },
-    privacyChoice: {
-        flex: 1,
-        borderWidth: 1,
-        borderRadius: 14,
-        paddingVertical: 12,
-        paddingHorizontal: 10,
-        alignItems: 'center',
-    },
-    privacyChoiceText: {
-        fontSize: 13,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    rateInlineButton: {
-        marginTop: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 10,
-        alignSelf: 'flex-start',
-    },
-    rateInlineButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '700',
-    },
-});

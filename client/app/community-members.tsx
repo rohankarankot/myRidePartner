@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text as RNText, TouchableOpacity, View } from 'react-native';
+import { FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -23,6 +23,8 @@ import { Pressable } from '@/components/ui/pressable';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
+import { Spinner } from '@/components/ui/spinner';
+import { Divider } from '@/components/ui/divider';
 
 const PAGE_SIZE = 20;
 
@@ -32,32 +34,34 @@ const CommunityCitySheetHeader = React.memo(
     setCitySearch,
     textColor,
     subtextColor,
+    borderColor,
   }: {
     citySearch: string;
     setCitySearch: (value: string) => void;
     textColor: string;
     subtextColor: string;
+    borderColor: string;
   }) => (
-    <View style={styles.sheetHeader}>
-      <View style={styles.sheetHeaderCopy}>
-        <RNText style={[styles.sheetTitle, { color: textColor }]}>Select City</RNText>
-        <RNText style={[styles.sheetSubtitle, { color: subtextColor }]}>
-          Filter community members by city
-        </RNText>
-      </View>
-      <View style={[styles.sheetSearchBox, { backgroundColor: `${subtextColor}10` }]}>
-        <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
-        <BottomSheetTextInput
-          placeholder="Search city..."
-          placeholderTextColor={subtextColor}
-          style={[styles.sheetSearchInput, { color: textColor }]}
-          value={citySearch}
-          onChangeText={setCitySearch}
-          autoCorrect={false}
-          autoCapitalize="words"
-        />
-      </View>
-    </View>
+    <VStack className="px-6 py-5" space="md">
+        <VStack space="xs">
+            <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Select City</Text>
+            <Text className="text-xs font-medium" style={{ color: subtextColor }}>
+            Filter community members by city
+            </Text>
+        </VStack>
+        <Box className="h-12 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: `${subtextColor}05`, borderColor }}>
+            <IconSymbol name="magnifyingglass" size={16} color={subtextColor} />
+            <BottomSheetTextInput
+                placeholder="Search city..."
+                placeholderTextColor={subtextColor}
+                style={{ flex: 1, marginLeft: 10, fontSize: 14, color: textColor }}
+                value={citySearch}
+                onChangeText={setCitySearch}
+                autoCorrect={false}
+                autoCapitalize="words"
+            />
+        </Box>
+    </VStack>
   )
 );
 
@@ -118,17 +122,18 @@ export default function CommunityMembersScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor }]}>
-        <AppLoader />
-      </View>
+      <Box className="flex-1 items-center justify-center p-8" style={{ backgroundColor }}>
+        <Spinner size="large" color={primaryColor} />
+      </Box>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
       <Stack.Screen
         options={{
           title: 'Members',
+          headerTitleStyle: { fontWeight: '800' },
           headerShown: true,
           headerStyle: { backgroundColor },
           headerTintColor: textColor,
@@ -139,7 +144,7 @@ export default function CommunityMembersScreen() {
       <FlatList
         data={members}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.container}
+        contentContainerStyle={{ padding: 20 }}
         onEndReachedThreshold={0.4}
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage) {
@@ -147,9 +152,9 @@ export default function CommunityMembersScreen() {
           }
         }}
         renderItem={({ item }) => (
-          <Box className="rounded-2xl border p-[14px]" style={{ backgroundColor: cardColor, borderColor }}>
+          <Box className="rounded-[28px] border p-4 mb-3 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
             <HStack className="items-center" space="md">
-              <Avatar size="md">
+              <Avatar size="md" className="border shadow-sm" style={{ borderColor }}>
                 <AvatarFallbackText>{getMemberName(item)}</AvatarFallbackText>
                 {getAvatarUrl(item) ? (
                   <AvatarImage source={{ uri: getAvatarUrl(item)! }} alt={getMemberName(item)} />
@@ -159,70 +164,74 @@ export default function CommunityMembersScreen() {
                 <Text className="text-base font-bold" style={{ color: textColor }} numberOfLines={1}>
                   {getMemberName(item)}
                 </Text>
-                <Text className="text-sm" style={{ color: subtextColor }} numberOfLines={1}>
+                <Text className="text-xs font-medium" style={{ color: subtextColor }} numberOfLines={1}>
                   {item.userProfile?.city || item.email}
                 </Text>
               </VStack>
             </HStack>
           </Box>
         )}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         ListHeaderComponent={
-          <VStack className="mb-2" space="sm">
-            <Text className="text-2xl font-bold" style={{ color: textColor }}>
-              Community members
-            </Text>
-            <Text className="text-sm leading-5" style={{ color: subtextColor }}>
-              Members are filtered city-wise, and users without an updated city are hidden.
-            </Text>
-            <HStack className="items-center" space="sm">
-              <Text className="text-xs font-semibold" style={{ color: subtextColor }}>
-                Current city filter
-              </Text>
-              <Box
-                className="max-w-[220px] min-h-7 rounded-full px-3 items-center justify-center"
-                style={{ backgroundColor: `${primaryColor}14` }}
-              >
-                <Text className="text-xs font-bold" style={{ color: primaryColor }} numberOfLines={1}>
-                  {activeCityLabel}
+          <VStack className="mb-6" space="md">
+            <VStack space="xs">
+                <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
+                Members
                 </Text>
+                <Text className="text-sm font-medium leading-5" style={{ color: subtextColor }}>
+                Connect with travelers from your city and beyond.
+                </Text>
+            </VStack>
+            <HStack className="items-center" space="sm">
+              <Box
+                className="rounded-full px-4 py-1.5 items-center justify-center border"
+                style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}20` }}
+              >
+                <HStack space="xs" className="items-center">
+                    <IconSymbol name="mappin.circle.fill" size={12} color={primaryColor} />
+                    <Text className="text-xs font-bold leading-none" style={{ color: primaryColor }} numberOfLines={1}>
+                        {activeCityLabel}
+                    </Text>
+                </HStack>
               </Box>
             </HStack>
           </VStack>
         }
         ListEmptyComponent={
-          <Box className="rounded-3xl border items-center px-[18px] py-5 mt-1" style={{ backgroundColor: cardColor, borderColor }}>
-            <Text className="text-base font-bold mb-1" style={{ color: textColor }}>
+          <VStack className="rounded-[32px] border items-center px-8 py-12 mt-4" style={{ backgroundColor: cardColor, borderColor }} space="md">
+            <Box className="w-16 h-16 rounded-full bg-gray-50 items-center justify-center">
+                <IconSymbol name="person.crop.circle.badge.exclamationmark" size={32} color={subtextColor} />
+            </Box>
+            <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
               No members found
             </Text>
-            <Text className="text-sm leading-5 text-center" style={{ color: subtextColor }}>
+            <Text className="text-sm text-center leading-6" style={{ color: subtextColor }}>
               Try another city filter to see more community members.
             </Text>
-          </Box>
+          </VStack>
         }
         ListFooterComponent={
           isFetchingNextPage ? (
-            <View style={styles.footerLoader}>
-              <AppLoader />
-            </View>
+            <Box className="py-8 items-center">
+              <Spinner color={primaryColor} size="small" />
+            </Box>
           ) : null
         }
       />
 
       <Pressable
         onPress={() => citySheetRef.current?.present()}
-        className="absolute right-[18px] bottom-6 h-[58px] w-[58px] rounded-full items-center justify-center"
-        style={[styles.floatingFilterButton, { backgroundColor: primaryColor }]}
+        className="absolute right-6 bottom-8 h-16 w-16 rounded-full items-center justify-center shadow-xl"
+        style={{ backgroundColor: primaryColor }}
       >
-        <IconSymbol name="slider.horizontal.3" size={20} color="#FFFFFF" />
+        <IconSymbol name="slider.horizontal.3" size={24} color="#FFFFFF" />
       </Pressable>
 
       <BottomSheetModal
         ref={citySheetRef}
-        snapPoints={['78%']}
+        snapPoints={['80%']}
         backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: cardColor }}
-        handleIndicatorStyle={{ backgroundColor: subtextColor }}
+        backgroundStyle={{ backgroundColor: cardColor, borderRadius: 32 }}
+        handleIndicatorStyle={{ backgroundColor: borderColor, width: 40 }}
         enablePanDownToClose
         keyboardBehavior="fillParent"
         keyboardBlurBehavior="restore"
@@ -237,65 +246,61 @@ export default function CommunityMembersScreen() {
               setCitySearch={setCitySearch}
               textColor={textColor}
               subtextColor={subtextColor}
+              borderColor={borderColor}
             />
           }
           renderItem={({ item }: { item: string }) => {
             const isActive = item === 'All cities' ? selectedCity === null : selectedCity === item;
 
             return (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={[
-                  styles.cityRow,
-                  {
-                    backgroundColor: isActive ? `${primaryColor}10` : 'transparent',
-                    borderColor: isActive ? primaryColor : 'transparent',
-                  },
-                ]}
+              <Pressable
+                className="mx-6 mb-2 rounded-2xl p-4 border"
+                style={{
+                  backgroundColor: isActive ? `${primaryColor}05` : 'transparent',
+                  borderColor: isActive ? primaryColor : 'transparent',
+                }}
                 onPress={() => {
                   setSelectedCity(item === 'All cities' ? null : item);
                   setCitySearch('');
                   citySheetRef.current?.dismiss();
                 }}
               >
-                <View style={styles.cityRowLeft}>
-                  <View
-                    style={[
-                      styles.cityRowIcon,
-                      { backgroundColor: isActive ? primaryColor : `${subtextColor}15` },
-                    ]}
+                <HStack className="items-center" space="md">
+                  <Box
+                    className="w-10 h-10 rounded-full items-center justify-center"
+                    style={{ backgroundColor: isActive ? primaryColor : `${subtextColor}10` }}
                   >
                     <IconSymbol
                       name={item === 'All cities' ? 'globe' : 'mappin.circle.fill'}
-                      size={20}
+                      size={18}
                       color={isActive ? '#FFFFFF' : subtextColor}
                     />
-                  </View>
-                  <View style={styles.cityRowCopy}>
-                    <RNText
-                      style={[styles.cityRowTitle, { color: isActive ? primaryColor : textColor }]}
-                    >
-                      {item}
-                    </RNText>
-                  </View>
-                </View>
-                {isActive ? (
-                  <View style={[styles.cityRowCheck, { backgroundColor: primaryColor }]}>
-                    <IconSymbol name="checkmark" size={14} color="#FFFFFF" />
-                  </View>
-                ) : null}
-              </TouchableOpacity>
+                  </Box>
+                  <Text
+                    className="flex-1 text-base font-bold"
+                    style={{ color: isActive ? primaryColor : textColor }}
+                  >
+                    {item}
+                  </Text>
+                  {isActive && (
+                    <Box className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: primaryColor }}>
+                        <IconSymbol name="checkmark" size={12} color="#FFFFFF" />
+                    </Box>
+                  )}
+                </HStack>
+              </Pressable>
             );
           }}
           ListEmptyComponent={
-            <BottomSheetView style={styles.sheetEmptyState}>
-              <RNText style={[styles.sheetEmptyTitle, { color: textColor }]}>No matching city</RNText>
-              <RNText style={[styles.sheetEmptySubtitle, { color: subtextColor }]}>
+            <VStack className="items-center px-12 py-16" space="md">
+                <IconSymbol name="magnifyingglass" size={40} color={borderColor} />
+              <Text className="text-lg font-bold text-center" style={{ color: textColor }}>No matching cities</Text>
+              <Text className="text-sm text-center" style={{ color: subtextColor }}>
                 Try a different search keyword.
-              </RNText>
-            </BottomSheetView>
+              </Text>
+            </VStack>
           }
-          contentContainerStyle={styles.sheetListContent}
+          contentContainerStyle={{ paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         />
       </BottomSheetModal>
@@ -310,110 +315,3 @@ const getAvatarUrl = (member: CommunityMember) =>
   typeof member.userProfile?.avatar === 'string'
     ? member.userProfile.avatar
     : member.userProfile?.avatar?.url;
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    padding: 16,
-  },
-  footerLoader: {
-    paddingVertical: 16,
-  },
-  floatingFilterButton: {
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  sheetHeader: {
-    padding: 24,
-    paddingBottom: 16,
-  },
-  sheetHeaderCopy: {
-    marginBottom: 18,
-  },
-  sheetTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 4,
-  },
-  sheetSubtitle: {
-    fontSize: 14,
-  },
-  sheetSearchBox: {
-    height: 48,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  sheetSearchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
-  },
-  sheetListContent: {
-    paddingBottom: 40,
-  },
-  cityRow: {
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    borderRadius: 18,
-    marginBottom: 10,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  cityRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  cityRowIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cityRowCopy: {
-    flex: 1,
-  },
-  cityRowTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  cityRowCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sheetEmptyState: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 32,
-  },
-  sheetEmptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  sheetEmptySubtitle: {
-    fontSize: 13,
-    textAlign: 'center',
-  },
-});

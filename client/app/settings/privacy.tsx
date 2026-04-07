@@ -1,11 +1,12 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
+import { Divider } from '@/components/ui/divider';
 
 const SECTIONS = [
   {
@@ -40,42 +41,38 @@ export default function PrivacySettingsScreen() {
   const textColor = useThemeColor({}, 'text');
   const subtextColor = useThemeColor({}, 'subtext');
   const cardColor = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Privacy & Policy' }} />
+    <ScrollView style={{ flex: 1, backgroundColor }} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Stack.Screen options={{ title: 'Privacy & Policy', headerTitleStyle: { fontWeight: '800' } }} />
 
-      <Box className="rounded-2xl p-5 mb-4" style={{ backgroundColor: cardColor }}>
-        <Text className="text-xs font-semibold uppercase mb-3" style={{ color: subtextColor }}>
-          Privacy Policy
-        </Text>
-        <VStack space="lg">
-          {SECTIONS.map((section) => (
-            <VStack key={section.title} space="xs">
-              <Text className="text-base font-bold" style={{ color: textColor }}>
+      <VStack className="px-6 py-8" space="xs">
+          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Privacy Policy</Text>
+          <Text className="text-sm font-medium" style={{ color: subtextColor }}>How we handle your data and protect your privacy.</Text>
+      </VStack>
+
+      <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <VStack space="xl">
+          {SECTIONS.map((section, index) => (
+            <VStack key={section.title} space="sm">
+              <Text className="text-lg font-bold" style={{ color: textColor }}>
                 {section.title}
               </Text>
-              <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+              <Text className="text-sm font-medium leading-7" style={{ color: subtextColor }}>
                 {section.body}
               </Text>
+              {index < SECTIONS.length - 1 && <Divider className="mt-4" style={{ backgroundColor: borderColor }} />}
             </VStack>
           ))}
         </VStack>
       </Box>
 
-      <Text className="text-xs text-center" style={{ color: subtextColor }}>
-        Last Updated: March 2026
-      </Text>
+      <VStack className="items-center py-6" space="xs">
+          <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+            Last Updated: March 2026
+          </Text>
+      </VStack>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-});

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
@@ -43,20 +43,22 @@ function SettingItem({
   const labelColor = danger ? dangerColor : textColor;
 
   return (
-    <>
-      <Pressable className="py-4" onPress={onPress}>
+    <VStack >
+      <Pressable className="py-4 px-2" onPress={onPress}>
         <HStack className="items-center justify-between">
           <HStack space="md" className="items-center">
-            <IconSymbol name={icon as any} size={22} color={iconColor} />
-            <Text className="text-base font-medium" style={{ color: labelColor }}>
+            <Box className="w-8 h-8 items-center justify-center rounded-full" style={{ backgroundColor: `${iconColor}10` }}>
+                <IconSymbol name={icon as any} size={18} color={iconColor} />
+            </Box>
+            <Text className="text-base font-bold" style={{ color: labelColor }}>
               {label}
             </Text>
           </HStack>
-          {rightElement || <IconSymbol name="chevron.right" size={18} color={subtextColor} />}
+          {rightElement || <IconSymbol name="chevron.right" size={16} color={subtextColor} />}
         </HStack>
       </Pressable>
-      {showDivider ? <Divider style={{ backgroundColor: borderColor }} /> : null}
-    </>
+      {showDivider ? <Divider style={{ backgroundColor: borderColor }} className="mx-2" /> : null}
+    </VStack>
   );
 }
 
@@ -120,58 +122,63 @@ export default function SettingsScreen() {
       : 'Pause or Delete Account';
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
-      <Box className="mx-4 mt-5 rounded-2xl px-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-        <Text className="mt-4 mb-3 text-xs font-semibold uppercase" style={{ color: subtextColor }}>
-          Personalization
+    <ScrollView style={{ flex: 1, backgroundColor }} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* Visual Header */}
+      <VStack className="px-6 py-8" space="xs">
+          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Settings</Text>
+          <Text className="text-sm font-medium" style={{ color: subtextColor }}>Customize your experience and manage your account.</Text>
+      </VStack>
+
+      <Box className="mx-6 rounded-[32px] p-4 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <Text className="mx-2 mb-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+          Appearance
         </Text>
 
-        <HStack space="sm" className="mb-4 mt-1">
+        <HStack space="xs" className="mb-6 mx-2">
           {(['light', 'dark', 'system'] as ThemeMode[]).map((mode) => {
             const active = theme === mode;
             return (
               <Pressable
                 key={mode}
-                className="flex-1 h-10 rounded-lg items-center justify-center border"
+                className="flex-1 h-12 rounded-2xl items-center justify-center border shadow-sm"
                 style={{
                   borderColor: active ? primaryColor : borderColor,
-                  backgroundColor: active ? primaryColor : 'transparent',
+                  backgroundColor: active ? primaryColor : `${subtextColor}05`,
                 }}
                 onPress={() => setTheme(mode)}
               >
                 <Text
-                  className="text-xs font-semibold"
+                  className="text-xs font-bold uppercase tracking-widest"
                   style={{ color: active ? '#fff' : textColor }}
                 >
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  {mode}
                 </Text>
               </Pressable>
             );
           })}
         </HStack>
 
-        <Text className="mb-2 text-xs font-semibold uppercase" style={{ color: subtextColor }}>
-          Color Palette
+        <Text className="mx-2 mb-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+          Theme Palette
         </Text>
 
-        <HStack space="sm" className="mb-4 mt-1">
+        <HStack space="xs" className="mb-6 mx-2">
           {PaletteOptions.map((option) => {
             const active = palette === option.id;
             return (
               <Pressable
                 key={option.id}
                 accessibilityLabel={option.label}
-                className="h-12 flex-1 items-center justify-center rounded-2xl"
+                className="h-14 flex-1 items-center justify-center rounded-2xl border shadow-sm"
                 style={{
-                  backgroundColor: active ? cardColor : 'transparent',
-                  borderColor: active ? primaryColor : borderColor,
-                  borderWidth: 1,
+                  backgroundColor: active ? `${option.swatch}15` : `${subtextColor}05`,
+                  borderColor: active ? option.swatch : borderColor,
                 }}
                 onPress={() => setPalette(option.id)}
               >
                 <Box
-                  className="h-4 w-4 rounded-full"
-                  style={{ backgroundColor: option.swatch }}
+                  className="h-5 w-5 rounded-full border shadow-inner"
+                  style={{ backgroundColor: option.swatch, borderColor: 'white' }}
                 />
               </Pressable>
             );
@@ -180,7 +187,7 @@ export default function SettingsScreen() {
 
         <SettingItem icon="bell.fill" label="Notifications" onPress={() => router.push('/notifications')} />
         <SettingItem
-          icon="plus.circle.fill"
+          icon="shield.fill"
           label="Privacy & Security"
           onPress={() => router.push('/settings/privacy')}
         />
@@ -190,21 +197,21 @@ export default function SettingsScreen() {
           onPress={() => router.push('/settings/blocked-users')}
         />
         <SettingItem
-          icon="magnifyingglass"
+          icon="questionmark.circle.fill"
           label="Help & Support"
           onPress={() => router.push('/settings/support')}
         />
         <SettingItem
-          icon="list.bullet"
+          icon="info.circle.fill"
           label="About My Ride Partner"
           onPress={() => router.push('/settings/about')}
           showDivider={false}
         />
       </Box>
 
-      <Box className="mx-4 mt-5 rounded-2xl px-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
-        <Text className="mt-4 mb-3 text-xs font-semibold uppercase" style={{ color: subtextColor }}>
-          Account
+      <Box className="mx-6 mt-6 rounded-[32px] p-4 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <Text className="mx-2 mb-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+          Account Management
         </Text>
         <SettingItem
           icon="trash.fill"
@@ -215,8 +222,9 @@ export default function SettingsScreen() {
         />
       </Box>
 
-      <VStack className="items-center px-10 py-10" space="xs">
-        <Text className="text-xs" style={{ color: subtextColor }}>
+      <VStack className="items-center py-10" space="xs">
+          <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
           Version 1.0.0
         </Text>
       </VStack>
@@ -287,18 +295,3 @@ export default function SettingsScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: 24,
-  },
-  cardShadow: {
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-});

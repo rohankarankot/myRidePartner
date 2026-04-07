@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -8,6 +8,7 @@ import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
+import { Divider } from '@/components/ui/divider';
 
 const PREFERENCES = [
   {
@@ -36,38 +37,43 @@ export default function NotificationSettingsScreen() {
   const borderColor = useThemeColor({}, 'border');
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'Notifications' }} />
+    <ScrollView style={{ flex: 1, backgroundColor }} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Stack.Screen options={{ title: 'Notifications', headerTitleStyle: { fontWeight: '800' } }} />
 
-      <Box className="rounded-2xl p-5 mb-4" style={{ backgroundColor: cardColor }}>
-        <Text className="text-lg font-bold mb-2" style={{ color: textColor }}>
+      <VStack className="px-6 py-8" space="xs">
+          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Notifications</Text>
+          <Text className="text-sm font-medium" style={{ color: subtextColor }}>Configure how you want to be notified about app activity.</Text>
+      </VStack>
+
+      <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <Text className="text-lg font-bold mb-3" style={{ color: textColor }}>
           Notification Preferences
         </Text>
-        <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+        <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
           Configure how My Ride Partner should reach you. More granular push and email
           controls will be available here soon.
         </Text>
       </Box>
 
-      <VStack space="md">
+      <VStack space="md" className="px-6">
         {PREFERENCES.map((item) => (
           <Box
             key={item.title}
-            className="rounded-2xl p-4 border"
+            className="rounded-[28px] p-5 shadow-sm border"
             style={{ backgroundColor: cardColor, borderColor }}
           >
             <HStack space="md" className="items-start">
               <Box
-                className="h-10 w-10 rounded-full items-center justify-center"
-                style={{ backgroundColor: `${primaryColor}15` }}
+                className="h-10 w-10 rounded-full items-center justify-center shadow-sm"
+                style={{ backgroundColor: primaryColor }}
               >
-                <IconSymbol name={item.icon as any} size={18} color={primaryColor} />
+                <IconSymbol name={item.icon as any} size={18} color="#fff" />
               </Box>
               <VStack className="flex-1" space="xs">
-                <Text className="text-base font-semibold" style={{ color: textColor }}>
+                <Text className="text-base font-bold" style={{ color: textColor }}>
                   {item.title}
                 </Text>
-                <Text className="text-sm leading-5" style={{ color: subtextColor }}>
+                <Text className="text-sm font-medium leading-5" style={{ color: subtextColor }}>
                   {item.description}
                 </Text>
               </VStack>
@@ -75,16 +81,13 @@ export default function NotificationSettingsScreen() {
           </Box>
         ))}
       </VStack>
+
+      <VStack className="items-center py-12" space="xs">
+          <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+          Push notifications are enabled by default
+        </Text>
+      </VStack>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 32,
-  },
-});
