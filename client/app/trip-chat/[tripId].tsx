@@ -16,7 +16,6 @@ import {
 import { Swipeable } from 'react-native-gesture-handler';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { AppLoader } from '@/components/app-loader';
 import { tripChatService } from '@/services/trip-chat-service';
 import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
@@ -24,6 +23,11 @@ import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
+import { Box } from '@/components/ui/box';
+import { Text as GSText } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { VStack } from '@/components/ui/vstack';
+import { Spinner } from '@/components/ui/spinner';
 
 const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
 const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
@@ -1047,7 +1051,7 @@ export default function TripChatScreen() {
                 />
             ) : null}
 
-            <View
+            <Box
                 style={[
                     styles.customHeader,
                     {
@@ -1058,41 +1062,46 @@ export default function TripChatScreen() {
                     },
                 ]}
             >
-                <TouchableOpacity
+                <Pressable
                     onPress={() => router.back()}
                     style={styles.headerIconButton}
                 >
                     <IconSymbol name="chevron.left" size={22} color={textColor} />
-                </TouchableOpacity>
+                </Pressable>
 
-                <View style={styles.headerTitleWrap}>
-                    <Text style={[styles.headerTitle, { color: textColor }]}>Ride Chat</Text>
-                    <Text style={[styles.headerSubtitle, { color: subtextColor }]}>
+                <VStack style={styles.headerTitleWrap}>
+                    <GSText className="text-lg font-bold" style={{ color: textColor }}>Ride Chat</GSText>
+                    <GSText className="text-xs" style={{ color: subtextColor }}>
                         Chat with approved riders
-                    </Text>
-                </View>
+                    </GSText>
+                </VStack>
 
-                <TouchableOpacity
+                <Pressable
                     onPress={() => router.push(`/trip-chat-members/${tripId}`)}
                     style={styles.headerIconButton}
                 >
                     <IconSymbol name="info.circle.fill" size={22} color={textColor} />
-                </TouchableOpacity>
-            </View>
+                </Pressable>
+            </Box>
 
             {isLoadingAccess || isLoadingMessages ? (
-                <View style={[styles.center, { backgroundColor, paddingTop: headerHeight }]}>
-                    <AppLoader />
-                </View>
+                <Box className="flex-1 items-center justify-center" style={{ backgroundColor, paddingTop: headerHeight }}>
+                    <Spinner size="large" color={primaryColor} />
+                </Box>
             ) : isBlocked ? (
-                <View style={[styles.center, { backgroundColor, paddingHorizontal: 24, paddingTop: headerHeight }]}>
-                    <Text style={[styles.emptyTitle, { color: textColor }]}>Chat unavailable</Text>
-                    <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
+                <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor, paddingTop: headerHeight }}>
+                    <Box className="w-[72px] h-[72px] rounded-3xl items-center justify-center mb-5" style={{ backgroundColor: `${primaryColor}12` }}>
+                        <IconSymbol name="bubble.left.and.bubble.right.fill" size={34} color={primaryColor} />
+                    </Box>
+                    <GSText className="text-xl font-bold mb-2 text-center" style={{ color: textColor }}>
+                        Chat unavailable
+                    </GSText>
+                    <GSText className="text-sm leading-6 text-center" style={{ color: subtextColor }}>
                         This ride chat is only available for the captain and approved riders while the trip is active.
-                    </Text>
-                </View>
+                    </GSText>
+                </Box>
             ) : (
-                <View style={[styles.chatWrapper, { paddingTop: headerHeight }]}>
+                <Box className="flex-1" style={{ paddingTop: headerHeight }}>
                     <GiftedChat
                         messages={giftedMessages}
                         onSend={handleSend}
@@ -1425,22 +1434,24 @@ export default function TripChatScreen() {
                         )}
                         renderSend={() => null}
                         renderChatEmpty={() => (
-                            <View style={styles.emptyState}>
-                                <Text style={[styles.emptyTitle, { color: textColor }]}>No messages yet</Text>
-                                <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
+                            <Box style={styles.emptyState}>
+                                <GSText className="text-xl font-bold mb-2 text-center" style={{ color: textColor }}>
+                                    No messages yet
+                                </GSText>
+                                <GSText className="text-sm leading-6 text-center" style={{ color: subtextColor }}>
                                     Start the conversation with everyone on this ride.
-                                </Text>
-                            </View>
+                                </GSText>
+                            </Box>
                         )}
                         renderChatFooter={() => typingText ? (
-                            <View style={styles.typingFooter}>
-                                <Text style={[styles.typingText, { color: subtextColor }]}>
+                            <Box style={styles.typingFooter}>
+                                <GSText className="text-sm italic" style={{ color: subtextColor }}>
                                     {typingText}
-                                </Text>
-                            </View>
+                                </GSText>
+                            </Box>
                         ) : null}
                     />
-                </View>
+                </Box>
             )}
         </SafeAreaView>
     );

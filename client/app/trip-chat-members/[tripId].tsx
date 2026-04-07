@@ -1,11 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
-    Image,
     StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,8 +11,14 @@ import { tripService } from '@/services/trip-service';
 import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { AppLoader } from '@/components/app-loader';
 import { maskPhoneNumber } from '@/utils/phone';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { HStack } from '@/components/ui/hstack';
+import { VStack } from '@/components/ui/vstack';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Spinner } from '@/components/ui/spinner';
 
 type MemberRow = {
     id: number;
@@ -162,124 +164,112 @@ export default function TripChatMembersScreen() {
             />
 
             {isLoading ? (
-                <View style={[styles.center, { backgroundColor }]}>
-                    <AppLoader />
-                </View>
+                <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
+                    <Spinner size="large" color={primaryColor} />
+                </Box>
             ) : (
                 <FlatList
                     data={members}
                     keyExtractor={(item) => String(item.id)}
                     contentContainerStyle={styles.container}
                     ListHeaderComponent={
-                        <View style={styles.headerCopy}>
-                            <Text style={[styles.headerTitle, { color: textColor }]}>
+                        <Box style={styles.headerCopy}>
+                            <Text className="text-2xl font-extrabold mb-1" style={{ color: textColor }}>
                                 Everyone in this ride
                             </Text>
-                            <Text style={[styles.headerSubtitle, { color: subtextColor }]}>
+                            <Text className="text-sm leading-5" style={{ color: subtextColor }}>
                                 {titleText}
                             </Text>
-                            <TouchableOpacity
-                                style={[styles.tripDetailsCard, { backgroundColor: cardColor, borderColor: `${primaryColor}28` }]}
+                            <Pressable
+                                className="mt-4 rounded-3xl border px-4 py-4 flex-row items-center"
+                                style={[styles.cardShadow, { backgroundColor: cardColor, borderColor: `${primaryColor}28` }]}
                                 onPress={() => router.push(`/trip/${tripId}`)}
-                                activeOpacity={0.85}
                             >
-                                <View style={[styles.tripDetailsIconWrap, { backgroundColor: `${primaryColor}14` }]}>
+                                <Box className="w-11 h-11 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}14` }}>
                                     <IconSymbol name="car.fill" size={18} color={primaryColor} />
-                                </View>
-                                <View style={styles.tripDetailsCopy}>
-                                    <Text style={[styles.tripDetailsEyebrow, { color: primaryColor }]}>
+                                </Box>
+                                <VStack className="flex-1 ml-3">
+                                    <Text className="text-[11px] font-extrabold uppercase mb-1" style={{ color: primaryColor }}>
                                         Ride Overview
                                     </Text>
-                                    <Text style={[styles.tripDetailsTitle, { color: textColor }]}>
+                                    <Text className="text-base font-extrabold mb-0.5" style={{ color: textColor }}>
                                         View trip details
                                     </Text>
-                                    <Text style={[styles.tripDetailsSubtitle, { color: subtextColor }]}>
+                                    <Text className="text-sm leading-5" style={{ color: subtextColor }}>
                                         Check route, timing, seats, and ride status
                                     </Text>
-                                </View>
-                                <View style={[styles.tripDetailsArrowWrap, { backgroundColor: `${primaryColor}10` }]}>
+                                </VStack>
+                                <Box className="w-[34px] h-[34px] rounded-full items-center justify-center ml-3" style={{ backgroundColor: `${primaryColor}10` }}>
                                     <IconSymbol name="chevron.right" size={16} color={primaryColor} />
-                                </View>
-                            </TouchableOpacity>
-                        </View>
+                                </Box>
+                            </Pressable>
+                        </Box>
                     }
                     renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+                        <Pressable
+                            className="rounded-3xl border p-4 mb-3 flex-row items-center"
+                            style={[styles.cardShadow, { backgroundColor: cardColor, borderColor }]}
                             onPress={() => router.push(`/user/${item.id}`)}
                         >
-                            {item.avatarUrl ? (
-                                <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
-                            ) : (
-                                <View style={[styles.avatarFallback, { backgroundColor: `${primaryColor}20` }]}>
-                                    <Text style={[styles.avatarFallbackText, { color: primaryColor }]}>
-                                        {item.name.charAt(0).toUpperCase()}
-                                    </Text>
-                                </View>
-                            )}
+                            <Avatar size="lg">
+                                <AvatarFallbackText>{item.name}</AvatarFallbackText>
+                                {item.avatarUrl ? <AvatarImage source={{ uri: item.avatarUrl }} alt={item.name} /> : null}
+                            </Avatar>
 
-                            <View style={styles.content}>
-                                <View style={styles.row}>
-                                    <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
+                            <VStack className="flex-1 ml-3">
+                                <HStack className="items-center" space="sm">
+                                    <Text className="flex-1 text-base font-bold" style={{ color: textColor }} numberOfLines={1}>
                                         {item.name}
                                     </Text>
-                                    <View style={styles.statusRow}>
-                                        <View
-                                            style={[
-                                                styles.statusDot,
-                                                {
-                                                    backgroundColor: onlineUserIds.includes(item.id)
-                                                        ? successColor
-                                                        : offlineColor,
-                                                },
-                                            ]}
+                                    <HStack className="items-center" space="xs">
+                                        <Box
+                                            className="w-2 h-2 rounded-full"
+                                            style={{
+                                                backgroundColor: onlineUserIds.includes(item.id)
+                                                    ? successColor
+                                                    : offlineColor,
+                                            }}
                                         />
                                         <Text
-                                            style={[
-                                                styles.statusText,
-                                                {
-                                                    color: onlineUserIds.includes(item.id)
-                                                        ? successColor
-                                                        : subtextColor,
-                                                },
-                                            ]}
+                                            className="text-xs font-semibold"
+                                            style={{
+                                                color: onlineUserIds.includes(item.id)
+                                                    ? successColor
+                                                    : subtextColor,
+                                            }}
                                         >
                                             {onlineUserIds.includes(item.id) ? 'Online' : 'Offline'}
                                         </Text>
-                                    </View>
-                                    <View
-                                        style={[
-                                            styles.badge,
-                                            {
-                                                backgroundColor:
-                                                    item.role === 'Captain'
-                                                        ? `${primaryColor}15`
-                                                        : `${subtextColor}14`,
-                                            },
-                                        ]}
+                                    </HStack>
+                                    <Box
+                                        className="rounded-full px-3 py-1"
+                                        style={{
+                                            backgroundColor:
+                                                item.role === 'Captain'
+                                                    ? `${primaryColor}15`
+                                                    : `${subtextColor}14`,
+                                        }}
                                     >
                                         <Text
-                                            style={[
-                                                styles.badgeText,
-                                                {
-                                                    color:
-                                                        item.role === 'Captain'
-                                                            ? primaryColor
-                                                            : subtextColor,
-                                                },
-                                            ]}
+                                            className="text-[11px] font-bold"
+                                            style={{
+                                                color:
+                                                    item.role === 'Captain'
+                                                        ? primaryColor
+                                                        : subtextColor,
+                                            }}
                                         >
                                             {item.role}
                                         </Text>
-                                    </View>
-                                </View>
-                                <Text style={[styles.subtitle, { color: subtextColor }]} numberOfLines={1}>
+                                    </Box>
+                                </HStack>
+                                <Text className="text-sm mt-1" style={{ color: subtextColor }} numberOfLines={1}>
                                     {item.subtitle}
                                 </Text>
-                            </View>
+                            </VStack>
 
                             <IconSymbol name="chevron.right" size={18} color={subtextColor} />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                 />
             )}
@@ -296,131 +286,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    cardShadow: {
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
+    },
     container: {
         padding: 16,
-        gap: 12,
     },
     headerCopy: {
         marginBottom: 10,
-    },
-    headerTitle: {
-        fontSize: 22,
-        fontWeight: '800',
-        marginBottom: 4,
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    tripDetailsCard: {
-        marginTop: 14,
-        borderRadius: 18,
-        borderWidth: 1,
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        alignItems: 'center',
-        flexDirection: 'row',
-        gap: 12,
-    },
-    tripDetailsIconWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    tripDetailsCopy: {
-        flex: 1,
-    },
-    tripDetailsEyebrow: {
-        fontSize: 11,
-        fontWeight: '800',
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        marginBottom: 4,
-    },
-    tripDetailsTitle: {
-        fontSize: 16,
-        fontWeight: '800',
-        marginBottom: 2,
-    },
-    tripDetailsSubtitle: {
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    tripDetailsArrowWrap: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    tripDetailsButtonText: {
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    card: {
-        borderWidth: 1,
-        borderRadius: 18,
-        padding: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-    },
-    avatarFallback: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarFallbackText: {
-        fontSize: 18,
-        fontWeight: '800',
-    },
-    content: {
-        flex: 1,
-    },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    statusRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    statusDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 999,
-    },
-    statusText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    name: {
-        flex: 1,
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    badge: {
-        borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-    },
-    badgeText: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    subtitle: {
-        marginTop: 4,
-        fontSize: 13,
     },
 });

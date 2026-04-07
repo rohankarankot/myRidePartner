@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, RefreshControl, KeyboardAvoidingView, Platform, Keyboard, BackHandler, Image, Share } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, RefreshControl, KeyboardAvoidingView, Platform, Keyboard, BackHandler, Share } from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +25,15 @@ import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { TripDetailsSkeleton } from '@/features/trips/components/TripDetailsSkeleton';
 import { buildTripStartDateTime, canCaptainEditTrip, hasApprovedPassengers } from '@/features/trips/utils/trip-editability';
 import { buildTripShareMessage } from '@/features/trips/utils/trip-share';
+import { Box } from '@/components/ui/box';
+import { Text as GSText } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { HStack } from '@/components/ui/hstack';
+import { VStack } from '@/components/ui/vstack';
+import { Divider } from '@/components/ui/divider';
+import { Button, ButtonText } from '@/components/ui/button';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
@@ -598,9 +607,11 @@ export default function TripDetailsScreen() {
             {loading ? (
                 <TripDetailsSkeleton />
             ) : !trip ? (
-                <View style={[styles.center, { backgroundColor }]}>
-                    <Text style={{ color: subtextColor }}>Trip not found.</Text>
-                </View>
+                <Box className="flex-1 items-center justify-center px-6" style={{ backgroundColor }}>
+                    <GSText className="text-base text-center" style={{ color: subtextColor }}>
+                        Trip not found.
+                    </GSText>
+                </Box>
             ) : (
                 <ScrollView
                     contentContainerStyle={styles.container}
@@ -618,34 +629,42 @@ export default function TripDetailsScreen() {
                         return (
                             <>
                                 {/* Route Header */}
-                                <View style={[styles.card, { backgroundColor: cardColor }]}>
-                                    <View style={styles.requestHeader}>
-                                        <View style={styles.routeRow}>
-                                            <View style={styles.iconColumn}>
-                                                <View style={[styles.dot, { backgroundColor: primaryColor }]} />
-                                                <View style={[styles.line, { backgroundColor: borderColor }]} />
-                                                <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
-                                            </View>
-                                            <View style={{ flex: 1 }}>
-                                                <View style={styles.addressRow}>
-                                                    <Text style={[styles.address, { color: textColor }]}>{trip.startingPoint}</Text>
-                                                    <View style={[styles.statusBadge, { backgroundColor: getTripStatusColor(trip.status, successColor, dangerColor, primaryColor, subtextColor) }]}>
-                                                        <Text style={styles.statusText}>{trip.status}</Text>
-                                                    </View>
-                                                </View>
-                                                <Text style={[styles.address, { color: textColor, marginTop: 24 }]}>{trip.destination}</Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                </View>
+                                <Box className="rounded-3xl p-5 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+                                    <HStack className="items-start">
+                                        <VStack className="items-center mr-4 pt-1">
+                                            <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: primaryColor }} />
+                                            <Box className="w-px h-11 my-2" style={{ backgroundColor: borderColor }} />
+                                            <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: '#10B981' }} />
+                                        </VStack>
+
+                                        <VStack className="flex-1">
+                                            <HStack className="items-start justify-between">
+                                                <GSText className="flex-1 text-lg font-bold" style={{ color: textColor }}>
+                                                    {trip.startingPoint}
+                                                </GSText>
+                                                <Box
+                                                    className="rounded-xl px-3 py-1 ml-3"
+                                                    style={{ backgroundColor: getTripStatusColor(trip.status, successColor, dangerColor, primaryColor, subtextColor) }}
+                                                >
+                                                    <GSText className="text-[11px] font-extrabold text-white">
+                                                        {trip.status}
+                                                    </GSText>
+                                                </Box>
+                                            </HStack>
+                                            <GSText className="text-lg font-bold mt-6" style={{ color: textColor }}>
+                                                {trip.destination}
+                                            </GSText>
+                                        </VStack>
+                                    </HStack>
+                                </Box>
 
                                 {/* Trip Info */}
-                                <View style={[styles.card, { backgroundColor: cardColor }]}>
+                                <Box className="rounded-3xl p-5 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
                                     <View style={styles.infoRow}>
                                         <InfoItem icon="house.fill" label="Date" value={trip.date} textColor={textColor} subtextColor={subtextColor} />
                                         <InfoItem icon="clock.fill" label="Time" value={trip.time} textColor={textColor} subtextColor={subtextColor} />
                                     </View>
-                                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
+                                    <Divider style={{ backgroundColor: borderColor, marginVertical: 16 }} />
                                     <View style={styles.infoRow}>
                                         <InfoItem icon="person.2.fill" label="Available Seats" value={`${trip.availableSeats}`} textColor={textColor} subtextColor={subtextColor} />
                                         <InfoItem
@@ -656,87 +675,97 @@ export default function TripDetailsScreen() {
                                             subtextColor={subtextColor}
                                         />
                                     </View>
-                                    <View style={[styles.divider, { backgroundColor: borderColor }]} />
+                                    <Divider style={{ backgroundColor: borderColor, marginVertical: 16 }} />
                                     <View style={styles.infoRow}>
                                         <InfoItem icon="person.fill" label="Gender Preference" value={trip.genderPreference === 'men' ? 'Only Men' : trip.genderPreference === 'women' ? 'Only Women' : 'Any'} textColor={textColor} subtextColor={subtextColor} />
                                     </View>
-                                </View>
+                                </Box>
 
                                 {canOpenChat && (
-                                    <TouchableOpacity
-                                        style={[styles.chatButton, { backgroundColor: primaryColor }]}
+                                    <Button
+                                        className="rounded-2xl mb-4"
+                                        style={{ backgroundColor: primaryColor }}
                                         onPress={handleOpenChat}
                                     >
                                         <IconSymbol name="message.fill" size={18} color="#fff" />
-                                        <Text style={styles.chatButtonText}>Open Ride Chat</Text>
-                                    </TouchableOpacity>
+                                        <ButtonText style={{ color: '#FFFFFF' }}>Open Ride Chat</ButtonText>
+                                    </Button>
                                 )}
 
                                 {isCreator && (
-                                    <TouchableOpacity
-                                        style={[styles.shareButton, { borderColor: primaryColor, backgroundColor: `${primaryColor}10` }]}
+                                    <Pressable
+                                        className="rounded-2xl border px-4 py-4 mb-4 flex-row items-center justify-center"
+                                        style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}10` }}
                                         onPress={handleShareTrip}
                                     >
                                         <IconSymbol name="square.and.arrow.up" size={18} color={primaryColor} />
-                                        <Text style={[styles.shareButtonText, { color: primaryColor }]}>Share Ride Link</Text>
-                                    </TouchableOpacity>
+                                        <GSText className="text-base font-bold ml-2" style={{ color: primaryColor }}>
+                                            Share Ride Link
+                                        </GSText>
+                                    </Pressable>
                                 )}
 
                                 {/* Description / Captain's Note */}
                                 {trip.description && (
-                                    <View style={[styles.card, { backgroundColor: cardColor }]}>
-                                        <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 8 }]}>Captain&apos;s Note</Text>
-                                        <Text style={{ color: subtextColor, fontSize: 14, lineHeight: 20 }}>
+                                    <Box className="rounded-3xl p-5 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+                                        <GSText className="text-lg font-bold mb-2" style={{ color: textColor }}>
+                                            Captain&apos;s Note
+                                        </GSText>
+                                        <GSText className="text-sm leading-6" style={{ color: subtextColor }}>
                                             {trip.description}
-                                        </Text>
-                                    </View>
+                                        </GSText>
+                                    </Box>
                                 )}
 
                                 {/* Captain Info */}
-                                <TouchableOpacity 
-                                    style={[styles.card, { backgroundColor: cardColor }]}
-                                    activeOpacity={0.7}
+                                <Pressable
+                                    className="rounded-3xl p-5 mb-4"
+                                    style={[styles.cardShadow, { backgroundColor: cardColor }]}
                                     onPress={() => router.push(`/user/${trip.creator?.id}`)}
                                 >
-                                    <Text style={[styles.sectionTitle, { color: textColor }]}>Captain</Text>
-                                    <View style={styles.creatorRow}>
-                                        {getAvatarUrl(creatorProfile) ? (
-                                            <Image
-                                                source={{ uri: getAvatarUrl(creatorProfile) as string }}
-                                                style={[styles.avatarPlaceholder, { backgroundColor: 'transparent' }]}
-                                            />
-                                        ) : (
-                                            <View style={[styles.avatarPlaceholder, { backgroundColor: primaryColor }]}>
-                                                <Text style={styles.avatarText}>
-                                                    {(creatorProfile?.fullName || trip.creator?.username)?.charAt(0).toUpperCase()}
-                                                </Text>
-                                            </View>
-                                        )}
-                                        <View style={styles.creatorDetails}>
-                                            <Text style={[styles.creatorName, { color: textColor }]}>
+                                    <GSText className="text-lg font-bold mb-4" style={{ color: textColor }}>
+                                        Captain
+                                    </GSText>
+                                    <HStack className="items-center" space="md">
+                                        <Avatar size="lg">
+                                            <AvatarFallbackText>
+                                                {creatorProfile?.fullName || trip.creator?.username || 'Captain'}
+                                            </AvatarFallbackText>
+                                            {getAvatarUrl(creatorProfile) ? (
+                                                <AvatarImage
+                                                    source={{ uri: getAvatarUrl(creatorProfile) as string }}
+                                                    alt={creatorProfile?.fullName || trip.creator?.username || 'Captain'}
+                                                />
+                                            ) : null}
+                                        </Avatar>
+                                        <VStack className="flex-1" space="xs">
+                                            <GSText className="text-base font-bold" style={{ color: textColor }}>
                                                 {creatorProfile?.fullName || trip.creator?.username}
-                                            </Text>
-                                            <Text style={[styles.creatorSub, { color: subtextColor }]}>
+                                            </GSText>
+                                            <GSText className="text-sm" style={{ color: subtextColor }}>
                                                 {creatorProfile?.rating ? `${Number(creatorProfile.rating).toFixed(1)} ★` : 'New'} | Your ride leader
-                                            </Text>
-                                        </View>
-                                    </View>
-                                </TouchableOpacity>
+                                            </GSText>
+                                        </VStack>
+                                    </HStack>
+                                </Pressable>
 
                                 {user?.id !== trip.creator?.id && (
-                                    <View style={[styles.card, { backgroundColor: cardColor }]}>
-                                        <Text style={[styles.sectionTitle, { color: textColor }]}>Safety</Text>
+                                    <Box className="rounded-3xl p-5 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+                                        <GSText className="text-lg font-bold mb-4" style={{ color: textColor }}>
+                                            Safety
+                                        </GSText>
                                         {isCreatorBlocked && (
-                                            <View style={[styles.safetyBanner, { backgroundColor: `${dangerColor}10` }]}>
+                                            <Box className="rounded-2xl px-4 py-3 mb-4 flex-row items-center" style={{ backgroundColor: `${dangerColor}10` }}>
                                                 <IconSymbol name="hand.raised.fill" size={18} color={dangerColor} />
-                                                <Text style={[styles.safetyBannerText, { color: dangerColor }]}>
+                                                <GSText className="text-sm font-medium ml-3 flex-1" style={{ color: dangerColor }}>
                                                     This captain is blocked on this device.
-                                                </Text>
-                                            </View>
+                                                </GSText>
+                                            </Box>
                                         )}
-                                        <View style={styles.safetyActions}>
-                                            <TouchableOpacity
-                                                style={[styles.safetyButton, { borderColor: isCreatorBlocked ? dangerColor : borderColor }]}
+                                        <VStack space="sm">
+                                            <Pressable
+                                                className="rounded-2xl border px-4 py-4 flex-row items-center justify-center"
+                                                style={{ borderColor: isCreatorBlocked ? dangerColor : borderColor }}
                                                 onPress={() => setShowBlockAlert(true)}
                                                 disabled={isBlocking || isUnblocking}
                                             >
@@ -745,145 +774,170 @@ export default function TripDetailsScreen() {
                                                     size={16}
                                                     color={isCreatorBlocked ? dangerColor : textColor}
                                                 />
-                                                <Text style={[styles.safetyButtonText, { color: isCreatorBlocked ? dangerColor : textColor }]}>
+                                                <GSText className="text-base font-semibold ml-2" style={{ color: isCreatorBlocked ? dangerColor : textColor }}>
                                                     {isCreatorBlocked ? 'Unblock Captain' : 'Block Captain'}
-                                                </Text>
-                                            </TouchableOpacity>
+                                                </GSText>
+                                            </Pressable>
 
-                                            <TouchableOpacity
-                                                style={[styles.safetyButton, { borderColor }]}
+                                            <Pressable
+                                                className="rounded-2xl border px-4 py-4 flex-row items-center justify-center"
+                                                style={{ borderColor }}
                                                 onPress={() => setShowReportModal(true)}
                                             >
                                                 <IconSymbol name="flag.fill" size={16} color="#F59E0B" />
-                                                <Text style={[styles.safetyButtonText, { color: textColor }]}>Report Captain</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
+                                                <GSText className="text-base font-semibold ml-2" style={{ color: textColor }}>
+                                                    Report Captain
+                                                </GSText>
+                                            </Pressable>
+                                        </VStack>
+                                    </Box>
                                 )}
 
                                 {/* Actions */}
                                 {isCreator ? (
-                                    <View style={styles.creatorActions}>
-                                        <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 12 }]}>
+                                    <Box className="mb-2">
+                                        <GSText className="text-lg font-bold mb-3" style={{ color: textColor }}>
                                             Join Requests {joinRequests.length > 0 ? `(${joinRequests.length})` : ''}
-                                        </Text>
+                                        </GSText>
 
                                         {joinRequests.length === 0 ? (
-                                            <View style={[styles.requestCard, { backgroundColor: cardColor, borderColor, borderStyle: 'dashed' }]}>
-                                                <Text style={[styles.requestSub, { color: subtextColor, textAlign: 'center' }]}>No requests yet.</Text>
-                                            </View>
+                                            <Box className="rounded-3xl p-5 mb-4 border" style={[styles.cardShadow, { backgroundColor: cardColor, borderColor, borderStyle: 'dashed' }]}>
+                                                <GSText className="text-sm text-center" style={{ color: subtextColor }}>
+                                                    No requests yet.
+                                                </GSText>
+                                            </Box>
                                         ) : (
                                             joinRequests.map((request) => (
-                                                <View key={request.id} style={[styles.requestCard, { backgroundColor: cardColor, borderColor }]}>
-                                                    <View style={styles.requestHeader}>
-                                                        <View style={[styles.tinyAvatar, { backgroundColor: primaryColor }]}>
-                                                            <Text style={styles.tinyAvatarText}>
+                                                <Box key={request.id} className="rounded-3xl p-5 mb-4 border" style={[styles.cardShadow, { backgroundColor: cardColor, borderColor }]}>
+                                                    <HStack className="items-start">
+                                                        <Box className="h-10 w-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: primaryColor }}>
+                                                            <GSText className="text-sm font-extrabold text-white">
                                                                 {request.passenger.username?.charAt(0).toUpperCase()}
-                                                            </Text>
-                                                        </View>
-                                                        <View style={styles.requestInfo}>
-                                                            <Text style={[styles.requestName, { color: textColor }]}>{request.passenger.username}</Text>
-                                                            <Text style={[styles.requestSub, { color: subtextColor }]}>
+                                                            </GSText>
+                                                        </Box>
+                                                        <VStack className="flex-1" space="xs">
+                                                            <GSText className="text-base font-bold" style={{ color: textColor }}>
+                                                                {request.passenger.username}
+                                                            </GSText>
+                                                            <GSText className="text-sm" style={{ color: subtextColor }}>
                                                                 {request.requestedSeats} {request.requestedSeats === 1 ? 'seat' : 'seats'} requested
-                                                            </Text>
-                                                            <Text style={[styles.requestMeta, { color: subtextColor }]}>
+                                                            </GSText>
+                                                            <GSText className="text-sm" style={{ color: subtextColor }}>
                                                                 {request.sharePhoneNumber
                                                                     ? (request.passenger.userProfile?.phoneNumber || 'Phone unavailable')
                                                                     : maskPhoneNumber(request.passenger.userProfile?.phoneNumber)}
-                                                            </Text>
-                                                        </View>
-                                                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status, successColor, dangerColor, subtextColor) }]}>
-                                                            <Text style={styles.statusText}>{request.status}</Text>
-                                                        </View>
-                                                    </View>
+                                                            </GSText>
+                                                        </VStack>
+                                                        <Box className="rounded-xl px-3 py-1 ml-3" style={{ backgroundColor: getStatusColor(request.status, successColor, dangerColor, subtextColor) }}>
+                                                            <GSText className="text-[11px] font-extrabold text-white">{request.status}</GSText>
+                                                        </Box>
+                                                    </HStack>
 
                                                     {request.message ? (
-                                                        <View style={[styles.requestMessageContainer, { backgroundColor: `${subtextColor}15` }]}>
-                                                            <Text style={[styles.requestMessageText, { color: textColor }]}>&quot;{request.message}&quot;</Text>
-                                                        </View>
+                                                        <Box className="rounded-2xl px-4 py-3 mt-4" style={{ backgroundColor: `${subtextColor}15` }}>
+                                                            <GSText className="text-sm" style={{ color: textColor }}>
+                                                                &quot;{request.message}&quot;
+                                                            </GSText>
+                                                        </Box>
                                                     ) : null}
 
                                                     {request.status === 'PENDING' && (
-                                                        <View style={styles.requestActions}>
-                                                            <TouchableOpacity
-                                                                style={[styles.actionButton, styles.rejectButton, { borderColor: dangerColor }]}
+                                                        <HStack className="mt-4" space="sm">
+                                                            <Pressable
+                                                                className="flex-1 rounded-2xl border px-4 py-3 items-center justify-center"
+                                                                style={{ borderColor: dangerColor }}
                                                                 onPress={() => handleUpdateJoinStatus(request.documentId, 'REJECTED')}
                                                             >
-                                                                <Text style={{ color: dangerColor, fontWeight: '600' }}>Decline</Text>
-                                                            </TouchableOpacity>
-                                                            <TouchableOpacity
-                                                                style={[styles.actionButton, styles.approveButton, { backgroundColor: '#10B981' }]}
+                                                                <GSText className="text-base font-semibold" style={{ color: dangerColor }}>
+                                                                    Decline
+                                                                </GSText>
+                                                            </Pressable>
+                                                            <Pressable
+                                                                className="flex-1 rounded-2xl px-4 py-3 items-center justify-center"
+                                                                style={{ backgroundColor: '#10B981' }}
                                                                 onPress={() => handleUpdateJoinStatus(request.documentId, 'APPROVED')}
                                                             >
-                                                                <Text style={{ color: '#fff', fontWeight: '600' }}>Approve</Text>
-                                                            </TouchableOpacity>
-                                                        </View>
+                                                                <GSText className="text-base font-semibold text-white">Approve</GSText>
+                                                            </Pressable>
+                                                        </HStack>
                                                     )}
-                                                </View>
+                                                </Box>
                                             ))
                                         )}
 
                                         {trip.status === 'PUBLISHED' && (
                                             canEditTrip ? (
-                                                <TouchableOpacity
-                                                    style={[styles.editTripButton, { borderColor: primaryColor }]}
+                                                <Pressable
+                                                    className="rounded-2xl border px-4 py-4 mb-4 flex-row items-center justify-center"
+                                                    style={{ borderColor: primaryColor }}
                                                     onPress={handleEditTrip}
                                                 >
                                                     <IconSymbol name="square.and.pencil" size={18} color={primaryColor} />
-                                                    <Text style={[styles.editTripButtonText, { color: primaryColor }]}>Edit Trip</Text>
-                                                </TouchableOpacity>
+                                                    <GSText className="text-base font-bold ml-2" style={{ color: primaryColor }}>
+                                                        Edit Trip
+                                                    </GSText>
+                                                </Pressable>
                                             ) : (
-                                                <View style={[styles.editTripHintCard, { backgroundColor: `${subtextColor}10`, borderColor }]}>
-                                                    <Text style={[styles.editTripHintTitle, { color: textColor }]}>Trip editing unavailable</Text>
-                                                    <Text style={[styles.editTripHintText, { color: subtextColor }]}>
+                                                <Box className="rounded-3xl p-5 mb-4 border" style={{ backgroundColor: `${subtextColor}10`, borderColor }}>
+                                                    <GSText className="text-base font-bold mb-2" style={{ color: textColor }}>
+                                                        Trip editing unavailable
+                                                    </GSText>
+                                                    <GSText className="text-sm leading-6" style={{ color: subtextColor }}>
                                                         {getEditTripBlockedReason()}
-                                                    </Text>
-                                                </View>
+                                                    </GSText>
+                                                </Box>
                                             )
                                         )}
 
                                         {trip.status === 'PUBLISHED' && (
-                                            <TouchableOpacity
-                                                style={[styles.startTripButton, { backgroundColor: primaryColor }]}
+                                            <Button
+                                                className="rounded-2xl mb-4"
+                                                style={{ backgroundColor: primaryColor }}
                                                 onPress={() => handleUpdateTripStatus('STARTED')}
                                             >
-                                                <Text style={styles.lifecycleButtonText}>Start Trip</Text>
-                                            </TouchableOpacity>
+                                                <ButtonText style={{ color: '#FFFFFF' }}>Start Trip</ButtonText>
+                                            </Button>
                                         )}
 
                                         {trip.status === 'STARTED' && (
-                                            <TouchableOpacity
-                                                style={[styles.completeTripButton, { backgroundColor: successColor }]}
+                                            <Button
+                                                className="rounded-2xl mb-4"
+                                                style={{ backgroundColor: successColor }}
                                                 onPress={handleCompleteTrip}
                                             >
-                                                <Text style={styles.lifecycleButtonText}>Complete Trip</Text>
-                                            </TouchableOpacity>
+                                                <ButtonText>Complete Trip</ButtonText>
+                                            </Button>
                                         )}
 
                                         {(trip.status === 'PUBLISHED' || trip.status === 'STARTED') && (
-                                            <TouchableOpacity
-                                                style={[styles.cancelButton, { borderColor: dangerColor }]}
+                                            <Pressable
+                                                className="rounded-2xl border px-4 py-4 mb-6 items-center justify-center"
+                                                style={{ borderColor: dangerColor }}
                                                 onPress={() => setShowCancelModal(true)}
                                             >
-                                                <Text style={[styles.cancelButtonText, { color: dangerColor }]}>Cancel Trip</Text>
-                                            </TouchableOpacity>
+                                                <GSText className="text-base font-bold" style={{ color: dangerColor }}>
+                                                    Cancel Trip
+                                                </GSText>
+                                            </Pressable>
                                         )}
-                                    </View>
+                                    </Box>
                                 ) : (
-                                    <View>
+                                    <Box className="mb-2">
                                         {trip.status !== 'PUBLISHED' && !userJoinRequest && (
-                                            <View style={[styles.statusBanner, { backgroundColor: `${subtextColor}15` }]}>
+                                            <Box className="rounded-3xl p-5 mb-4 flex-row items-start" style={{ backgroundColor: `${subtextColor}15` }}>
                                                 <IconSymbol name="info.circle.fill" size={24} color={subtextColor} />
-                                                <View style={styles.statusContent}>
-                                                    <Text style={[styles.statusTitle, { color: textColor }]}>Riding Booking Closed</Text>
-                                                    <Text style={[styles.statusDesc, { color: subtextColor }]}>
+                                                <VStack className="flex-1 ml-3" space="xs">
+                                                    <GSText className="text-base font-bold" style={{ color: textColor }}>
+                                                        Riding Booking Closed
+                                                    </GSText>
+                                                    <GSText className="text-sm leading-6" style={{ color: subtextColor }}>
                                                         This trip is currently {trip.status.toLowerCase()} and is no longer accepting requests.
-                                                    </Text>
-                                                </View>
-                                            </View>
+                                                    </GSText>
+                                                </VStack>
+                                            </Box>
                                         )}
                                         {userJoinRequest ? (
-                                            <View style={[styles.statusBanner, {
+                                            <Box className="rounded-3xl p-5 mb-4 flex-row items-start" style={[{
                                                 backgroundColor: trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? `${successColor}10` :
                                                     userJoinRequest.status === 'APPROVED' ? `${successColor}15` :
                                                         userJoinRequest.status === 'REJECTED' ? `${dangerColor}15` : `${primaryColor}15`
@@ -897,58 +951,57 @@ export default function TripDetailsScreen() {
                                                         userJoinRequest.status === 'APPROVED' ? successColor :
                                                             userJoinRequest.status === 'REJECTED' ? dangerColor : primaryColor}
                                                 />
-                                                <View style={styles.statusContent}>
-                                                    <Text style={[styles.statusTitle, {
+                                                <VStack className="flex-1 ml-3" space="xs">
+                                                    <GSText className="text-base font-bold" style={{
                                                         color: trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ? '#92400E' :
                                                             userJoinRequest.status === 'APPROVED' ? successColor :
                                                                 userJoinRequest.status === 'REJECTED' ? dangerColor : primaryColor
-                                                    }]}>
+                                                    }}>
                                                         {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ?
                                                             (userRating ? 'Trip Completed' : 'Rate your Ride') :
                                                             `Request ${userJoinRequest.status.charAt(0) + userJoinRequest.status.slice(1).toLowerCase()}`}
-                                                    </Text>
-                                                    <Text style={[styles.statusDesc, { color: subtextColor }]}>
+                                                    </GSText>
+                                                    <GSText className="text-sm leading-6" style={{ color: subtextColor }}>
                                                         {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' ?
                                                             (userRating ? 'Thank you for providing feedback!' : `How was your ride with ${creatorProfile?.fullName || trip.creator?.username}?`) :
                                                             (userJoinRequest.status === 'APPROVED' ? 'You are part of this trip! See you there.' :
                                                                 userJoinRequest.status === 'REJECTED' ? 'The captain has declined your request.' :
                                                                     'Waiting for captain to approve your request.')}
-                                                    </Text>
+                                                    </GSText>
 
                                                     {trip.status === 'COMPLETED' && userJoinRequest.status === 'APPROVED' && !userRating && (
-                                                        <TouchableOpacity
-                                                            style={[styles.rateInlineButton, { backgroundColor: '#F59E0B' }]}
+                                                        <Pressable
+                                                            className="self-start rounded-xl px-4 py-3 mt-3"
+                                                            style={{ backgroundColor: '#F59E0B' }}
                                                             onPress={() => setShowRatingModal(true)}
                                                         >
-                                                            <Text style={styles.rateInlineButtonText}>Rate Captain</Text>
-                                                        </TouchableOpacity>
+                                                            <GSText className="text-sm font-bold text-white">Rate Captain</GSText>
+                                                        </Pressable>
                                                     )}
-                                                </View>
-                                            </View>
+                                                </VStack>
+                                            </Box>
                                         ) : (
-                                            <TouchableOpacity
-                                                style={[
-                                                    styles.joinButton,
-                                                    {
-                                                        backgroundColor: primaryColor,
-                                                        opacity: (trip.availableSeats === 0 || trip.status !== 'PUBLISHED' || isCreatorBlocked) ? 0.6 : 1
-                                                    }
-                                                ]}
+                                            <Button
+                                                className="rounded-2xl mb-6"
+                                                style={{
+                                                    backgroundColor: primaryColor,
+                                                    opacity: (trip.availableSeats === 0 || trip.status !== 'PUBLISHED' || isCreatorBlocked) ? 0.6 : 1,
+                                                }}
                                                 onPress={handleInitiateJoin}
                                                 disabled={isJoining || trip.availableSeats === 0 || trip.status !== 'PUBLISHED' || isCreatorBlocked}
                                             >
                                                 {isJoining ? (
-                                                    <ActivityIndicator color="#fff" />
+                                                    <Spinner color="#fff" />
                                                 ) : (
-                                                    <Text style={styles.joinButtonText}>
+                                                    <ButtonText style={{ color: '#FFFFFF' }}>
                                                         {isCreatorBlocked ? 'Captain Blocked' :
                                                             trip.status !== 'PUBLISHED' ? 'Ride Unavailable' :
                                                             trip.availableSeats === 0 ? 'Fully Booked' : 'Request to Join'}
-                                                    </Text>
+                                                    </ButtonText>
                                                 )}
-                                            </TouchableOpacity>
+                                            </Button>
                                         )}
-                                    </View>
+                                    </Box>
                                 )}
                             </>
                         );
@@ -1333,6 +1386,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    cardShadow: {
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     card: {
         borderRadius: 16,

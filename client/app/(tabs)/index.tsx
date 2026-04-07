@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -18,6 +18,15 @@ import { useScrollToTop } from '@react-navigation/native';
 import { DiscoveryBannerAd } from '@/features/ads/components/discovery-banner-ad';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 import { FindRidesSkeleton } from '@/features/trips/components/FindRidesSkeleton';
+import { Box } from '@/components/ui/box';
+import { Text as GSText } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { HStack } from '@/components/ui/hstack';
+import { VStack } from '@/components/ui/vstack';
+import { Divider } from '@/components/ui/divider';
+import { Button, ButtonText } from '@/components/ui/button';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Spinner } from '@/components/ui/spinner';
 
 const LAST_SELECTED_CITY_KEY = 'find_rides_last_selected_city';
 
@@ -96,64 +105,82 @@ const TripCard = ({ documentId, from, to, date, time, price, isCalculated, statu
   const primaryColor = useThemeColor({}, 'primary');
   const borderColor = useThemeColor({}, 'border');
 
+  const genderPalette =
+    genderPreference === 'both'
+      ? { bg: '#F3F4FB', text: '#6B7280', icon: 'person.2.fill' as const }
+      : genderPreference === 'men'
+        ? { bg: '#EBF5FF', text: '#3B82F6', icon: 'person.fill' as const }
+        : { bg: '#FFF1F2', text: '#F43F5E', icon: 'person.fill' as const };
+
   return (
-    <TouchableOpacity
+    <Pressable
+      className="rounded-3xl p-4 mb-4"
       style={[styles.tripCard, { backgroundColor: cardColor }]}
       onPress={() => onPress(documentId)}
     >
-      {/* Header: Avatar | Name + Date·Time */}
-      <View style={styles.cardHeader}>
-        <Image
-          source={avatarUrl ? { uri: avatarUrl } : { uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' }}
-          style={styles.cardAvatar}
-        />
-        <View style={styles.captainInfo}>
-          <Text style={[styles.captainName, { color: textColor }]}>{captainName || 'Captain'}</Text>
-          <Text style={[styles.timeText, { color: subtextColor }]}>{formatDisplayDate(date)} • {time}</Text>
-        </View>
+      <HStack className="items-center justify-between mb-4">
+        <HStack className="flex-1 items-center" space="md">
+          <Avatar size="md">
+            <AvatarFallbackText>{captainName || 'Captain'}</AvatarFallbackText>
+            {avatarUrl ? <AvatarImage source={{ uri: avatarUrl }} alt={captainName || 'Captain'} /> : null}
+          </Avatar>
+          <VStack className="flex-1" space="xs">
+            <GSText className="text-base font-bold" style={{ color: textColor }}>
+              {captainName || 'Captain'}
+            </GSText>
+            <GSText className="text-sm" style={{ color: subtextColor }}>
+              {formatDisplayDate(date)} • {time}
+            </GSText>
+          </VStack>
+        </HStack>
         {status !== 'PUBLISHED' && (
-          <View style={[styles.statusBadge, { backgroundColor: getTripStatusColor(status as any, '#10B981', '#EF4444', '#3B82F6', '#6B7280') }]}>
-            <Text style={styles.statusText}>{status}</Text>
-          </View>
+          <Box
+            className="rounded-xl px-3 py-1 ml-3"
+            style={{ backgroundColor: getTripStatusColor(status as any, '#10B981', '#EF4444', '#3B82F6', '#6B7280') }}
+          >
+            <GSText className="text-[11px] font-extrabold text-white">{status}</GSText>
+          </Box>
         )}
-      </View>
+      </HStack>
 
-      {/* Route */}
-      <View style={styles.routeRow}>
-        <View style={styles.iconColumn}>
-          <View style={[styles.dot, { backgroundColor: primaryColor }]} />
-          <View style={[styles.line, { backgroundColor: borderColor }]} />
-          <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
-        </View>
-        <View style={styles.addresses}>
-          <Text style={[styles.addressText, { color: textColor }]} numberOfLines={1}>{from}</Text>
-          <Text style={[styles.addressText, { color: textColor, marginTop: 20 }]} numberOfLines={1}>{to}</Text>
-        </View>
-        <View style={[styles.genderBadge, { backgroundColor: genderPreference === 'both' ? '#F3F4FB' : genderPreference === 'men' ? '#EBF5FF' : '#FFF1F2' }]}>
+      <HStack className="items-start mb-4">
+        <VStack className="items-center mr-3 pt-1">
+          <Box className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }} />
+          <Box className="w-px h-8 my-1" style={{ backgroundColor: borderColor }} />
+          <Box className="h-2 w-2 rounded-full" style={{ backgroundColor: '#10B981' }} />
+        </VStack>
+        <VStack className="flex-1">
+          <GSText className="text-base font-semibold" style={{ color: textColor }} numberOfLines={1}>
+            {from}
+          </GSText>
+          <GSText className="text-base font-semibold mt-5" style={{ color: textColor }} numberOfLines={1}>
+            {to}
+          </GSText>
+        </VStack>
+        <Box className="h-6 rounded-xl px-2 ml-3 flex-row items-center" style={{ backgroundColor: genderPalette.bg }}>
           <IconSymbol
-            name={genderPreference === 'both' ? 'person.2.fill' : 'person.fill'}
+            name={genderPalette.icon}
             size={10}
-            color={genderPreference === 'both' ? '#6B7280' : genderPreference === 'men' ? '#3B82F6' : '#F43F5E'}
+            color={genderPalette.text}
           />
-          <Text style={[styles.genderText, { color: genderPreference === 'both' ? '#6B7280' : genderPreference === 'men' ? '#3B82F6' : '#F43F5E' }]}>
+          <GSText className="text-[11px] font-bold ml-1" style={{ color: genderPalette.text }}>
             {genderPreference === 'both' ? 'All' : genderPreference === 'men' ? 'Men' : 'Women'}
-          </Text>
-        </View>
-      </View>
+          </GSText>
+        </Box>
+      </HStack>
 
-      <View style={[styles.cardDivider, { backgroundColor: borderColor }]} />
+      <Divider style={{ backgroundColor: borderColor, marginBottom: 12 }} />
 
-      {/* Footer: price */}
-      <View style={styles.cardFooter}>
-        <View style={styles.footerInfo}>
+      <HStack className="items-center justify-between">
+        <HStack className="items-center" space="xs">
           <IconSymbol name="car.fill" size={16} color={subtextColor} />
-          <Text style={[styles.footerText, { color: subtextColor }]}>{status}</Text>
-        </View>
-        <Text style={[styles.priceTag, { color: primaryColor, fontSize: isCalculated ? 14 : 18 }]}>
+          <GSText className="text-sm" style={{ color: subtextColor }}>{status}</GSText>
+        </HStack>
+        <GSText className="font-extrabold" style={{ color: primaryColor, fontSize: isCalculated ? 14 : 18 }}>
           {isCalculated ? 'Calculated on demand' : `₹${price}`}
-        </Text>
-      </View>
-    </TouchableOpacity>
+        </GSText>
+      </HStack>
+    </Pressable>
   );
 };
 
@@ -317,8 +344,11 @@ export default function FindRidesScreen() {
   const loading = isLoading && !isRefetching;
 
   const renderHeader = () => (
-    <View style={{ paddingTop: 10, paddingBottom: 8 }}>
-      <View style={[styles.searchContainer, { backgroundColor: cardColor, borderColor, height: 54, borderRadius: 16 }]}>
+    <Box style={{ paddingTop: 10, paddingBottom: 8 }}>
+      <Box
+        className="flex-row items-center px-4 border rounded-2xl"
+        style={{ backgroundColor: cardColor, borderColor, height: 54 }}
+      >
         <IconSymbol name="magnifyingglass" size={20} color={subtextColor} />
         <TextInput
           ref={searchInputRef}
@@ -326,56 +356,57 @@ export default function FindRidesScreen() {
           placeholderTextColor={subtextColor}
           style={[styles.searchInput, { color: textColor, fontSize: 16 }]}
         />
-      </View>
-      <Text style={[styles.sectionTitle, { color: textColor, marginTop: 24, fontSize: 18, fontWeight: '700' }]}>
+      </Box>
+      <GSText className="text-lg font-bold mt-6 mb-4" style={{ color: textColor }}>
         {date ? `Rides in ${selectedCity} for ${format(date, 'MMM d, yyyy')}` : `Upcoming Rides in ${selectedCity || 'your city'}`}
-      </Text>
+      </GSText>
       <DiscoveryBannerAd />
-    </View>
+    </Box>
   );
 
   const renderFooter = () => {
     if (!isFetchingNextPage) return null;
     return (
-      <View style={{ paddingVertical: 20 }}>
-        <ActivityIndicator size="small" color={primaryColor} />
-      </View>
+      <Box className="py-5 items-center">
+        <Spinner size="small" color={primaryColor} />
+      </Box>
     );
   };
 
   const renderEmpty = () => {
     if (loading) return null;
     return (
-      <View style={styles.emptyContainer}>
+      <Box className="items-center justify-center py-16 px-5">
         <IconSymbol name="list.bullet" size={48} color={subtextColor} />
-        <Text style={[styles.emptyText, { color: subtextColor }]}>
+        <GSText className="text-base mt-3 text-center" style={{ color: subtextColor }}>
           {selectedCity ? `Hmm, no rides found in ${selectedCity}.` : 'Select a city to view rides.'}
-        </Text>
-        <Text style={[styles.emptyText, { color: subtextColor }]}>
+        </GSText>
+        <GSText className="text-base mt-3 mb-5 text-center" style={{ color: subtextColor }}>
           Be the first to create a ride.
-        </Text>
+        </GSText>
         {selectedCity && (
-          <TouchableOpacity
-            style={[styles.emptyPrimaryButton, { backgroundColor: primaryColor }]}
+          <Button
+            className="min-w-[170px] rounded-2xl mb-3"
+            style={{ backgroundColor: primaryColor, height: 48 }}
             onPress={() => router.push('/create')}
           >
-            <Text style={styles.emptyPrimaryButtonText}>Create a Ride</Text>
-          </TouchableOpacity>
+            <ButtonText style={{ color: '#FFFFFF' }}>Create a Ride</ButtonText>
+          </Button>
         )}
         {(gender !== 'both' || date !== undefined) && (
-          <TouchableOpacity
-            style={styles.emptySecondaryButton}
+          <Pressable
+            className="px-3 py-2"
             onPress={handleResetFilters}
           >
-            <Text style={{ color: primaryColor, fontWeight: '600' }}>Clear Filters</Text>
-          </TouchableOpacity>
+            <GSText className="text-base font-semibold" style={{ color: primaryColor }}>Clear Filters</GSText>
+          </Pressable>
         )}
-      </View>
+      </Box>
     );
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <Box className="flex-1">
       <Tabs.Screen
         options={{
           headerTitle: 'My Ride Partner',
@@ -406,7 +437,7 @@ export default function FindRidesScreen() {
           )
         }}
       />
-      <View style={[styles.safe, { backgroundColor }]} >
+      <Box className="flex-1" style={{ backgroundColor }} >
         {loading ? (
           <FindRidesSkeleton />
         ) : (
@@ -449,7 +480,7 @@ export default function FindRidesScreen() {
             }
           />
         )}
-      </View>
+      </Box>
 
       {/* Custom FAB */}
       <TouchableOpacity
@@ -550,7 +581,7 @@ export default function FindRidesScreen() {
           showsVerticalScrollIndicator={false}
         />
       </BottomSheetModal>
-    </View>
+    </Box>
   );
 }
 
