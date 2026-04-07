@@ -1,337 +1,207 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Linking, Image, ActivityIndicator, useWindowDimensions } from 'react-native';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { Linking, ScrollView, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
+
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Spinner } from '@/components/ui/spinner';
+
+type GithubProfile = {
+  avatar_url?: string;
+  name?: string;
+};
+
+const TECH_STACK = [
+  'React Native',
+  'Expo',
+  'NestJS',
+  'Prisma',
+  'PostgreSQL',
+  'Next.js',
+  'TypeScript',
+  'Zustand',
+  'Socket.io',
+  'Cloudinary',
+];
 
 export default function AboutScreen() {
-    const backgroundColor = useThemeColor({}, 'background');
-    const textColor = useThemeColor({}, 'text');
-    const subtextColor = useThemeColor({}, 'subtext');
-    const primaryColor = useThemeColor({}, 'primary');
-    const cardColor = useThemeColor({}, 'card');
-    const borderColor = useThemeColor({}, 'border');
-    const { width: screenWidth } = useWindowDimensions();
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const subtextColor = useThemeColor({}, 'subtext');
+  const primaryColor = useThemeColor({}, 'primary');
+  const cardColor = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
 
-    const [githubProfile, setGithubProfile] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+  const [githubProfile, setGithubProfile] = useState<GithubProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        fetch('https://api.github.com/users/rohankarankot')
-            .then(res => res.json())
-            .then(data => {
-                setGithubProfile(data);
-                setIsLoading(false);
-            })
-            .catch(() => setIsLoading(false));
-    }, []);
+  useEffect(() => {
+    fetch('https://api.github.com/users/rohankarankot')
+      .then((res) => res.json())
+      .then((data) => {
+        setGithubProfile(data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
 
-    const handleLink = (url: string) => {
-        Linking.openURL(url);
-    };
+  const creatorAvatar =
+    githubProfile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan';
+  const creatorName = githubProfile?.name || 'Rohan Karankot';
 
-    const creatorAvatar = githubProfile?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan';
-    const creatorName = githubProfile?.name || 'Rohan Karankot';
+  const openLink = (url: string) => {
+    Linking.openURL(url);
+  };
 
-    return (
-        <ScrollView style={[styles.container, { backgroundColor }]}>
-            <Stack.Screen options={{ title: 'About' }} />
+  return (
+    <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
+      <Stack.Screen options={{ title: 'About' }} />
 
-            <View style={styles.content}>
-                <View style={styles.headerSection}>
-                    <View style={[styles.logoContainer, { backgroundColor: primaryColor }]}>
-                        <IconSymbol name="car.fill" size={40} color="#fff" />
-                    </View>
-                    <Text style={[styles.appName, { color: textColor }]}>My Ride Partner</Text>
-                    <Text style={[styles.appVersion, { color: subtextColor }]}>Version 1.0.0</Text>
-                </View>
+      <VStack className="items-center mt-8 mb-8" space="sm">
+        <Box
+          className="h-20 w-20 rounded-2xl items-center justify-center"
+          style={[styles.logoShadow, { backgroundColor: primaryColor }]}
+        >
+          <IconSymbol name="car.fill" size={40} color="#fff" />
+        </Box>
+        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
+          My Ride Partner
+        </Text>
+        <Text className="text-sm font-medium" style={{ color: subtextColor }}>
+          Version 1.0.0
+        </Text>
+      </VStack>
 
+      <Box className="rounded-3xl p-6 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+        <Text className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: subtextColor }}>
+          About Us
+        </Text>
+        <VStack className="mt-3" space="md">
+          <Text className="text-sm leading-5" style={{ color: textColor }}>
+            My Ride Partner is a ridesharing platform designed and developed to simplify
+            daily commutes, reduce travel costs, and foster a trusted community.
+          </Text>
+          <Text className="text-sm leading-5" style={{ color: textColor }}>
+            Developed with a mission to connect people and solve urban transportation
+            challenges, the app helps users find reliable ride partners within their city
+            or community.
+          </Text>
+        </VStack>
+      </Box>
 
+      <Box className="rounded-3xl p-6 mb-4" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+        <Text className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: subtextColor }}>
+          Technologies Used
+        </Text>
+        <HStack className="flex-wrap mt-4" space="sm">
+          {TECH_STACK.map((tech) => (
+            <Box
+              key={tech}
+              className="rounded-full px-3 py-2 mb-2"
+              style={{ backgroundColor: `${borderColor}40` }}
+            >
+              <Text className="text-sm font-medium" style={{ color: textColor }}>
+                {tech}
+              </Text>
+            </Box>
+          ))}
+        </HStack>
+      </Box>
 
-                <View style={[styles.card, { backgroundColor: cardColor, marginBottom: 16 }]}>
-                    <Text style={[styles.sectionTitle, { color: subtextColor }]}>About Us</Text>
-                    <Text style={[styles.infoText, { color: textColor, marginTop: 12 }]}>
-                        My Ride Partner is a ridesharing platform designed and  developed to simplify daily commutes and reduce travel costs while fostering a trusted community.
-                    </Text>
-                    <Text style={[styles.infoText, { color: textColor, marginTop: 12 }]}>
-                        Developed with a mission to connect people and solve urban transportation challenges, this app helps users find reliable ride partners within their city or community.
-                    </Text>
-                </View>
-                <View style={[styles.card, { backgroundColor: cardColor, marginBottom: 16 }]}>
-                    <Text style={[styles.sectionTitle, { color: subtextColor }]}>TECHNOLOGIES USED</Text>
+      <Box className="rounded-3xl p-6" style={[styles.cardShadow, { backgroundColor: cardColor }]}>
+        <Text className="text-[11px] font-bold uppercase tracking-[1.2px]" style={{ color: subtextColor }}>
+          Developer
+        </Text>
 
-                    <View style={styles.techStack}>
-                        {['React Native', 'Expo', 'NestJS', 'Prisma', 'PostgreSQL', 'Next js', 'TypeScript', 'Zustand', 'Socket.io', 'Cloudinary'].map((tech) => (
-                            <View key={tech} style={[styles.techChip, { backgroundColor: borderColor + '40', }]}>
-                                <Text style={[styles.techChipText, { color: textColor }]}>{tech}</Text>
-                            </View>
-                        ))}
-                    </View>
+        {isLoading ? (
+          <Box className="h-24 items-center justify-center">
+            <Spinner color={primaryColor} />
+          </Box>
+        ) : (
+          <Pressable
+            className="mt-4 rounded-2xl p-4"
+            style={[styles.linkedinCard, { borderColor: '#0A66C2' }]}
+            onPress={() => openLink('https://linkedin.com/in/rohan-karankot/')}
+          >
+            <VStack space="md">
+              <HStack space="sm" className="items-center">
+                <Box className="h-5 w-5 rounded-[4px] items-center justify-center bg-white">
+                  <Text className="text-xs font-bold" style={{ color: '#0A66C2' }}>
+                    in
+                  </Text>
+                </Box>
+                <Text className="text-sm font-semibold text-white">LinkedIn</Text>
+              </HStack>
 
-                </View>
+              <HStack space="md" className="items-center">
+                <Avatar size="lg">
+                  <AvatarFallbackText>{creatorName}</AvatarFallbackText>
+                  <AvatarImage source={{ uri: creatorAvatar }} alt={creatorName} />
+                </Avatar>
+                <VStack className="flex-1" space="xs">
+                  <Text className="text-base font-bold text-white">{creatorName}</Text>
+                  <Text className="text-sm text-white/90">Senior Analyst @ Accenture</Text>
+                </VStack>
+              </HStack>
 
-                <View style={[styles.card, { backgroundColor: cardColor }]}>
-                    <Text style={[styles.sectionTitle, { color: subtextColor, marginBottom: 16 }]}>Developer</Text>
+              <HStack className="items-center justify-between">
+                <Text className="text-sm font-semibold text-white">View Profile</Text>
+                <IconSymbol name="arrow.up.right" size={16} color="#fff" />
+              </HStack>
+            </VStack>
+          </Pressable>
+        )}
+      </Box>
 
-                    {isLoading ? (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator color={primaryColor} />
-                        </View>
-                    ) : (
-                        <>
-                            {/* LinkedIn Badge */}
-                            <TouchableOpacity
-                                style={[styles.linkedinBadge, { width: screenWidth - 88 }]}
-                                onPress={() => handleLink('https://linkedin.com/in/rohan-karankot/')}
-                                activeOpacity={0.9}
-                            >
-                                <View style={styles.badgeHeader}>
-                                    <View style={styles.linkedinLogo}>
-                                        <Text style={styles.linkedinIn}>in</Text>
-                                    </View>
-                                    <Text style={styles.badgeLabel}>LinkedIn</Text>
-                                </View>
-
-                                <View style={styles.badgeBody}>
-                                    <Image
-                                        source={{ uri: creatorAvatar }}
-                                        style={styles.badgeAvatar}
-                                    />
-                                    <View style={styles.badgeInfo}>
-                                        <Text style={styles.badgeName}>{creatorName}</Text>
-                                        <Text style={styles.badgeRole}>Senior Analyst @ Accenture</Text>
-                                    </View>
-                                </View>
-
-                                <View style={styles.badgeFooter}>
-                                    <Text style={styles.badgeButtonText}>View Profile</Text>
-                                </View>
-                            </TouchableOpacity>
-                        </>
-                    )}
-                </View>
-
-
-                <View style={{ display: 'flex', alignItems: 'center', marginVertical: 34 }}>
-                    <Text style={{ color: textColor, fontSize: 14 }}>🚩 An initiative by MH13 Community 🚩</Text>
-                    <TouchableOpacity onPress={() => Linking.openURL('https://github.com/rohankarankot/myRidePartner')}>
-                        <Text style={{ color: primaryColor, fontSize: 12, marginTop: 10, width: '100%', textAlign: 'center', textDecorationLine: 'underline' }}>Contributions are welcomed</Text>
-                    </TouchableOpacity>
-                    <Text style={[styles.copyright, { color: subtextColor }]}>
-                        © 2026 My Ride Partner. All rights reserved.
-                    </Text>
-                </View>
-            </View>
-        </ScrollView>
-    );
+      <VStack className="items-center my-8 px-4" space="sm">
+        <Text className="text-sm text-center" style={{ color: textColor }}>
+          An initiative by MH13 Community
+        </Text>
+        <Pressable onPress={() => openLink('https://github.com/rohankarankot/myRidePartner')}>
+          <Text
+            className="text-xs text-center underline"
+            style={{ color: primaryColor }}
+          >
+            Contributions are welcomed
+          </Text>
+        </Pressable>
+        <Text className="text-xs text-center mt-3" style={{ color: subtextColor }}>
+          © 2026 My Ride Partner. All rights reserved.
+        </Text>
+      </VStack>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    content: {
-        padding: 20,
-
-
-    },
-    loadingContainer: {
-        height: 100,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    headerSection: {
-        alignItems: 'center',
-        marginVertical: 32,
-    },
-    logoContainer: {
-        width: 80,
-        height: 80,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 4,
-    },
-    appName: {
-        fontSize: 24,
-        fontWeight: '800',
-    },
-    appVersion: {
-        fontSize: 14,
-        marginTop: 4,
-        fontWeight: '500',
-    },
-    card: {
-        borderRadius: 24,
-        padding: 24,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 15,
-        elevation: 2,
-    },
-    sectionTitle: {
-        fontSize: 11,
-        fontWeight: '700',
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-    },
-    creatorRow: {
-        alignItems: 'center',
-        flexDirection: "column",
-        marginBottom: 16,
-    },
-    avatar: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        borderWidth: 2,
-    },
-    creatorInfo: {
-        marginLeft: 16,
-    },
-    creatorName: {
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    creatorRole: {
-        fontSize: 13,
-        fontWeight: '500',
-    },
-
-    socialLinks: {
-        flexDirection: 'row',
-        gap: 10, width: "100%"
-    },
-    socialButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 12,
-        gap: 8,
-    },
-    socialText: {
-        color: '#fff',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    infoText: {
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    divider: {
-        height: 1,
-        marginVertical: 16,
-        opacity: 0.5,
-    },
-    copyright: {
-        fontSize: 12,
-        textAlign: 'center',
-        marginVertical: 20
-    },
-    linkedinBadge: {
-        backgroundColor: '#0077B5',
-        borderRadius: 16,
-        padding: 16,
-        marginTop: 16,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 3,
-    },
-    badgeHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-        gap: 8,
-    },
-    linkedinLogo: {
-        backgroundColor: '#fff',
-        width: 18,
-        height: 18,
-        borderRadius: 2,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    githubLogo: {
-        backgroundColor: '#333',
-        width: 18,
-        height: 18,
-        borderRadius: 2,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
-    },
-    linkedinIn: {
-        color: '#0077B5',
-        fontSize: 12,
-        fontWeight: '900',
-        lineHeight: 14,
-    },
-    badgeLabel: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 10,
-        fontWeight: '800',
-        letterSpacing: 0.5,
-    },
-    badgeBody: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    badgeAvatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 6,
-        backgroundColor: '#fff',
-    },
-    badgeInfo: {
-        flex: 1,
-    },
-    badgeName: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    badgeRole: {
-        color: 'rgba(255,255,255,0.9)',
-        fontSize: 12,
-    },
-    badgeFooter: {
-        marginTop: 16,
-        paddingTop: 12,
-        alignItems: 'center',
-        width: "100%",
-        textAlign: "center"
-    },
-    badgeButtonText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    techStack: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginTop: 16,
-        justifyContent: "center", alignItems: "center"
-    },
-    techChip: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.05)',
-    },
-    techChipText: {
-        fontSize: 11,
-        fontWeight: '600',
-        letterSpacing: 0.3,
-    },
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 32,
+  },
+  logoShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  cardShadow: {
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 2,
+  },
+  linkedinCard: {
+    backgroundColor: '#0A66C2',
+    borderWidth: 1,
+  },
 });
