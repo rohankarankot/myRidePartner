@@ -460,7 +460,7 @@ export default function TripDetailsScreen() {
                     </Button>
                 )}
 
-                {canRateTrip && (
+                {canRateTrip && !showRatingModal && (
                     <Box className="rounded-3xl p-5 mb-4 border shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
                         <VStack space="md">
                             <VStack space="xs">

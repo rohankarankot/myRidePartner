@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { View, Linking, TouchableOpacity, Image, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { ThemedText } from '@/components/themed-text';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -25,6 +26,7 @@ import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
 import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const palette = useThemeStore((state) => state.palette);
   const { user, isLoading } = useAuth();
@@ -33,6 +35,9 @@ export default function TabLayout() {
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
   const currentColors = getThemeColors(palette)[colorScheme ?? 'light'];
+  const tabBarBaseHeight = Platform.OS === 'ios' ? 60 : 58;
+  const tabBarBottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 10);
+  const tabBarHeight = tabBarBaseHeight + tabBarBottomPadding;
 
   const profileAvatarUrl =
     typeof profile?.avatar === 'string'
@@ -146,8 +151,9 @@ export default function TabLayout() {
             backgroundColor: currentColors.card,
             borderTopWidth: 1,
             borderTopColor: currentColors.border,
-            height: Platform.OS === 'ios' ? 88 : 68,
+            height: tabBarHeight,
             paddingTop: 10,
+            paddingBottom: tabBarBottomPadding,
         }
       })}>
       <Tabs.Screen
