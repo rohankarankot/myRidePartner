@@ -10,6 +10,7 @@ import {
     ScrollView,
     Alert,
     Modal,
+    TextInput,
 } from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -169,7 +170,8 @@ export default function TripDetailsScreen() {
         setIsRefreshing(false);
     }, [refetch]);
 
-    const isPassenger = user ? tripDetails?.requests?.find(r => r.passenger.id === user.id && r.status === 'APPROVED') : false;
+    const approvedJoinRequest = user ? tripDetails?.requests?.find(r => r.passenger.id === user.id && r.status === 'APPROVED') : null;
+    const isPassenger = Boolean(approvedJoinRequest);
 
     useEffect(() => {
         if (
@@ -191,6 +193,7 @@ export default function TripDetailsScreen() {
     const userJoinRequest = user ? joinRequests.find(r => r.passenger.id === user.id) || null : null;
     const isCreatorBlocked = isBlocked(trip?.creator?.id);
     const canOpenChat = Boolean(user && trip && !isCreatorBlocked && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED' && chatAccess?.canAccess);
+    const canRateTrip = Boolean(user && trip && trip.status === 'COMPLETED' && isPassenger && !userRating);
     const tripStartDateTime = trip ? buildTripStartDateTime(trip.date, trip.time) : null;
     const hasTripStartedByTime = tripStartDateTime ? tripStartDateTime.getTime() <= Date.now() : false;
     const canEditTrip = canCaptainEditTrip({
@@ -341,6 +344,9 @@ export default function TripDetailsScreen() {
                 ratee: trip.creator!.id
             });
             setShowRatingModal(false);
+            setSelectedStars(0);
+            setRatingComment('');
+            Toast.show({ type: 'success', text1: 'Rating submitted', text2: 'Thanks for sharing your trip experience.' });
             await refetchRating();
         } finally {
             setIsSubmittingRating(false);
@@ -452,6 +458,47 @@ export default function TripDetailsScreen() {
                           <ButtonText className="font-bold text-white">Open Ride Chat</ButtonText>
                         </HStack>
                     </Button>
+                )}
+
+                {canRateTrip && (
+                    <Box className="rounded-3xl p-5 mb-4 border shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+                        <VStack space="md">
+                            <VStack space="xs">
+                                <Text className="text-lg font-bold" style={{ color: textColor }}>
+                                    Rate this trip
+                                </Text>
+                                <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+                                    Your ride is completed. Share a quick rating for the captain to help other riders.
+                                </Text>
+                            </VStack>
+                            <Button className="h-14 rounded-2xl" style={{ backgroundColor: primaryColor }} onPress={() => setShowRatingModal(true)}>
+                                <HStack space="sm" className="items-center">
+                                    <IconSymbol name="star.fill" size={18} color="#fff" />
+                                    <ButtonText className="font-bold text-white">Rate This Trip</ButtonText>
+                                </HStack>
+                            </Button>
+                        </VStack>
+                    </Box>
+                )}
+
+                {!canRateTrip && trip.status === 'COMPLETED' && isPassenger && userRating && (
+                    <Box className="rounded-3xl p-5 mb-4 border shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+                        <HStack className="items-center justify-between" space="md">
+                            <VStack className="flex-1" space="xs">
+                                <Text className="text-lg font-bold" style={{ color: textColor }}>
+                                    Rating submitted
+                                </Text>
+                                <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+                                    You rated this trip with {userRating.stars} star{userRating.stars === 1 ? '' : 's'}.
+                                </Text>
+                            </VStack>
+                            <Box className="rounded-full px-4 py-2" style={{ backgroundColor: `${primaryColor}10` }}>
+                                <Text className="text-xs font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                                    Thank you
+                                </Text>
+                            </Box>
+                        </HStack>
+                    </Box>
                 )}
 
                 {/* Description */}
@@ -592,7 +639,7 @@ export default function TripDetailsScreen() {
 
             {/* Custom Modals & Alerts */}
             <ReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} onSubmit={saveReport} reportedUserId={trip.creator?.id ?? 0} reportedUserName={creatorProfile?.fullName} tripDocumentId={trip.documentId} source="trip" />
-            <CustomAlert visible={showProfileAlert} title="Profile Incomplete" message="Please update your profile details first." primaryButton={{ text: "Go to Profile", onPress: () => router.push('/(tabs)/profile') }} onClose={() => setShowProfileAlert(false)} />
+            <CustomAlert visible={showProfileAlert} title="Profile Incomplete" message="Please update your profile details first." primaryButton={{ text: "Go to Profile", onPress: () => { setShowProfileAlert(false); router.push({ pathname: '/(tabs)/profile', params: { openEditor: 'true' } }); } }} onClose={() => setShowProfileAlert(false)} />
             <CustomAlert visible={showGenderAlert} title="Gender Mismatch" message="This ride matches a different gender preference." primaryButton={{ text: "OK", onPress: () => setShowGenderAlert(false) }} onClose={() => setShowGenderAlert(false) } />
             
             <CustomAlert 
@@ -626,6 +673,109 @@ export default function TripDetailsScreen() {
             />
 
             {/* Price Completion Modal */}
+            <Modal
+                visible={showRatingModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => !isSubmittingRating && setShowRatingModal(false)}
+            >
+                <Box className="flex-1 bg-black/60 items-center justify-center p-5">
+                    <Box className="w-full rounded-[32px] border p-6 shadow-2xl" style={{ backgroundColor: cardColor, borderColor }}>
+                        <VStack space="lg">
+                            <HStack className="items-start justify-between">
+                                <HStack className="flex-1 items-center" space="md">
+                                    <Box
+                                        className="h-12 w-12 rounded-2xl items-center justify-center"
+                                        style={{ backgroundColor: `${primaryColor}12` }}
+                                    >
+                                        <IconSymbol name="star.fill" size={20} color="#F59E0B" />
+                                    </Box>
+                                    <VStack className="flex-1" space="xs">
+                                        <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+                                            Rate your trip
+                                        </Text>
+                                        <Text className="leading-6" style={{ color: subtextColor }}>
+                                            How was your ride with {creatorProfile?.fullName || 'the captain'}?
+                                        </Text>
+                                    </VStack>
+                                </HStack>
+                                <Pressable
+                                    onPress={() => !isSubmittingRating && setShowRatingModal(false)}
+                                    className="h-10 w-10 rounded-full items-center justify-center border"
+                                    style={{ backgroundColor: backgroundColor, borderColor }}
+                                >
+                                    <IconSymbol name="xmark" size={16} color={subtextColor} />
+                                </Pressable>
+                            </HStack>
+
+                            <Box className="rounded-[24px] border px-4 py-5" style={{ backgroundColor: backgroundColor, borderColor }}>
+                                <HStack className="justify-between" space="sm">
+                                    {[1, 2, 3, 4, 5].map((star) => {
+                                        const active = star <= selectedStars;
+                                        return (
+                                            <Pressable
+                                                key={star}
+                                                onPress={() => setSelectedStars(star)}
+                                                className="h-12 w-12 rounded-2xl items-center justify-center border"
+                                                style={{
+                                                    backgroundColor: active ? `${primaryColor}12` : 'transparent',
+                                                    borderColor: active ? `${primaryColor}40` : borderColor,
+                                                }}
+                                            >
+                                                <IconSymbol
+                                                    name={active ? 'star.fill' : 'star'}
+                                                    size={22}
+                                                    color={active ? '#F59E0B' : subtextColor}
+                                                />
+                                            </Pressable>
+                                        );
+                                    })}
+                                </HStack>
+                            </Box>
+
+                            <Box className="rounded-[24px] border px-4 py-4" style={{ borderColor, backgroundColor }}>
+                                <TextInput
+                                    placeholder="Share a few words about the trip (optional)"
+                                    placeholderTextColor={subtextColor}
+                                    value={ratingComment}
+                                    onChangeText={setRatingComment}
+                                    multiline
+                                    textAlignVertical="top"
+                                    style={{ color: textColor, minHeight: 90, fontSize: 15 }}
+                                />
+                            </Box>
+
+                            <HStack space="md" className="mt-1">
+                                <Pressable
+                                    className="flex-1 h-12 rounded-2xl items-center justify-center border"
+                                    style={{ backgroundColor, borderColor }}
+                                    onPress={() => setShowRatingModal(false)}
+                                    disabled={isSubmittingRating}
+                                >
+                                    <Text className="text-sm font-bold" style={{ color: textColor }}>
+                                        Later
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    className="flex-1 h-12 rounded-2xl items-center justify-center"
+                                    style={{ backgroundColor: selectedStars > 0 ? primaryColor : `${subtextColor}20` }}
+                                    onPress={handleSubmitRating}
+                                    disabled={selectedStars === 0 || isSubmittingRating}
+                                >
+                                    {isSubmittingRating ? (
+                                        <Spinner color="#fff" />
+                                    ) : (
+                                        <Text className="text-sm font-extrabold uppercase tracking-wide text-white">
+                                            Submit
+                                        </Text>
+                                    )}
+                                </Pressable>
+                            </HStack>
+                        </VStack>
+                    </Box>
+                </Box>
+            </Modal>
+
             <Modal
                 visible={showCompletionPriceModal}
                 transparent

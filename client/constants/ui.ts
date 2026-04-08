@@ -20,6 +20,14 @@ export const Radius = {
   full: 999,
 } as const;
 
+export const FormField = {
+  height: 56,
+  radius: 24,
+  horizontalPadding: 16,
+  fontSize: 15,
+  multilineMinHeight: 110,
+} as const;
+
 export const Shadows = {
   card: {
     shadowColor: '#2A120B',

@@ -15,6 +15,7 @@ import { Pressable } from '@/components/ui/pressable';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
 import { Button, ButtonText, ButtonIcon } from '@/components/ui/button';
+import { FormField as FormFieldTokens } from '@/constants/ui';
 
 interface LocationSearchModalProps {
     visible: boolean;
@@ -90,14 +91,14 @@ export function LocationSearchModal({ visible, onClose, onSelectLocation, title 
                                         Manual Search
                                     </Text>
                                     <HStack 
-                                        className="items-center px-4 h-16 rounded-[24px] border-2 shadow-sm" 
+                                        className="items-center px-4 h-14 rounded-[24px] border-2 shadow-sm" 
                                         style={{ backgroundColor: cardColor, borderColor }}
                                         space="md"
                                     >
                                         <IconSymbol name="magnifyingglass" size={18} color={primaryColor} />
                                         <TextInput
-                                            className="flex-1 text-[15px] font-medium"
-                                            style={{ color: textColor }}
+                                            className="flex-1 font-medium"
+                                            style={{ color: textColor, fontSize: FormFieldTokens.fontSize }}
                                             placeholder="Area, landmark, or city..."
                                             placeholderTextColor={subtextColor}
                                             value={query}
@@ -108,7 +109,8 @@ export function LocationSearchModal({ visible, onClose, onSelectLocation, title 
                                         {query.length > 0 && (
                                             <Pressable
                                                 onPress={() => setQuery('')}
-                                                className="w-8 h-8 rounded-full items-center justify-center bg-gray-100"
+                                                className="w-8 h-8 rounded-full items-center justify-center"
+                                                style={{ backgroundColor }}
                                             >
                                                 <IconSymbol name="xmark" size={12} color={subtextColor} />
                                             </Pressable>

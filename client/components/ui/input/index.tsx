@@ -7,12 +7,12 @@ import { tva, withStyleContext, useStyleContext, type VariantProps } from '@glue
 const SCOPE = 'INPUT';
 
 const inputStyle = tva({
-  base: 'flex-row items-center border rounded-[24px] border-background-300 data-[focus=true]:border-primary-500 data-[invalid=true]:border-error-700 data-[hover=true]:border-background-400 bg-background-0 h-11 px-4',
+  base: 'flex-row items-center border rounded-[24px] border-background-300 data-[focus=true]:border-primary-500 data-[invalid=true]:border-error-700 data-[hover=true]:border-background-400 bg-background-0 h-14 px-4',
   variants: {
     size: {
-      sm: 'h-9 px-3',
-      md: 'h-11 px-4',
-      lg: 'h-12 px-5',
+      sm: 'h-12 px-3',
+      md: 'h-14 px-4',
+      lg: 'h-16 px-5',
     },
     variant: {
       outline: 'border',
@@ -26,9 +26,9 @@ const inputFieldStyle = tva({
   base: 'flex-1 text-typography-900 font-medium h-full web:outline-none web:ring-0 px-0',
   parentVariants: {
     size: {
-      sm: 'text-sm',
-      md: 'text-base',
-      lg: 'text-lg',
+      sm: 'text-[14px]',
+      md: 'text-[15px]',
+      lg: 'text-base',
     },
   },
 });

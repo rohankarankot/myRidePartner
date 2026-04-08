@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   BottomSheetBackdrop,
@@ -35,12 +35,14 @@ const CommunityCitySheetHeader = React.memo(
     textColor,
     subtextColor,
     borderColor,
+    cardColor,
   }: {
     citySearch: string;
     setCitySearch: (value: string) => void;
     textColor: string;
     subtextColor: string;
     borderColor: string;
+    cardColor: string;
   }) => (
     <VStack className="px-6 py-5" space="md">
         <VStack space="xs">
@@ -49,12 +51,12 @@ const CommunityCitySheetHeader = React.memo(
             Filter community members by city
             </Text>
         </VStack>
-        <Box className="h-12 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: `${subtextColor}05`, borderColor }}>
+        <Box className="h-14 rounded-[24px] flex-row items-center px-4 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
             <IconSymbol name="magnifyingglass" size={16} color={subtextColor} />
             <BottomSheetTextInput
                 placeholder="Search city..."
                 placeholderTextColor={subtextColor}
-                style={{ flex: 1, marginLeft: 10, fontSize: 14, color: textColor }}
+                style={{ flex: 1, marginLeft: 12, fontSize: 15, color: textColor }}
                 value={citySearch}
                 onChangeText={setCitySearch}
                 autoCorrect={false}
@@ -69,6 +71,7 @@ CommunityCitySheetHeader.displayName = 'CommunityCitySheetHeader';
 
 export default function CommunityMembersScreen() {
   const { city } = useLocalSearchParams<{ city?: string }>();
+  const router = useRouter();
   const { profile } = useUserStore();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -152,7 +155,11 @@ export default function CommunityMembersScreen() {
           }
         }}
         renderItem={({ item }) => (
-          <Box className="rounded-[28px] border p-4 mb-3 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+          <Pressable
+            className="rounded-[28px] border p-4 mb-3 shadow-sm"
+            style={{ backgroundColor: cardColor, borderColor }}
+            onPress={() => router.push(`/user/${item.id}`)}
+          >
             <HStack className="items-center" space="md">
               <Avatar size="md" className="border shadow-sm" style={{ borderColor }}>
                 <AvatarFallbackText>{getMemberName(item)}</AvatarFallbackText>
@@ -169,7 +176,7 @@ export default function CommunityMembersScreen() {
                 </Text>
               </VStack>
             </HStack>
-          </Box>
+          </Pressable>
         )}
         ListHeaderComponent={
           <VStack className="mb-6" space="md">
@@ -247,6 +254,7 @@ export default function CommunityMembersScreen() {
               textColor={textColor}
               subtextColor={subtextColor}
               borderColor={borderColor}
+              cardColor={cardColor}
             />
           }
           renderItem={({ item }: { item: string }) => {

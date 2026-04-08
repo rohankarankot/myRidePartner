@@ -38,6 +38,7 @@ import { Divider } from '@/components/ui/divider';
 import { Spinner } from '@/components/ui/spinner';
 import { Input, InputField } from '@/components/ui/input';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { FormField as FormFieldTokens } from '@/constants/ui';
 
 
 type FormErrors = Partial<
@@ -87,7 +88,7 @@ function FormField({
   const subtextColor = useThemeColor({}, 'subtext');
   const borderColor = useThemeColor({}, 'border');
   const dangerColor = useThemeColor({}, 'danger');
-  const primaryColor = useThemeColor({}, 'primary');
+  const cardColor = useThemeColor({}, 'card');
 
   return (
     <VStack space="xs" className="mb-6">
@@ -95,16 +96,16 @@ function FormField({
         {label}
       </Text>
       <Input
-        variant="outline"
+        variant="underlined"
         size="md"
         isDisabled={!editable || !!onPress}
         isInvalid={!!error}
-        className="rounded-2xl border-2 px-1 shadow-sm"
+        className="rounded-[24px] border-2 shadow-sm"
         style={{
           borderColor: error ? dangerColor : borderColor,
-          backgroundColor: 'rgba(0,0,0,0.02)',
-          minHeight: multiline ? 160 : 56,
-          height: multiline ? 'auto' : 56,
+          backgroundColor: cardColor,
+          minHeight: multiline ? FormFieldTokens.multilineMinHeight : FormFieldTokens.height,
+          height: multiline ? 'auto' : FormFieldTokens.height,
           alignItems: multiline ? 'flex-start' : 'center',
         }}
       >
@@ -117,23 +118,23 @@ function FormField({
             name={icon}
             size={18}
             color={subtextColor}
-            style={{ 
-              marginRight: 12, 
+            style={{
+              marginRight: 10,
               marginTop: multiline ? 16 : 0,
               alignSelf: multiline ? 'flex-start' : 'center'
             }}
           />
-            <InputField
+          <InputField
             placeholder={placeholder}
             placeholderTextColor={subtextColor}
-            className="flex-1 text-base font-medium"
+            className="flex-1 text-[15px] font-medium"
             style={{
               color: textColor,
               textAlignVertical: multiline ? 'top' : 'center',
-              paddingTop: multiline ? 12 : 0,
+              paddingTop: multiline ? 14 : 0,
               paddingBottom: 0,
-              height: multiline ? undefined : 56,
-              minHeight: multiline ? 90 : undefined,
+              height: multiline ? undefined : FormFieldTokens.height,
+              minHeight: multiline ? 82 : undefined,
             }}
             value={value}
             onChangeText={onChangeText}
@@ -414,7 +415,7 @@ export default function CreateScreen() {
         text1: 'Profile Incomplete',
         text2: 'Please update your profile details to publish a ride.',
       });
-      router.push('/(tabs)/profile');
+      router.push({ pathname: '/(tabs)/profile', params: { openEditor: 'true' } });
       return;
     }
 
@@ -561,7 +562,7 @@ export default function CreateScreen() {
           text: 'Go to Profile',
           onPress: () => {
             setShowProfileAlert(false);
-            router.push('/(tabs)/profile');
+            router.push({ pathname: '/(tabs)/profile', params: { openEditor: 'true' } });
           },
         }}
         onClose={() => setShowProfileAlert(false)}

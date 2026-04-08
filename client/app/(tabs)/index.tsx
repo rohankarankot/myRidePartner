@@ -40,24 +40,25 @@ const formatDisplayDate = (dateStr: string) => {
   return format(tripDate, 'MMM d');
 };
 
-const CitySheetHeader = React.memo(({ citySearch, setCitySearch, textColor, subtextColor, borderColor }: {
+const CitySheetHeader = React.memo(({ citySearch, setCitySearch, textColor, subtextColor, borderColor, cardColor }: {
   citySearch: string;
   setCitySearch: (v: string) => void;
   textColor: string;
   subtextColor: string;
   borderColor: string;
+  cardColor: string;
 }) => (
   <VStack className="px-6 py-5" space="md">
     <VStack space="xs">
       <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Select City</Text>
       <Text className="text-xs font-medium" style={{ color: subtextColor }}>Choose your city to find nearby rides</Text>
     </VStack>
-    <Box className="h-12 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: `${subtextColor}05`, borderColor }}>
+    <Box className="h-14 rounded-[24px] flex-row items-center px-4 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
       <IconSymbol name="magnifyingglass" size={16} color={subtextColor} />
       <BottomSheetTextInput
         placeholder="Search your city..."
         placeholderTextColor={subtextColor}
-        style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 14 }}
+        style={{ flex: 1, marginLeft: 12, color: textColor, fontSize: 15 }}
         value={citySearch}
         onChangeText={setCitySearch}
         autoCorrect={false}
@@ -387,7 +388,7 @@ export default function FindRidesScreen() {
         <BottomSheetFlatList
           data={filteredCities}
           keyExtractor={(item: string) => item}
-          ListHeaderComponent={<CitySheetHeader citySearch={citySearch} setCitySearch={setCitySearch} textColor={textColor} subtextColor={subtextColor} borderColor={borderColor} />}
+          ListHeaderComponent={<CitySheetHeader citySearch={citySearch} setCitySearch={setCitySearch} textColor={textColor} subtextColor={subtextColor} borderColor={borderColor} cardColor={cardColor} />}
           renderItem={({ item }: { item: string }) => {
             const isActive = item === selectedCity;
             return (

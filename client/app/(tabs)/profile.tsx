@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import TextRecognition from 'react-native-text-recognition';
 import {
@@ -6,7 +6,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -34,6 +34,7 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Divider } from '@/components/ui/divider';
 import { Button, ButtonText } from '@/components/ui/button';
+import { FormField as FormFieldTokens } from '@/constants/ui';
 
 const DUMMY_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 
@@ -84,6 +85,7 @@ function ActionRow({
 }
 
 export default function ProfileScreen() {
+  const { openEditor } = useLocalSearchParams<{ openEditor?: string }>();
   const { user: authUser, signOut } = useAuth();
   const {
     profile: storedProfile,
@@ -111,6 +113,7 @@ export default function ProfileScreen() {
   const [citySearch, setCitySearch] = useState('');
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const hasOpenedFromRouteRef = useRef(false);
   const snapPoints = ['90%'];
 
   const handleRefresh = useCallback(async () => {
@@ -221,6 +224,21 @@ export default function ProfileScreen() {
     }
     bottomSheetModalRef.current?.present();
   }, [profile]);
+
+  useEffect(() => {
+    if (openEditor === 'true' && !hasOpenedFromRouteRef.current) {
+      hasOpenedFromRouteRef.current = true;
+      requestAnimationFrame(() => {
+        handlePresentModalPress();
+        router.setParams({ openEditor: undefined });
+      });
+      return;
+    }
+
+    if (openEditor !== 'true') {
+      hasOpenedFromRouteRef.current = false;
+    }
+  }, [handlePresentModalPress, openEditor, router]);
 
   const uploadAvatar = async (uri: string) => {
     setIsUploadingAvatar(true);
@@ -724,7 +742,7 @@ export default function ProfileScreen() {
             <VStack space="xs">
                 <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Full Name</Text>
                 <BottomSheetTextInput
-                    style={{ height: 60, borderWidth: 2, borderRadius: 20, paddingHorizontal: 20, fontSize: 16, color: textColor, borderColor }}
+                    style={{ height: FormFieldTokens.height, borderWidth: 2, borderRadius: FormFieldTokens.radius, paddingHorizontal: FormFieldTokens.horizontalPadding, fontSize: FormFieldTokens.fontSize, color: textColor, borderColor, backgroundColor }}
                     placeholder="Enter your legal name"
                     placeholderTextColor={subtextColor}
                     value={fullName}
@@ -735,7 +753,7 @@ export default function ProfileScreen() {
             <VStack space="xs">
                 <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Phone Number</Text>
                 <BottomSheetTextInput
-                    style={{ height: 60, borderWidth: 2, borderRadius: 20, paddingHorizontal: 20, fontSize: 16, color: textColor, borderColor }}
+                    style={{ height: FormFieldTokens.height, borderWidth: 2, borderRadius: FormFieldTokens.radius, paddingHorizontal: FormFieldTokens.horizontalPadding, fontSize: FormFieldTokens.fontSize, color: textColor, borderColor, backgroundColor }}
                     placeholder="+91 XXXXX XXXXX"
                     placeholderTextColor={subtextColor}
                     keyboardType="phone-pad"
@@ -773,8 +791,8 @@ export default function ProfileScreen() {
             <VStack space="xs">
                 <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Preferred City</Text>
                 <Pressable
-                    className="h-[60px] border-2 rounded-[20px] px-5 flex-row items-center justify-between"
-                    style={{ borderColor }}
+                    className="h-14 border-2 rounded-[24px] px-4 flex-row items-center justify-between"
+                    style={{ borderColor, backgroundColor }}
                     onPress={() => setShowCityPicker(!showCityPicker)}
                 >
                     <Text style={{ color: city ? textColor : subtextColor }} className="text-base font-medium">
@@ -786,7 +804,7 @@ export default function ProfileScreen() {
                 {showCityPicker && (
                     <Box className="mt-2 rounded-[24px] border-2 p-3 shadow-sm" style={{ backgroundColor: `${subtextColor}05`, borderColor: `${borderColor}50` }}>
                         <BottomSheetTextInput
-                            style={{ height: 48, borderWidth: 1.5, borderRadius: 16, paddingHorizontal: 16, fontSize: 14, color: textColor, borderColor: `${borderColor}30`, backgroundColor: cardColor, marginBottom: 12 }}
+                            style={{ height: FormFieldTokens.height, borderWidth: 2, borderRadius: FormFieldTokens.radius, paddingHorizontal: FormFieldTokens.horizontalPadding, fontSize: FormFieldTokens.fontSize, color: textColor, borderColor: `${borderColor}60`, backgroundColor, marginBottom: 12 }}
                             placeholder="Type city name..."
                             placeholderTextColor={subtextColor}
                             value={citySearch}

@@ -578,8 +578,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     <HStack className="items-center px-6 pb-4" space="md">
                         <Pressable
                             onPress={() => router.back()}
-                            className="w-10 h-10 rounded-full items-center justify-center bg-gray-50 border shadow-xs"
-                            style={{ borderColor }}
+                            className="w-10 h-10 rounded-full items-center justify-center border shadow-xs"
+                            style={{ backgroundColor: cardColor, borderColor }}
                         >
                             <IconSymbol name="chevron.left" size={20} color={textColor} />
                         </Pressable>
@@ -606,8 +606,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                 pathname: '/community-room',
                                 params: selectedCity ? { city: selectedCity } : undefined,
                             })}
-                            className="w-10 h-10 rounded-full items-center justify-center bg-gray-50 border shadow-xs"
-                            style={{ borderColor }}
+                            className="w-10 h-10 rounded-full items-center justify-center border shadow-xs"
+                            style={{ backgroundColor: cardColor, borderColor }}
                         >
                             <IconSymbol name="info.circle.fill" size={20} color={primaryColor} />
                         </Pressable>
@@ -671,12 +671,16 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                 placeholder: 'Post a thought or query...',
                                 editable: Boolean(selectedCity),
                                 placeholderTextColor: subtextColor,
-                                className: "flex-1 text-[15px] p-4 h-14 rounded-[24px] border-2",
+                                className: "flex-1 text-[15px] px-4 py-2 rounded-[24px] border-2",
                                 style: {
                                     color: textColor,
                                     backgroundColor: cardColor,
                                     borderColor,
+                                    minHeight: 44,
+                                    maxHeight: 120,
+                                    textAlignVertical: 'center',
                                 },
+                                multiline: true,
                             }}
                             listProps={{
                                 ref: (r: any) => {
@@ -798,27 +802,27 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                 return null;
                             }}
                             renderInputToolbar={(props: any) => (
-                                <Box style={{ backgroundColor }}>
+                                <Box className="border-t" style={{ backgroundColor, borderTopColor: borderColor }}>
                                     {replyingTo && (
-                                        <Box className="flex-row items-center px-4 py-3 border-t bg-white/5" style={{ borderColor }}>
-                                            <Box className="w-1.5 h-full rounded-full mr-3 bg-primary-500" />
+                                        <Box className="flex-row items-center px-4 py-2 border-b bg-gray-50/50" style={{ borderBottomColor: borderColor }}>
+                                            <Box className="w-1 h-8 rounded-full mr-3" style={{ backgroundColor: primaryColor }} />
                                             <VStack className="flex-1">
                                                 <GSText className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
                                                     Replying to {replyingTo.user.name || (replyingTo.user as any).username || 'Member'}
                                                 </GSText>
-                                                <GSText className="text-xs font-medium opacity-60" style={{ color: subtextColor }} numberOfLines={1}>
+                                                <GSText className="text-xs font-semibold opacity-70" style={{ color: subtextColor }} numberOfLines={1}>
                                                     {replyingTo.text}
                                                 </GSText>
                                             </VStack>
                                             <Pressable 
                                                 onPress={() => setReplyingTo(null)} 
-                                                className="w-8 h-8 rounded-full items-center justify-center bg-gray-100"
+                                                className="w-7 h-7 rounded-full items-center justify-center bg-gray-200"
                                             >
-                                                <IconSymbol name="xmark" size={14} color={subtextColor} />
+                                                <IconSymbol name="xmark" size={12} color={subtextColor} />
                                             </Pressable>
                                         </Box>
                                     )}
-                                    <HStack className="items-end px-4 py-3" style={{ gap: 10 }}>
+                                    <HStack className="items-end px-4 py-2.5" space="sm">
                                         <InputToolbar
                                             {...props}
                                             containerStyle={{
@@ -826,20 +830,21 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                                 paddingHorizontal: 0,
                                                 backgroundColor: 'transparent',
                                                 flex: 1,
+                                                justifyContent: 'flex-end',
                                             }}
                                             primaryStyle={{ alignItems: 'flex-end' }}
                                         />
                                         <Pressable
                                             onPress={handlePressSend}
                                             disabled={!composerText.trim() || isSending}
-                                            className="w-14 h-14 rounded-[20px] items-center justify-center shadow-xl mb-1.5"
+                                            className="w-11 h-11 rounded-full items-center justify-center shadow-sm mb-0.5"
                                             style={{
                                                 backgroundColor: composerText.trim() && !isSending ? primaryColor : `${subtextColor}20`,
                                             }}
                                         >
                                             <IconSymbol
                                                 name="paperplane.fill"
-                                                size={20}
+                                                size={18}
                                                 color={composerText.trim() && !isSending ? '#FFFFFF' : subtextColor}
                                             />
                                         </Pressable>
@@ -885,8 +890,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                     </GSText>
                                 </VStack>
                                 <HStack 
-                                    className="items-center px-4 h-14 rounded-[20px] border-2 shadow-sm mt-6" 
-                                    style={{ backgroundColor: `${subtextColor}08`, borderColor }}
+                                    className="items-center px-4 h-14 rounded-[24px] border-2 shadow-sm mt-6" 
+                                    style={{ backgroundColor: cardColor, borderColor }}
                                     space="md"
                                 >
                                     <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
@@ -894,7 +899,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                         placeholder="Search your city..."
                                         placeholderTextColor={subtextColor}
                                         className="flex-1 text-[15px] font-medium"
-                                        style={{ color: textColor }}
+                                        style={{ color: textColor, marginLeft: 2 }}
                                         value={citySearch}
                                         onChangeText={setCitySearch}
                                         autoCorrect={false}

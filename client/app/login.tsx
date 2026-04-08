@@ -224,7 +224,7 @@ export default function LoginScreen() {
 
                 {/* Footer Section */}
                 <Animated.View entering={FadeIn.delay(800)} style={{ marginTop: 30, alignItems: 'center' }}>
-                    <HStack className="items-center px-5" space="sm">
+                    <HStack className="items-center justify-center" space="sm">
                         <Pressable
                             onPress={() => setIsTermsAccepted(!isTermsAccepted)}
                             className="p-1"
@@ -235,12 +235,12 @@ export default function LoginScreen() {
                                 color={isTermsAccepted ? primaryColor : subtextColor}
                             />
                         </Pressable>
-                        <Pressable onPress={() => router.push('/terms')} className="flex-1">
-                            <VStack>
-                                <Text className="text-sm opacity-80" style={{ color: subtextColor }}>
+                        <Pressable onPress={() => router.push('/terms')}>
+                            <VStack className="items-center">
+                                <Text className="text-sm opacity-80 text-center" style={{ color: subtextColor }}>
                                     By continuing, you agree to
                                 </Text>
-                                <Text className="text-sm font-semibold underline" style={{ color: primaryColor }}>
+                                <Text className="text-sm font-semibold underline text-center" style={{ color: primaryColor }}>
                                   Terms and Privacy Policy.
                                 </Text>
                             </VStack>

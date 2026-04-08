@@ -16,6 +16,7 @@ type CommunityActionCardProps = {
   icon: string;
   title: string;
   subtitle: string;
+  cardColor: string;
   primaryColor: string;
   subtextColor: string;
   textColor: string;
@@ -27,6 +28,7 @@ function CommunityActionCard({
   icon,
   title,
   subtitle,
+  cardColor,
   primaryColor,
   subtextColor,
   textColor,
@@ -36,17 +38,17 @@ function CommunityActionCard({
   return (
     <Pressable
       className="rounded-[28px] border p-5 mb-4 shadow-sm"
-      style={{ backgroundColor: 'transparent', borderColor }}
+      style={{ backgroundColor: cardColor, borderColor }}
       onPress={onPress}
     >
-      <HStack className="items-center" space="xl">
+      <HStack className="items-center justify-between">
         <Box
           className="h-12 w-12 rounded-full items-center justify-center shadow-inner"
           style={{ backgroundColor: `${primaryColor}10` }}
         >
           <IconSymbol name={icon as any} size={22} color={primaryColor} />
         </Box>
-        <VStack className="flex-1" space="xs">
+        <VStack className="flex-1 mx-4" space="xs">
           <Text className="text-base font-bold" style={{ color: textColor }}>
             {title}
           </Text>
@@ -123,7 +125,7 @@ export default function CommunityTabScreen() {
                 <Spinner size="small" color={primaryColor} />
               ) : (
                 <Text className="text-xs font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-                  {totalMembers > 0 ? `${totalMembers} active members and growing rapidly` : 'Active members and growing rapidly'}
+                  {totalMembers > 0 ? `${totalMembers} active members & growing rapidly` : 'Active members & growing rapidly'}
                 </Text>
               )}
             </HStack>
@@ -135,6 +137,7 @@ export default function CommunityTabScreen() {
             icon="message.fill"
             title="Open chat room"
             subtitle="Join the live public conversation in a dedicated chat screen."
+            cardColor={cardColor}
             primaryColor={primaryColor}
             subtextColor={subtextColor}
             textColor={textColor}
@@ -146,6 +149,7 @@ export default function CommunityTabScreen() {
             icon="person.2.fill"
             title="Browse Members"
             subtitle="See all users who are part of the public community."
+            cardColor={cardColor}
             primaryColor={primaryColor}
             subtextColor={subtextColor}
             textColor={textColor}
