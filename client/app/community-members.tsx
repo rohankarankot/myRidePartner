@@ -11,7 +11,6 @@ import {
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 
-import { AppLoader } from '@/components/app-loader';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { userService } from '@/services/user-service';
 import { CommunityMember } from '@/types/api';
@@ -25,6 +24,7 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Spinner } from '@/components/ui/spinner';
 import { Divider } from '@/components/ui/divider';
+import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 const PAGE_SIZE = 20;
 
@@ -124,11 +124,7 @@ export default function CommunityMembersScreen() {
   );
 
   if (isLoading) {
-    return (
-      <Box className="flex-1 items-center justify-center p-8" style={{ backgroundColor }}>
-        <Spinner size="large" color={primaryColor} />
-      </Box>
-    );
+    return <ListPageSkeleton />;
   }
 
   return (

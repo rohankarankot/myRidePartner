@@ -16,7 +16,7 @@ import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
-import { Spinner } from '@/components/ui/spinner';
+import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 export default function RequestsScreen() {
   const { user } = useAuth();
@@ -94,6 +94,9 @@ export default function RequestsScreen() {
         }}
       />
 
+      {isLoading && !isRefetching ? (
+        <ListPageSkeleton />
+      ) : (
       <FlatList
         data={requests}
         keyExtractor={(item) => item.id.toString()}
@@ -102,24 +105,21 @@ export default function RequestsScreen() {
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={primaryColor} />}
         ListEmptyComponent={
           <Box className="flex-1 items-center justify-center px-10 py-32">
-            {isLoading ? (
-              <Spinner size="large" color={primaryColor} />
-            ) : (
-              <VStack space="md" className="items-center">
-                <Box className="w-16 h-16 rounded-full bg-gray-50 items-center justify-center">
-                    <IconSymbol name="checkmark.circle.fill" size={32} color={subtextColor} />
-                </Box>
-                <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
-                  No pending requests
-                </Text>
-                <Text className="text-sm text-center leading-6" style={{ color: subtextColor }}>
-                  When people request to join your rides, they will appear here.
-                </Text>
-              </VStack>
-            )}
+            <VStack space="md" className="items-center">
+              <Box className="w-16 h-16 rounded-full bg-gray-50 items-center justify-center">
+                  <IconSymbol name="checkmark.circle.fill" size={32} color={subtextColor} />
+              </Box>
+              <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
+                No pending requests
+              </Text>
+              <Text className="text-sm text-center leading-6" style={{ color: subtextColor }}>
+                When people request to join your rides, they will appear here.
+              </Text>
+            </VStack>
           </Box>
         }
       />
+      )}
     </SafeAreaView>
   );
 }

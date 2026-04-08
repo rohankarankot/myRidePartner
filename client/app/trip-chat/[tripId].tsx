@@ -27,8 +27,8 @@ import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { VStack } from '@/components/ui/vstack';
-import { Spinner } from '@/components/ui/spinner';
 import { HStack } from '@/components/ui/hstack';
+import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
 const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
@@ -1066,9 +1066,8 @@ export default function TripChatScreen() {
             </Box>
 
             {isLoadingAccess || isLoadingMessages ? (
-                <Box className="flex-1 items-center justify-center" style={{ backgroundColor, paddingTop: headerHeight }}>
-                    <Spinner size="large" color={primaryColor} />
-                    <Text className="mt-4 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Synchronizing messages…</Text>
+                <Box className="flex-1" style={{ backgroundColor, paddingTop: headerHeight }}>
+                    <ListPageSkeleton showHeader={false} />
                 </Box>
             ) : isBlocked ? (
                 <Box className="flex-1 items-center justify-center px-8" style={{ backgroundColor, paddingTop: headerHeight }}>

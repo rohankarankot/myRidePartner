@@ -33,8 +33,8 @@ import { Text as GSText } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
-import { Spinner } from '@/components/ui/spinner';
 import { Button, ButtonText } from '@/components/ui/button';
+import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 const MESSAGE_PAGE_SIZE = 40;
 
@@ -615,8 +615,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                 </Box>
 
                 {isLoading ? (
-                    <Box className="flex-1 items-center justify-center" style={{ paddingTop: headerHeight }}>
-                        <Spinner size="large" color={primaryColor} />
+                    <Box className="flex-1" style={{ paddingTop: headerHeight }}>
+                        <ListPageSkeleton showHeader={false} />
                     </Box>
                 ) : !selectedCity ? (
                     <Box className="flex-1 items-center justify-center px-10" style={{ paddingTop: headerHeight }}>

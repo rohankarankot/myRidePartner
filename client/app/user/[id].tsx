@@ -19,8 +19,8 @@ import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Spinner } from '@/components/ui/spinner';
 import { Divider } from '@/components/ui/divider';
+import { ProfileSkeleton } from '@/features/profile/components/ProfileSkeleton';
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams();
@@ -109,9 +109,7 @@ export default function UserProfileScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
         <Stack.Screen options={screenOptions} />
-        <Box className="flex-1 items-center justify-center">
-          <Spinner size="large" color={primaryColor} />
-        </Box>
+        <ProfileSkeleton />
       </SafeAreaView>
     );
   }

@@ -16,9 +16,9 @@ import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText, ButtonSpinner } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import { Divider } from '@/components/ui/divider';
 import { CustomAlert } from '@/components/CustomAlert';
+import { DetailPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 export default function RequestDetailsScreen() {
   const { documentId } = useLocalSearchParams();
@@ -80,9 +80,7 @@ export default function RequestDetailsScreen() {
 
   if (isLoading) {
     return (
-      <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
-        <Spinner size="large" color={primaryColor} />
-      </Box>
+      <DetailPageSkeleton />
     );
   }
 

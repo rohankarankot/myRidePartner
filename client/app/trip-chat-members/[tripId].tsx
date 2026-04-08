@@ -18,8 +18,8 @@ import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Spinner } from '@/components/ui/spinner';
 import { Divider } from '@/components/ui/divider';
+import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 type MemberRow = {
     id: number;
@@ -166,10 +166,7 @@ export default function TripChatMembersScreen() {
             />
 
             {isLoading && !isRefetching ? (
-                <Box className="flex-1 items-center justify-center">
-                    <Spinner size="large" color={primaryColor} />
-                    <Text className="mt-4 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Scanning group…</Text>
-                </Box>
+                <ListPageSkeleton />
             ) : (
                 <FlatList
                     data={members}

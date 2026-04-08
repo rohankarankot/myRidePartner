@@ -16,6 +16,7 @@ import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Spinner } from '@/components/ui/spinner';
 import { Divider } from '@/components/ui/divider';
+import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 const DUMMY_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix';
 const PAGE_SIZE = 10;
@@ -94,9 +95,7 @@ export default function RatingsScreen() {
       />
 
       {isLoading ? (
-        <Box className="flex-1 items-center justify-center p-8">
-          <Spinner size="large" color={primaryColor} />
-        </Box>
+        <ListPageSkeleton />
       ) : error ? (
         <VStack className="flex-1 items-center justify-center p-8" space="lg">
           <Box className="w-16 h-16 rounded-full bg-red-50 items-center justify-center">

@@ -39,6 +39,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Input, InputField } from '@/components/ui/input';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { FormField as FormFieldTokens } from '@/constants/ui';
+import { Skeleton } from '@/components/skeleton';
 
 
 type FormErrors = Partial<
@@ -517,11 +518,30 @@ export default function CreateScreen() {
 
   if (isEditing && isEditTripLoading && !hasLoadedEditTrip) {
     return (
-      <Box className="flex-1 items-center justify-center px-10" style={{ backgroundColor }}>
-        <Spinner size="large" color={primaryColor} />
-        <Text className="mt-4 text-sm font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
-          Synchronizing ride data…
-        </Text>
+      <Box className="flex-1" style={{ backgroundColor }}>
+        <VStack className="px-6 pt-8" space="lg">
+          <VStack space="xs" className="mb-2">
+            <Skeleton width="38%" height={28} borderRadius={14} />
+            <Skeleton width="64%" height={16} borderRadius={8} />
+          </VStack>
+
+          <Box className="mx-6 rounded-[32px] border p-6 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+            <VStack space="md">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <VStack key={index} space="xs">
+                  <Skeleton width={index % 2 === 0 ? 80 : 96} height={12} borderRadius={6} />
+                  <Skeleton width="100%" height={56} borderRadius={24} />
+                </VStack>
+              ))}
+              <Skeleton width="100%" height={110} borderRadius={24} />
+              <HStack space="md">
+                <Skeleton width="31%" height={48} borderRadius={20} />
+                <Skeleton width="31%" height={48} borderRadius={20} />
+                <Skeleton width="31%" height={48} borderRadius={20} />
+              </HStack>
+            </VStack>
+          </Box>
+        </VStack>
       </Box>
     );
   }

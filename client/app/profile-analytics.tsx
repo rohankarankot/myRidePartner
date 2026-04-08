@@ -9,9 +9,9 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { ProfileAnalyticsCard } from '@/components/profile-analytics-card';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
-import { Spinner } from '@/components/ui/spinner';
 import { VStack } from '@/components/ui/vstack';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { AnalyticsPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 export default function ProfileAnalyticsScreen() {
   const { user } = useAuth();
@@ -28,9 +28,9 @@ export default function ProfileAnalyticsScreen() {
 
   if (isLoading) {
     return (
-      <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
+      <Box className="flex-1" style={{ backgroundColor }}>
         <Stack.Screen options={{ title: 'Your Analytics', headerTitleStyle: { fontWeight: '800' } }} />
-        <Spinner size="large" color={primaryColor} />
+        <AnalyticsPageSkeleton />
       </Box>
     );
   }
