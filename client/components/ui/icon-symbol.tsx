@@ -47,6 +47,8 @@ const MAPPING = {
   'google.logo': 'login',
   'checkmark.circle': 'check-circle-outline',
   'camera.fill': 'photo-camera',
+  'photo.fill': 'photo-library',
+  'map.fill': 'map',
   'trash.fill': 'delete',
   'person.crop.circle.badge.exclamationmark': 'error-outline',
   'exclamationmark.circle.fill': 'error',

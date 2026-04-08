@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
-  TextInput,
+  NativeSyntheticEvent,
   Platform,
   Switch,
   KeyboardAvoidingView,
   Linking,
   Share,
+  TextInputContentSizeChangeEventData,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -34,7 +35,6 @@ import { Button, ButtonText } from '@/components/ui/button';
 import { Pressable } from '@/components/ui/pressable';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
-import { Divider } from '@/components/ui/divider';
 import { Spinner } from '@/components/ui/spinner';
 import { Input, InputField } from '@/components/ui/input';
 import { useUserProfile } from '@/hooks/use-user-profile';
@@ -68,6 +68,7 @@ function FormField({
   editable = true,
   onPress,
   multiline = false,
+  compactMultiline = false,
   numberOfLines = 1,
   error,
   onFocus,
@@ -81,6 +82,7 @@ function FormField({
   editable?: boolean;
   onPress?: () => void;
   multiline?: boolean;
+  compactMultiline?: boolean;
   numberOfLines?: number;
   error?: string;
   onFocus?: () => void;
@@ -90,6 +92,27 @@ function FormField({
   const borderColor = useThemeColor({}, 'border');
   const dangerColor = useThemeColor({}, 'danger');
   const cardColor = useThemeColor({}, 'card');
+  const multilinePadding = 14;
+  const singleLineContentHeight = 24;
+  const initialContentHeight = compactMultiline
+    ? singleLineContentHeight
+    : FormFieldTokens.multilineMinHeight - multilinePadding * 2;
+  const [contentHeight, setContentHeight] = useState(initialContentHeight);
+
+  const baseMultilineHeight = compactMultiline
+    ? FormFieldTokens.height
+    : FormFieldTokens.multilineMinHeight;
+  const multilineHeight = Math.max(baseMultilineHeight, contentHeight + multilinePadding * 2);
+  const isExpandedMultiline = multiline && multilineHeight > FormFieldTokens.height;
+  const handleContentSizeChange = (
+    event: NativeSyntheticEvent<TextInputContentSizeChangeEventData>
+  ) => {
+    if (!multiline) {
+      return;
+    }
+
+    setContentHeight(event.nativeEvent.contentSize.height);
+  };
 
   return (
     <VStack space="xs" className="mb-6">
@@ -105,14 +128,18 @@ function FormField({
         style={{
           borderColor: error ? dangerColor : borderColor,
           backgroundColor: cardColor,
-          minHeight: multiline ? FormFieldTokens.multilineMinHeight : FormFieldTokens.height,
-          height: multiline ? 'auto' : FormFieldTokens.height,
-          alignItems: multiline ? 'flex-start' : 'center',
+          minHeight: multiline ? multilineHeight : FormFieldTokens.height,
+          height: multiline ? undefined : FormFieldTokens.height,
+          alignItems: isExpandedMultiline ? 'flex-start' : 'center',
         }}
       >
         <Pressable
           onPress={onPress}
-          className="flex-1 w-full h-full flex-row items-center px-3"
+          className="flex-1 w-full flex-row px-3"
+          style={{
+            minHeight: multiline ? multilineHeight : FormFieldTokens.height,
+            alignItems: isExpandedMultiline ? 'flex-start' : 'center',
+          }}
           disabled={!onPress}
         >
           <IconSymbol
@@ -121,8 +148,8 @@ function FormField({
             color={subtextColor}
             style={{
               marginRight: 10,
-              marginTop: multiline ? 16 : 0,
-              alignSelf: multiline ? 'flex-start' : 'center'
+              marginTop: isExpandedMultiline ? 16 : 0,
+              alignSelf: isExpandedMultiline ? 'flex-start' : 'center'
             }}
           />
           <InputField
@@ -131,11 +158,11 @@ function FormField({
             className="flex-1 text-[15px] font-medium"
             style={{
               color: textColor,
-              textAlignVertical: multiline ? 'top' : 'center',
-              paddingTop: multiline ? 14 : 0,
-              paddingBottom: 0,
-              height: multiline ? undefined : FormFieldTokens.height,
-              minHeight: multiline ? 82 : undefined,
+              textAlignVertical: isExpandedMultiline ? 'top' : 'center',
+              paddingTop: isExpandedMultiline ? multilinePadding : 0,
+              paddingBottom: isExpandedMultiline ? multilinePadding : 0,
+              height: isExpandedMultiline || multiline ? undefined : FormFieldTokens.height,
+              minHeight: multiline ? contentHeight : undefined,
             }}
             value={value}
             onChangeText={onChangeText}
@@ -144,6 +171,8 @@ function FormField({
             multiline={multiline}
             numberOfLines={numberOfLines}
             onFocus={onFocus}
+            scrollEnabled={false}
+            onContentSizeChange={handleContentSizeChange}
           />
         </Pressable>
       </Input>
@@ -648,6 +677,9 @@ export default function CreateScreen() {
                 value={from}
                 error={errors.from}
                 onPress={() => setShowFromPicker(true)}
+                multiline
+                compactMultiline
+                numberOfLines={1}
               />
 
               <FormField
@@ -657,6 +689,9 @@ export default function CreateScreen() {
                 value={to}
                 error={errors.to}
                 onPress={() => setShowToPicker(true)}
+                multiline
+                compactMultiline
+                numberOfLines={1}
               />
 
               <VStack space="md">

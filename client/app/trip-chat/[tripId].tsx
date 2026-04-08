@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, FlatList, Image, KeyboardAvoidingView, Linking, Modal, Platform, TextInput, useWindowDimensions } from 'react-native';
+import { Animated, AppState, FlatList, Image, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, TextInput, useWindowDimensions } from 'react-native';
+import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -272,6 +273,7 @@ export default function TripChatScreen() {
     const queryClient = useQueryClient();
     const insets = useSafeAreaInsets();
     const [composerText, setComposerText] = useState('');
+    const [composerHeight, setComposerHeight] = useState(48);
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -293,6 +295,37 @@ export default function TripChatScreen() {
     const isChatScreenActiveRef = useRef(false);
     const flatListRef = useRef<FlatList<any>>(null);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const mediaSheetRef = useRef<BottomSheetModal>(null);
+    const keyboardHeight = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+        const onShow = (e: any) => {
+            Animated.timing(keyboardHeight, {
+                toValue: e.endCoordinates.height,
+                duration: Platform.OS === 'ios' ? e.duration : 200,
+                useNativeDriver: false,
+            }).start();
+        };
+
+        const onHide = (e: any) => {
+            Animated.timing(keyboardHeight, {
+                toValue: 0,
+                duration: Platform.OS === 'ios' ? (e?.duration ?? 200) : 200,
+                useNativeDriver: false,
+            }).start();
+        };
+
+        const showSub = Keyboard.addListener(showEvent, onShow);
+        const hideSub = Keyboard.addListener(hideEvent, onHide);
+
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, [keyboardHeight]);
 
     const flashMessageHighlight = (messageId: string) => {
         if (highlightTimeoutRef.current) {
@@ -584,6 +617,15 @@ export default function TripChatScreen() {
         }
     };
 
+    const handleComposerContentSizeChange = (event: any) => {
+        const nextHeight = Math.min(160, Math.max(48, event.nativeEvent.contentSize.height + 8));
+        setComposerHeight(nextHeight);
+    };
+
+    const renderMediaSheetBackdrop = (props: any) => (
+        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.45} />
+    );
+
     const handleSend = async (outgoingMessages: IMessage[] = []) => {
         const outgoing = outgoingMessages[0];
         const trimmedMessage = outgoing?.text?.trim();
@@ -598,6 +640,7 @@ export default function TripChatScreen() {
         const currentReplyTo = replyingTo;
         setReplyingTo(null);
         setActiveMessageMenuId(null);
+        setComposerHeight(48);
 
         const optimisticMessage = fromGiftedMessage(
             {
@@ -640,6 +683,7 @@ export default function TripChatScreen() {
             );
 
             setComposerText(trimmedMessage);
+            setComposerHeight(48);
             Toast.show({
                 type: 'error',
                 text1: 'Message Failed',
@@ -725,12 +769,25 @@ export default function TripChatScreen() {
         }
     };
 
-    const handlePickAndSendMedia = async () => {
+    const setSelectedMediaDraft = (localUri?: string | null) => {
+        if (!localUri) {
+            return;
+        }
+
+        setPendingMediaDraft({
+            localUri,
+            caption: '',
+            replyTo: replyingTo || undefined,
+        });
+    };
+
+    const handleOpenGallery = async () => {
         if (!tripId || !user || isSending || isSendingMedia) {
             return;
         }
 
         try {
+            mediaSheetRef.current?.dismiss();
             const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (permission.status !== 'granted') {
                 Toast.show({
@@ -743,26 +800,63 @@ export default function TripChatScreen() {
 
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ['images'],
-                allowsEditing: true,
-                quality: 0.8,
+                allowsEditing: false,
+                quality: 0.6,
             });
 
-            if (result.canceled || !result.assets?.[0]?.uri) {
-                return;
+            if (!result.canceled) {
+                setSelectedMediaDraft(result.assets?.[0]?.uri);
             }
-
-            setPendingMediaDraft({
-                localUri: result.assets[0].uri,
-                caption: '',
-                replyTo: replyingTo || undefined,
-            });
         } catch {
             Toast.show({
                 type: 'error',
                 text1: 'Image Failed',
-                text2: 'Unable to share your image right now.',
+                text2: 'Unable to open your gallery right now.',
             });
         }
+    };
+
+    const handleOpenCamera = async () => {
+        if (!tripId || !user || isSending || isSendingMedia) {
+            return;
+        }
+
+        try {
+            mediaSheetRef.current?.dismiss();
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (permission.status !== 'granted') {
+                Toast.show({
+                    type: 'info',
+                    text1: 'Camera Permission Needed',
+                    text2: 'Allow camera access to take a photo in the ride chat.',
+                });
+                return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                allowsEditing: false,
+                quality: 0.8,
+            });
+
+            if (!result.canceled) {
+                setSelectedMediaDraft(result.assets?.[0]?.uri);
+            }
+        } catch {
+            Toast.show({
+                type: 'error',
+                text1: 'Image Failed',
+                text2: 'Unable to open your camera right now.',
+            });
+        }
+    };
+
+    const handlePickAndSendMedia = () => {
+        if (!tripId || !user || isSending || isSendingMedia) {
+            return;
+        }
+
+        mediaSheetRef.current?.present();
     };
 
     const handleSendPendingMedia = async () => {
@@ -892,77 +986,120 @@ export default function TripChatScreen() {
         <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['left', 'right', 'bottom']}>
             <Modal
                 visible={!!pendingMediaDraft}
-                transparent
+                transparent={false}
                 animationType="slide"
                 onRequestClose={() => !isSendingMedia && setPendingMediaDraft(null)}
             >
-                <KeyboardAvoidingView
-                    className="flex-1 bg-black/40"
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
-                >
-                    <Box className="flex-1 rounded-t-[32px] overflow-hidden" style={{ backgroundColor }}>
-                        <HStack
-                            className="items-center justify-between px-4 pb-4 border-b"
-                            style={{ borderBottomColor: borderColor, paddingTop: modalTopInset }}
+                <SafeAreaView style={{ flex: 1, backgroundColor }}>
+                    {/* Header */}
+                    <HStack
+                        className="items-center justify-between px-5 py-3 border-b"
+                        style={{ borderBottomColor: borderColor }}
+                    >
+                        <Pressable
+                            onPress={() => setPendingMediaDraft(null)}
+                            disabled={isSendingMedia}
+                            className="w-10 h-10 rounded-full items-center justify-center border"
+                            style={{ borderColor, backgroundColor: cardColor }}
                         >
-                            <Pressable
-                                onPress={() => setPendingMediaDraft(null)}
-                                disabled={isSendingMedia}
-                                className="w-10 h-10 rounded-full items-center justify-center bg-gray-50 border shadow-xs"
-                                style={{ borderColor }}
-                            >
-                                <IconSymbol name="xmark" size={20} color={textColor} />
-                            </Pressable>
-                            <Text className="text-base font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Send photo</Text>
-                            <Box className="w-10" />
-                        </HStack>
+                            <IconSymbol name="xmark" size={18} color={textColor} />
+                        </Pressable>
+                        <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                            Send photo
+                        </Text>
+                        <Box className="w-10" />
+                    </HStack>
 
-                        {pendingMediaDraft ? (
-                            <Box className="flex-1 p-4 gap-4">
-                                <Image
-                                    source={{ uri: pendingMediaDraft.localUri }}
-                                    className="w-full h-[340px] rounded-2xl bg-black"
-                                    resizeMode="contain"
-                                />
-                                {pendingMediaDraft.replyTo ? (
-                                    <VStack className="border rounded-2xl px-4 py-3 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
-                                        <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-1" style={{ color: primaryColor }}>
-                                            Replying to {pendingMediaDraft.replyTo.user.name}
-                                        </Text>
-                                        <Text className="text-[13px] font-medium" style={{ color: subtextColor }} numberOfLines={1}>
-                                            {summarizeMessageContent(pendingMediaDraft.replyTo.text)}
-                                        </Text>
-                                    </VStack>
-                                ) : null}
-                                <Box className="mt-auto">
-                                    <HStack className="items-end" space="md">
-                                        <TextInput
-                                            value={pendingMediaDraft.caption}
-                                            onChangeText={(caption) =>
-                                                setPendingMediaDraft((current) => current ? { ...current, caption } : current)
-                                            }
-                                            placeholder="Add a caption (optional)"
-                                            placeholderTextColor={subtextColor}
-                                            multiline
-                                            maxLength={300}
-                                            className="flex-1 min-h-[56px] max-h-[120px] border-2 rounded-[24px] px-4 py-3 text-[15px]"
-                                            style={{ color: textColor, backgroundColor: cardColor, borderColor, textAlignVertical: 'top' }}
-                                        />
-                                        <Pressable
-                                            onPress={handleSendPendingMedia}
-                                            disabled={isSendingMedia}
-                                            className="w-14 h-14 rounded-full items-center justify-center shadow-xl"
-                                            style={{ backgroundColor: isSendingMedia ? `${subtextColor}33` : primaryColor }}
-                                        >
-                                            <IconSymbol name="paperplane.fill" size={20} color="#FFFFFF" />
-                                        </Pressable>
-                                    </HStack>
+                    {pendingMediaDraft ? (
+                        <Box className="flex-1">
+                            {/* Image — vertically centered, 45% of screen */}
+                            <Box className="flex-1 items-center justify-center px-4">
+                                <Box
+                                    className="w-full rounded-[24px] overflow-hidden items-center justify-center"
+                                    style={{
+                                        backgroundColor: '#000',
+                                        height: windowHeight * 0.45,
+                                    }}
+                                >
+                                    <Image
+                                        source={{ uri: pendingMediaDraft.localUri }}
+                                        style={{ width: '100%', height: '100%' }}
+                                        resizeMode="contain"
+                                    />
                                 </Box>
                             </Box>
-                        ) : null}
-                    </Box>
-                </KeyboardAvoidingView>
+
+                            {/* Floating bottom bar — moves up with keyboard */}
+                            <Animated.View
+                                style={{
+                                    paddingHorizontal: 16,
+                                    paddingTop: 10,
+                                    paddingBottom: 10,
+                                    backgroundColor,
+                                    borderTopWidth: 1,
+                                    borderTopColor: borderColor,
+                                    marginBottom: keyboardHeight,
+                                }}
+                            >
+                                {/* Reply preview */}
+                                {pendingMediaDraft.replyTo ? (
+                                    <HStack className="border rounded-2xl px-4 py-3 items-center mb-3" style={{ backgroundColor: cardColor, borderColor }} space="sm">
+                                        <Box className="w-1 h-8 rounded-full" style={{ backgroundColor: primaryColor }} />
+                                        <VStack className="flex-1">
+                                            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                                                Replying to {pendingMediaDraft.replyTo.user.name}
+                                            </Text>
+                                            <Text className="text-xs font-medium" style={{ color: subtextColor }} numberOfLines={1}>
+                                                {summarizeMessageContent(pendingMediaDraft.replyTo.text)}
+                                            </Text>
+                                        </VStack>
+                                    </HStack>
+                                ) : null}
+
+                                {/* Caption input + Send button */}
+                                <HStack className="items-end" space="sm">
+                                    <TextInput
+                                        value={pendingMediaDraft.caption}
+                                        onChangeText={(caption) =>
+                                            setPendingMediaDraft((current) => current ? { ...current, caption } : current)
+                                        }
+                                        placeholder="Add a caption..."
+                                        placeholderTextColor={subtextColor}
+                                        multiline
+                                        maxLength={300}
+                                        style={{
+                                            flex: 1,
+                                            color: textColor,
+                                            backgroundColor: cardColor,
+                                            borderColor,
+                                            borderWidth: 2,
+                                            borderRadius: 24,
+                                            paddingHorizontal: 16,
+                                            paddingTop: 12,
+                                            paddingBottom: 12,
+                                            fontSize: 15,
+                                            minHeight: 48,
+                                            maxHeight: 100,
+                                            textAlignVertical: 'top',
+                                        }}
+                                    />
+                                    <Pressable
+                                        onPress={handleSendPendingMedia}
+                                        disabled={isSendingMedia}
+                                        className="w-12 h-12 rounded-full items-center justify-center shadow-lg"
+                                        style={{ backgroundColor: isSendingMedia ? `${subtextColor}33` : primaryColor }}
+                                    >
+                                        {isSendingMedia ? (
+                                            <IconSymbol name="hourglass" size={18} color="#FFFFFF" />
+                                        ) : (
+                                            <IconSymbol name="paperplane.fill" size={18} color="#FFFFFF" />
+                                        )}
+                                    </Pressable>
+                                </HStack>
+                            </Animated.View>
+                        </Box>
+                    ) : null}
+                </SafeAreaView>
             </Modal>
 
             <Modal
@@ -972,13 +1109,14 @@ export default function TripChatScreen() {
                 onRequestClose={() => setPreviewMedia(null)}
             >
                 <Box className="flex-1 bg-black/95">
-                    <Pressable
-                        className="absolute inset-0"
-                        onPress={() => setPreviewMedia(null)}
-                    />
+                    <SafeAreaView style={{ flex: 1 }}>
+                        <Pressable
+                            className="absolute inset-0"
+                            onPress={() => setPreviewMedia(null)}
+                        />
 
-                    <Box className="flex-1 px-4" style={{ paddingTop: modalTopInset }}>
-                        <HStack className="justify-between items-center mb-4">
+                        {/* Header */}
+                        <HStack className="justify-between items-center px-4 py-2">
                             <Pressable
                                 onPress={() => setPreviewMedia(null)}
                                 className="w-10 h-10 rounded-full items-center justify-center bg-white/10"
@@ -988,29 +1126,38 @@ export default function TripChatScreen() {
                         </HStack>
 
                         {previewMedia ? (
-                            <Box className="flex-1 justify-center items-center w-full">
-                                <Zoom
-                                    style={{ flex: 1, width: '100%' }}
-                                    contentContainerStyle={{ flex: 1, justifyContent: 'center', alignItems: 'center' } as any}
-                                    minScale={1}
-                                    maxScale={5}
-                                    doubleTapConfig={{ defaultScale: 2.5, maxZoomScale: 5 }}
-                                >
-                                    <Image
-                                        source={{ uri: previewMedia.url }}
-                                        style={{
-                                            width: previewViewportWidth,
-                                            height: previewViewportHeight,
-                                        }}
-                                        resizeMode="contain"
-                                    />
-                                </Zoom>
+                            <>
+                                {/* Zoomable image — centered */}
+                                <Box className="flex-1 justify-center items-center px-4">
+                                    <Zoom
+                                        style={{ flex: 1, width: '100%' }}
+                                        contentContainerStyle={{ flex: 1, justifyContent: 'center', alignItems: 'center' } as any}
+                                        minScale={1}
+                                        maxScale={5}
+                                        doubleTapConfig={{ defaultScale: 2.5, maxZoomScale: 5 }}
+                                    >
+                                        <Image
+                                            source={{ uri: previewMedia.url }}
+                                            style={{
+                                                width: previewViewportWidth,
+                                                height: previewViewportHeight,
+                                            }}
+                                            resizeMode="contain"
+                                        />
+                                    </Zoom>
+                                </Box>
+
+                                {/* Caption — pinned at bottom, inside safe area */}
                                 {previewMedia.caption ? (
-                                    <Text className="mt-4 text-white text-[15px] font-medium text-center leading-[22px]">{previewMedia.caption}</Text>
+                                    <Box className="px-6 pb-3 pt-2">
+                                        <Text className="text-white text-[15px] font-medium text-center leading-[22px]">
+                                            {previewMedia.caption}
+                                        </Text>
+                                    </Box>
                                 ) : null}
-                            </Box>
+                            </>
                         ) : null}
-                    </Box>
+                    </SafeAreaView>
                 </Box>
             </Modal>
 
@@ -1033,6 +1180,76 @@ export default function TripChatScreen() {
                     messagePreview={reportTarget.messagePreview}
                 />
             ) : null}
+
+            <BottomSheetModal
+                ref={mediaSheetRef}
+                index={0}
+                snapPoints={['50%']}
+                backdropComponent={renderMediaSheetBackdrop}
+                backgroundStyle={{ backgroundColor: cardColor }}
+                handleIndicatorStyle={{ backgroundColor: subtextColor }}
+            >
+                <BottomSheetView style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 70 }}>
+                    <VStack space="lg">
+                        <VStack space="xs" className="items-center">
+                            <Text className="text-lg font-extrabold" style={{ color: textColor }}>
+                                Share Image
+                            </Text>
+
+                        </VStack>
+
+                        <HStack space="md">
+                            <Pressable
+                                onPress={() => void handleOpenCamera()}
+                                className="flex-1 rounded-[28px] border px-4 py-5 items-center"
+                                style={{ backgroundColor: backgroundColor, borderColor }}
+                            >
+                                <Box
+                                    className="w-14 h-14 rounded-full items-center justify-center mb-3"
+                                    style={{ backgroundColor: `${primaryColor}14` }}
+                                >
+                                    <IconSymbol name="camera.fill" size={22} color={primaryColor} />
+                                </Box>
+                                <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                    Camera
+                                </Text>
+                                <Text className="text-xs text-center mt-2 leading-5" style={{ color: subtextColor }}>
+                                    Take a new photo
+                                </Text>
+                            </Pressable>
+
+                            <Pressable
+                                onPress={() => void handleOpenGallery()}
+                                className="flex-1 rounded-[28px] border px-4 py-5 items-center"
+                                style={{ backgroundColor: backgroundColor, borderColor }}
+                            >
+                                <Box
+                                    className="w-14 h-14 rounded-full items-center justify-center mb-3"
+                                    style={{ backgroundColor: `${primaryColor}14` }}
+                                >
+                                    <IconSymbol name="photo.fill" size={22} color={primaryColor} />
+                                </Box>
+                                <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                    Gallery
+                                </Text>
+                                <Text className="text-xs text-center mt-2 leading-5" style={{ color: subtextColor }}>
+                                    Choose from photos
+                                </Text>
+                            </Pressable>
+                        </HStack>
+
+                        <Pressable
+                            onPress={() => mediaSheetRef.current?.dismiss()}
+                            className="rounded-2xl border py-4 items-center"
+                            style={{ borderColor, backgroundColor }}
+                        >
+                            <Text className="text-sm font-bold" style={{ color: textColor }}>
+                                Cancel
+                            </Text>
+                        </Pressable>
+                    </VStack>
+                </BottomSheetView>
+            </BottomSheetModal>
 
             <Box
                 className="absolute top-0 left-0 right-0 z-20 border-b flex-row items-center px-4"
@@ -1127,6 +1344,8 @@ export default function TripChatScreen() {
                         renderAvatarOnTop
                         keyboardShouldPersistTaps="handled"
                         minInputToolbarHeight={64}
+                        minComposerHeight={48}
+                        maxComposerHeight={160}
                         keyboardAvoidingViewProps={{ keyboardVerticalOffset: headerHeight }}
                         loadEarlier={Boolean(hasNextPage)}
                         onLoadEarlier={() => {
@@ -1144,12 +1363,7 @@ export default function TripChatScreen() {
                             onChangeText: handleComposerChange,
                             placeholder: 'Message group...',
                             placeholderTextColor: subtextColor,
-                            className: "flex-1 border-2 rounded-[24px] px-4 py-3 text-[15px] min-h-[48px]",
-                            style: {
-                                color: textColor,
-                                backgroundColor: cardColor,
-                                borderColor,
-                            },
+                            multiline: true,
                         }}
                         messagesContainerRef={flatListRef as any}
                         listProps={{
@@ -1186,8 +1400,8 @@ export default function TripChatScreen() {
                                         {isMenuOpen ? (
                                             <VStack
                                                 className="border-2 rounded-2xl py-2 min-w-[150px] mb-2 shadow-xl"
-                                                style={{ 
-                                                    backgroundColor: cardColor, 
+                                                style={{
+                                                    backgroundColor: cardColor,
                                                     borderColor: primaryColor + '40',
                                                     alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
                                                 }}
@@ -1278,12 +1492,7 @@ export default function TripChatScreen() {
                                                         {mediaPayload.caption}
                                                     </Text>
                                                 ) : null}
-                                                <Text
-                                                    className="text-[10px] font-extrabold uppercase mt-2 mx-1 tracking-widest"
-                                                    style={{ color: isCurrentUser ? 'rgba(255,255,255,0.75)' : subtextColor }}
-                                                >
-                                                    View Image
-                                                </Text>
+
                                             </Pressable>
                                         ) : (
                                             <Bubble
@@ -1378,7 +1587,7 @@ export default function TripChatScreen() {
                                             flex: 1,
                                             backgroundColor: 'transparent',
                                         }}
-                                        primaryStyle={{ alignItems: 'flex-end' }}
+                                        primaryStyle={{ alignItems: 'flex-end', alignSelf: 'stretch' }}
                                     />
                                     <Pressable
                                         onPress={handlePressSend}
@@ -1396,6 +1605,33 @@ export default function TripChatScreen() {
                                     </Pressable>
                                 </HStack>
                             </Box>
+                        )}
+                        renderComposer={(props: any) => (
+                            <TextInput
+                                value={composerText}
+                                onChangeText={handleComposerChange}
+                                onContentSizeChange={handleComposerContentSizeChange}
+                                placeholder={props.placeholder || 'Message group...'}
+                                placeholderTextColor={subtextColor}
+                                multiline
+                                scrollEnabled={composerHeight >= 160}
+                                textAlignVertical="top"
+                                style={{
+                                    flex: 1,
+                                    color: textColor,
+                                    backgroundColor: cardColor,
+                                    borderColor,
+                                    borderWidth: 2,
+                                    borderRadius: 24,
+                                    paddingHorizontal: 16,
+                                    paddingTop: 12,
+                                    paddingBottom: 12,
+                                    fontSize: 15,
+                                    minHeight: 48,
+                                    height: composerHeight,
+                                    maxHeight: 160,
+                                }}
+                            />
                         )}
                         renderSend={() => null}
                         renderChatEmpty={() => (

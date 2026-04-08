@@ -10,6 +10,7 @@ import {
     ScrollView,
     Alert,
     Modal,
+    Switch,
     TextInput,
 } from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
@@ -812,15 +813,15 @@ export default function TripDetailsScreen() {
             <BottomSheetModal
                 ref={joinSheetRef}
                 index={0}
-                snapPoints={['50%']}
+                snapPoints={['90%']}
                 backdropComponent={renderBackdrop}
                 onChange={handleSheetChanges}
             >
                 <BottomSheetView style={{ padding: 24 }}>
-                    <Text className="text-xl font-bold mb-4">Join Ride</Text>
+                    <Text className="text-xl font-bold mb-4" style={{ color: textColor }}>Join Ride</Text>
                     <VStack space="lg">
                         <HStack className="justify-between items-center">
-                            <Text>Seats</Text>
+                            <Text style={{ color: textColor }}>Seats</Text>
                             <HStack space="md" className="items-center">
                                 <Pressable onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
                                     <Text>-</Text>
@@ -831,6 +832,66 @@ export default function TripDetailsScreen() {
                                 </Pressable>
                             </HStack>
                         </HStack>
+
+                        <Box className="rounded-2xl border px-4 py-4" style={{ backgroundColor: cardColor, borderColor }}>
+                            <VStack space="md">
+                                <HStack className="items-center justify-between" space="md">
+                                    <VStack className="flex-1" space="xs">
+                                        <Text className="text-sm font-bold" style={{ color: textColor }}>
+                                            Share mobile number
+                                        </Text>
+                                        <Text className="text-xs leading-5" style={{ color: subtextColor }}>
+                                            Let the captain see your phone number in this join request.
+                                        </Text>
+                                    </VStack>
+                                    <Switch
+                                        value={sharePhoneNumber}
+                                        onValueChange={setSharePhoneNumber}
+                                        trackColor={{ false: borderColor, true: primaryColor }}
+                                    />
+                                </HStack>
+
+                                <Box
+                                    className="rounded-xl px-3 py-3"
+                                    style={{ backgroundColor: backgroundColor, borderColor, borderWidth: 1 }}
+                                >
+                                    <HStack className="items-center" space="sm">
+                                        <IconSymbol name="phone.fill" size={14} color={subtextColor} />
+                                        <Text className="text-xs font-medium" style={{ color: subtextColor }}>
+                                            {sharePhoneNumber
+                                                ? profile?.phoneNumber || 'Phone unavailable'
+                                                : maskPhoneNumber(profile?.phoneNumber)}
+                                        </Text>
+                                    </HStack>
+                                </Box>
+                            </VStack>
+                        </Box>
+
+                        <Box className="rounded-2xl border px-4 py-4" style={{ backgroundColor: cardColor, borderColor }}>
+                            <VStack space="sm">
+                                <Text className="text-sm font-bold" style={{ color: textColor }}>
+                                    Message to captain
+                                </Text>
+                                <Text className="text-xs leading-5" style={{ color: subtextColor }}>
+                                    Add a quick note if you want to mention pickup timing or anything important.
+                                </Text>
+                                <BottomSheetTextInput
+                                    placeholder="Optional message"
+                                    placeholderTextColor={subtextColor}
+                                    value={requestMessage}
+                                    onChangeText={setRequestMessage}
+                                    multiline
+                                    textAlignVertical="top"
+                                    style={{
+                                        color: textColor,
+                                        minHeight: 84,
+                                        fontSize: 15,
+                                        paddingVertical: 12,
+                                    }}
+                                />
+                            </VStack>
+                        </Box>
+
                         <Button className="h-14 rounded-xl" style={{ backgroundColor: primaryColor }} onPress={confirmJoinRequest} disabled={isJoining}>
                             {isJoining ? <Spinner color="#fff" /> : <ButtonText className="text-white font-bold">Request to Join</ButtonText>}
                         </Button>
