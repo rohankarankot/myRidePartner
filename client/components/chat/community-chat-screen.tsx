@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native';
+import { Text, TouchableOpacity, View, FlatList, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -18,7 +18,6 @@ import {
 } from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { AppLoader } from '@/components/app-loader';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { publicChatService } from '@/services/public-chat-service';
@@ -29,6 +28,13 @@ import { userService } from '@/services/user-service';
 import { useUserStore } from '@/store/user-store';
 import { ReportModal, ReportPayload } from '@/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
+import { Box } from '@/components/ui/box';
+import { Text as GSText } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Button, ButtonText } from '@/components/ui/button';
+import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 const MESSAGE_PAGE_SIZE = 40;
 
@@ -132,11 +138,11 @@ const SwipeableMessageBubble = ({
     const primaryColor = useThemeColor({}, 'primary');
 
     const renderSwipeAction = () => (
-        <View style={{ justifyContent: 'center', alignItems: 'center', width: 50 }}>
-            <View style={{ backgroundColor: `${primaryColor}22`, borderRadius: 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center' }}>
-                <IconSymbol name="arrowshape.turn.up.left.fill" size={14} color={primaryColor} />
-            </View>
-        </View>
+        <Box className="w-12 h-full items-center justify-center">
+            <Box className="w-8 h-8 rounded-full items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}20` }}>
+                <IconSymbol name="arrowshape.turn.up.left.fill" size={12} color={primaryColor} />
+            </Box>
+        </Box>
     );
 
     return (
@@ -200,7 +206,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const queryClient = useQueryClient();
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const headerHeight = insets.top + 60;
+    const headerHeight = insets.top + 70;
     const [composerText, setComposerText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
@@ -278,11 +284,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                 Toast.show({ type: 'error', text1: 'Scroll Error', text2: 'Item is not measured yet.' });
             }
         } else {
-            const keys = Object.keys(list).slice(0, 5).join(', ');
             Toast.show({
                 type: 'error',
                 text1: 'Scroll Error',
-                text2: `Underlying method missing. Available keys: ${keys}`,
+                text2: 'Could not scroll to message.',
             });
         }
     };
@@ -294,7 +299,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const borderColor = useThemeColor({}, 'border');
     const primaryColor = useThemeColor({}, 'primary');
     const dangerColor = useThemeColor({}, 'danger');
-    const cityLabel = selectedCity || 'Select city';
+    const cityLabel = selectedCity || 'Global Room';
 
     const { data: cities = [] } = useQuery({
         queryKey: ['community-member-cities'],
@@ -539,696 +544,423 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     };
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['left', 'right', 'bottom']}>
-            {reportTarget ? (
-                <ReportModal
-                    visible={showReportModal}
-                    onClose={() => {
-                        setShowReportModal(false);
-                        setReportTarget(null);
-                    }}
-                    onSubmit={handleSubmitReport}
-                    reportedUserId={reportTarget.userId}
-                    reportedUserName={reportTarget.userName}
-                    reporterUserId={user?.id}
-                    source="community_chat"
-                    context="message"
-                    targetType="MESSAGE"
-                    messageDocumentId={reportTarget.messageDocumentId}
-                    messagePreview={reportTarget.messagePreview}
-                />
-            ) : null}
+        <Box className="flex-1" style={{ backgroundColor }}>
+            <SafeAreaView className="flex-1" edges={['left', 'right', 'bottom']}>
+                {reportTarget ? (
+                    <ReportModal
+                        visible={showReportModal}
+                        onClose={() => {
+                            setShowReportModal(false);
+                            setReportTarget(null);
+                        }}
+                        onSubmit={handleSubmitReport}
+                        reportedUserId={reportTarget.userId}
+                        reportedUserName={reportTarget.userName}
+                        reporterUserId={user?.id}
+                        source="community_chat"
+                        context="message"
+                        targetType="MESSAGE"
+                        messageDocumentId={reportTarget.messageDocumentId}
+                        messagePreview={reportTarget.messagePreview}
+                    />
+                ) : null}
 
-            <View
-                style={[
-                    styles.customHeader,
-                    {
-                        backgroundColor,
+                {/* Custom Header */}
+                <Box 
+                    className="absolute top-0 left-0 right-0 z-20 border-b shadow-sm"
+                    style={{ 
+                        backgroundColor, 
                         borderBottomColor: borderColor,
-                        paddingTop: insets.top + 8,
+                        paddingTop: insets.top + 10,
                         height: headerHeight,
-                    },
-                ]}
-            >
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={styles.headerIconButton}
+                    }}
                 >
-                    <IconSymbol name="chevron.left" size={22} color={textColor} />
-                </TouchableOpacity>
+                    <HStack className="items-center px-6 pb-4" space="md">
+                        <Pressable
+                            onPress={() => router.back()}
+                            className="w-10 h-10 rounded-full items-center justify-center border shadow-xs"
+                            style={{ backgroundColor: cardColor, borderColor }}
+                        >
+                            <IconSymbol name="chevron.left" size={20} color={textColor} />
+                        </Pressable>
 
-                <TouchableOpacity
-                    activeOpacity={0.85}
-                    style={styles.headerTitleWrap}
-                    onPress={() => citySheetRef.current?.present()}
-                >
-                    <Text style={[styles.headerTitle, { color: textColor }]}>Community Chat</Text>
-                    <View style={[styles.cityPill, { backgroundColor: `${primaryColor}14` }]}>
-                        <IconSymbol name="mappin.circle.fill" size={14} color={primaryColor} />
-                        <Text style={[styles.cityPillText, { color: primaryColor }]} numberOfLines={1}>
-                            {cityLabel}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
+                        <Pressable
+                            className="flex-1 items-center"
+                            onPress={() => citySheetRef.current?.present()}
+                        >
+                            <GSText className="text-[10px] font-extrabold uppercase tracking-widest opacity-60" style={{ color: textColor }}>
+                                Community Room
+                            </GSText>
+                            <HStack className="items-center mt-0.5" space="xs">
+                                <Box className="w-5 h-5 rounded-full items-center justify-center bg-primary-500 shadow-sm">
+                                    <IconSymbol name="mappin.circle.fill" size={10} color="#fff" />
+                                </Box>
+                                <GSText className="text-lg font-extrabold uppercase tracking-tight" style={{ color: primaryColor }} numberOfLines={1}>
+                                    {cityLabel}
+                                </GSText>
+                            </HStack>
+                        </Pressable>
 
-                <TouchableOpacity
-                    onPress={() => router.push({
-                        pathname: '/community-room',
-                        params: selectedCity ? { city: selectedCity } : undefined,
-                    })}
-                    style={styles.headerIconButton}
-                >
-                    <IconSymbol name="info.circle.fill" size={22} color={primaryColor} />
-                </TouchableOpacity>
-            </View>
+                        <Pressable
+                            onPress={() => router.push({
+                                pathname: '/community-room',
+                                params: selectedCity ? { city: selectedCity } : undefined,
+                            })}
+                            className="w-10 h-10 rounded-full items-center justify-center border shadow-xs"
+                            style={{ backgroundColor: cardColor, borderColor }}
+                        >
+                            <IconSymbol name="info.circle.fill" size={20} color={primaryColor} />
+                        </Pressable>
+                    </HStack>
+                </Box>
 
-            {isLoading ? (
-                <View style={[styles.center, { backgroundColor, paddingTop: headerHeight }]}>
-                    <AppLoader />
-                </View>
-            ) : !selectedCity ? (
-                <View style={[styles.center, { backgroundColor, paddingHorizontal: 24, paddingTop: headerHeight }]}>
-                    <View style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}14` }]}>
-                        <IconSymbol name="mappin.and.ellipse" size={34} color={primaryColor} />
-                    </View>
-                    <Text style={[styles.emptyTitle, { color: textColor }]}>Choose your city room</Text>
-                    <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
-                        Pick a city to join its community chat room and see local conversations.
-                    </Text>
-                    <TouchableOpacity
-                        activeOpacity={0.88}
-                        onPress={() => citySheetRef.current?.present()}
-                        style={[styles.selectCityButton, { backgroundColor: primaryColor }]}
-                    >
-                        <Text style={styles.selectCityButtonText}>Select city</Text>
-                    </TouchableOpacity>
-                </View>
-            ) : (
-                <View style={[styles.chatWrapper, { paddingTop: headerHeight }]}>
-                    <GiftedChat
-                        messages={giftedMessages}
-                        onSend={handleSend}
-                        user={{
-                            _id: String(user?.id || ''),
-                            name: user?.username || 'You',
-                        }}
-                        text={composerText}
-                        scrollToBottom
-                        messagesContainerRef={flatListRef as any}
-                        bottomOffset={insets.bottom}
-                        keyboardAvoidingViewProps={{ keyboardVerticalOffset: headerHeight }}
-                        messagesContainerStyle={{ backgroundColor }}
-                        renderAvatarOnTop
-                        keyboardShouldPersistTaps="handled"
-                        minInputToolbarHeight={60}
-                        loadEarlier={Boolean(hasNextPage)}
-                        onLoadEarlier={() => {
-                            if (!isFetchingNextPage) {
-                                void fetchNextPage();
-                            }
-                        }}
-                        isLoadingEarlier={isFetchingNextPage}
-                        timeTextStyle={{
-                            right: { color: 'rgba(255,255,255,0.75)' },
-                            left: { color: subtextColor },
-                        }}
-                        textInputProps={{
-                            onChangeText: setComposerText,
-                            placeholder: 'Say something to the community',
-                            editable: Boolean(selectedCity),
-                            placeholderTextColor: subtextColor,
-                            style: [
-                                styles.input,
-                                {
+                {isLoading ? (
+                    <Box className="flex-1" style={{ paddingTop: headerHeight }}>
+                        <ListPageSkeleton showHeader={false} />
+                    </Box>
+                ) : !selectedCity ? (
+                    <Box className="flex-1 items-center justify-center px-10" style={{ paddingTop: headerHeight }}>
+                        <Box className="w-24 h-24 rounded-[36px] bg-primary-500/10 items-center justify-center mb-10 rotate-6 shadow-xl">
+                            <IconSymbol name="mappin.and.ellipse" size={40} color={primaryColor} />
+                        </Box>
+                        <GSText className="text-2xl font-extrabold text-center uppercase tracking-widest mb-4" style={{ color: textColor }}>
+                            Join a Room
+                        </GSText>
+                        <GSText className="text-sm font-medium leading-6 text-center opacity-70 mb-12 px-2" style={{ color: subtextColor }}>
+                            Select your city room to discover rides, chat with local members, and share your journey updates.
+                        </GSText>
+                        <Button
+                            onPress={() => citySheetRef.current?.present()}
+                            className="h-16 w-full rounded-[24px] shadow-2xl"
+                            style={{ backgroundColor: primaryColor }}
+                        >
+                            <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Select your city</ButtonText>
+                        </Button>
+                    </Box>
+                ) : (
+                    <Box className="flex-1" style={{ paddingTop: headerHeight }}>
+                        <GiftedChat
+                            messages={giftedMessages}
+                            onSend={handleSend}
+                            user={{
+                                _id: String(user?.id || ''),
+                                name: user?.username || 'You',
+                            }}
+                            text={composerText}
+                            scrollToBottom
+                            messagesContainerRef={flatListRef as any}
+                            bottomOffset={insets.bottom}
+                            keyboardAvoidingViewProps={{ keyboardVerticalOffset: headerHeight }}
+                            messagesContainerStyle={{ backgroundColor }}
+                            renderAvatarOnTop
+                            keyboardShouldPersistTaps="handled"
+                            minInputToolbarHeight={70}
+                            loadEarlier={Boolean(hasNextPage)}
+                            onLoadEarlier={() => {
+                                if (!isFetchingNextPage) {
+                                    void fetchNextPage();
+                                }
+                            }}
+                            isLoadingEarlier={isFetchingNextPage}
+                            timeTextStyle={{
+                                right: { color: 'rgba(255,255,255,0.75)' },
+                                left: { color: subtextColor },
+                            }}
+                            textInputProps={{
+                                onChangeText: setComposerText,
+                                placeholder: 'Post a thought or query...',
+                                editable: Boolean(selectedCity),
+                                placeholderTextColor: subtextColor,
+                                className: "flex-1 text-[15px] px-4 py-2 rounded-[24px] border-2",
+                                style: {
                                     color: textColor,
                                     backgroundColor: cardColor,
                                     borderColor,
+                                    minHeight: 44,
+                                    maxHeight: 120,
+                                    textAlignVertical: 'center',
                                 },
-                            ],
-                        }}
-                        listProps={{
-                            ref: (r: any) => {
-                                if (r) {
-                                    flatListRef.current = r;
+                                multiline: true,
+                            }}
+                            listProps={{
+                                ref: (r: any) => {
+                                    if (r) {
+                                        flatListRef.current = r;
+                                    }
+                                },
+                                contentContainerStyle: giftedMessages.length === 0 ? { flexGrow: 1, justifyContent: 'center' } : undefined,
+                                onScrollToIndexFailed: (info: any) => {
+                                    const offset = info.averageItemLength * info.index;
+                                    if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
+                                        flatListRef.current.scrollToOffset({ offset, animated: true });
+                                        setTimeout(() => {
+                                            if (flatListRef.current && typeof flatListRef.current.scrollToIndex === 'function') {
+                                                flatListRef.current.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
+                                            }
+                                        }, 100);
+                                    }
                                 }
-                            },
-                            contentContainerStyle: giftedMessages.length === 0 ? styles.emptyList : undefined,
-                            onScrollToIndexFailed: (info: any) => {
-                                const offset = info.averageItemLength * info.index;
-                                if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
-                                    flatListRef.current.scrollToOffset({ offset, animated: true });
-                                    setTimeout(() => {
-                                        if (flatListRef.current && typeof flatListRef.current.scrollToIndex === 'function') {
-                                            flatListRef.current.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
-                                        }
-                                    }, 100);
-                                }
-                            }
-                        }}
-                        renderBubble={(props: any) => {
-                            const currentMessage = props.currentMessage as ExtendedMessage;
-                            const messageId = String(currentMessage?._id);
-                            const isCurrentUser = String(currentMessage?.user?._id) === String(user?.id);
-                            const isHighlighted = messageId === highlightedMessageId;
-                            const isMenuOpen = messageId === activeMessageMenuId;
-
-                            return (
-                                <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
-                                    <View style={[styles.messageActionWrap, { alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }]}>
-                                        {isMenuOpen ? (
-                                            <View style={[
-                                                styles.messageActionMenu,
-                                                {
-                                                    backgroundColor: cardColor,
-                                                    borderColor,
-                                                    alignSelf: isCurrentUser ? 'flex-end' : 'flex-start',
-                                                },
-                                            ]}>
-                                                <TouchableOpacity
-                                                    activeOpacity={0.8}
-                                                    style={styles.messageActionItem}
-                                                    onPress={() => {
-                                                        setReplyingTo(currentMessage);
-                                                        setActiveMessageMenuId(null);
-                                                    }}
-                                                >
-                                                    <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
-                                                    <Text style={[styles.messageActionText, { color: textColor }]}>Reply</Text>
-                                                </TouchableOpacity>
-                                                {!isCurrentUser ? (
-                                                    <TouchableOpacity
-                                                        activeOpacity={0.8}
-                                                        style={styles.messageActionItem}
-                                                        onPress={() => handleOpenReport(currentMessage)}
-                                                    >
-                                                        <IconSymbol name="exclamationmark.bubble.fill" size={16} color={dangerColor} />
-                                                        <Text style={[styles.messageActionText, { color: dangerColor }]}>Report user</Text>
-                                                    </TouchableOpacity>
-                                                ) : null}
-                                                <TouchableOpacity
-                                                    activeOpacity={0.8}
-                                                    style={styles.messageActionItem}
-                                                    onPress={() => setActiveMessageMenuId(null)}
-                                                >
-                                                    <IconSymbol name="xmark" size={15} color={subtextColor} />
-                                                    <Text style={[styles.messageActionText, { color: subtextColor }]}>Close</Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        ) : null}
-                                        <Bubble
-                                            {...props}
-                                            wrapperStyle={{
-                                                right: {
-                                                    backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
-                                                    borderWidth: isHighlighted ? 2 : 0,
-                                                    borderColor: '#DCF8C6',
-                                                },
-                                                left: {
-                                                    backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
-                                                    borderWidth: isHighlighted ? 2 : 1,
-                                                    borderColor: isHighlighted ? primaryColor : borderColor,
-                                                },
-                                            }}
-                                            textStyle={{
-                                                right: { color: '#FFFFFF' },
-                                                left: { color: textColor },
-                                            }}
-                                        />
-                                    </View>
-                                </SwipeableMessageBubble>
-                            );
-                        }}
-                        onLongPressMessage={(_: any, message: ExtendedMessage) => handleOpenMessageActions(message)}
-                        renderCustomView={(props: any) => {
-                            const { currentMessage, position } = props;
-                            if (currentMessage?.replyTo) {
-                                const isRight = position === 'right';
-
-                                const bubbleBg = isRight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.06)';
-                                const barColor = isRight ? 'rgba(255,255,255,0.7)' : primaryColor;
-                                const nameColor = isRight ? '#FFFFFF' : primaryColor;
-                                const messageColor = isRight ? 'rgba(255,255,255,0.85)' : subtextColor;
+                            }}
+                            renderBubble={(props: any) => {
+                                const currentMessage = props.currentMessage as ExtendedMessage;
+                                const messageId = String(currentMessage?._id);
+                                const isCurrentUser = String(currentMessage?.user?._id) === String(user?.id);
+                                const isHighlighted = messageId === highlightedMessageId;
+                                const isMenuOpen = messageId === activeMessageMenuId;
 
                                 return (
-                                    <TouchableOpacity 
-                                        activeOpacity={0.8} 
-                                        onPress={() => scrollToMessage(currentMessage.replyTo.documentId)}
-                                        style={[styles.replyBubbleView, { backgroundColor: bubbleBg }]}
-                                    >
-                                        <View style={[styles.replyBubbleBar, { backgroundColor: barColor }]} />
-                                        <View style={styles.replyBubbleContent}>
-                                            <Text style={[styles.replyBubbleName, { color: nameColor }]} numberOfLines={1}>
-                                                {currentMessage.replyTo.sender.username || currentMessage.replyTo.sender.name}
-                                            </Text>
-                                            <Text style={[styles.replyBubbleMessage, { color: messageColor }]} numberOfLines={2}>
-                                                {currentMessage.replyTo.message}
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
+                                    <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
+                                        <Box className="w-full" style={{ alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }}>
+                                            {isMenuOpen && (
+                                                <Box 
+                                                    className="rounded-[24px] border-2 shadow-2xl p-2 mb-3 w-44" 
+                                                    style={{ backgroundColor: cardColor, borderColor, alignSelf: isCurrentUser ? 'flex-end' : 'flex-start' }}
+                                                >
+                                                    <Pressable
+                                                        className="flex-row items-center p-3 rounded-2xl"
+                                                        onPress={() => {
+                                                            setReplyingTo(currentMessage);
+                                                            setActiveMessageMenuId(null);
+                                                        }}
+                                                    >
+                                                        <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
+                                                        <GSText className="ml-3 text-xs font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Reply</GSText>
+                                                    </Pressable>
+                                                    {!isCurrentUser && (
+                                                        <Pressable
+                                                            className="flex-row items-center p-3 rounded-2xl"
+                                                            onPress={() => handleOpenReport(currentMessage)}
+                                                        >
+                                                            <IconSymbol name="exclamationmark.bubble.fill" size={16} color={dangerColor} />
+                                                            <GSText className="ml-3 text-xs font-extrabold uppercase tracking-widest" style={{ color: dangerColor }}>Report</GSText>
+                                                        </Pressable>
+                                                    )}
+                                                    <Pressable
+                                                        className="flex-row items-center p-3 rounded-2xl bg-gray-50/50 mt-1"
+                                                        onPress={() => setActiveMessageMenuId(null)}
+                                                    >
+                                                        <IconSymbol name="xmark" size={16} color={subtextColor} />
+                                                        <GSText className="ml-3 text-xs font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Cancel</GSText>
+                                                    </Pressable>
+                                                </Box>
+                                            )}
+                                            <Bubble
+                                                {...props}
+                                                wrapperStyle={{
+                                                    right: {
+                                                        backgroundColor: isHighlighted ? '#2FBF71' : primaryColor,
+                                                        borderWidth: isHighlighted ? 2 : 0,
+                                                        borderColor: '#DCF8C6',
+                                                        borderRadius: 24,
+                                                        padding: 4,
+                                                    },
+                                                    left: {
+                                                        backgroundColor: isHighlighted ? `${primaryColor}14` : cardColor,
+                                                        borderWidth: isHighlighted ? 2 : 1.5,
+                                                        borderColor: isHighlighted ? primaryColor : borderColor,
+                                                        borderRadius: 24,
+                                                        padding: 4,
+                                                    },
+                                                }}
+                                                textStyle={{
+                                                    right: { color: '#FFFFFF', fontWeight: '500' },
+                                                    left: { color: textColor, fontWeight: '500' },
+                                                }}
+                                            />
+                                        </Box>
+                                    </SwipeableMessageBubble>
                                 );
-                            }
-                            return null;
-                        }}
-                        renderInputToolbar={(props: any) => (
-                            <View style={{ backgroundColor }}>
-                                {replyingTo && (
-                                    <View style={[styles.replyPreviewContainer, { borderColor, backgroundColor: cardColor }]}>
-                                        <View style={[styles.replyPreviewBar, { backgroundColor: primaryColor }]} />
-                                        <View style={styles.replyPreviewContent}>
-                                            <Text style={[styles.replyPreviewName, { color: primaryColor }]}>
-                                                Replying to {replyingTo.user.name || (replyingTo.user as any).username || 'Member'}
-                                            </Text>
-                                            <Text style={[styles.replyPreviewMessage, { color: subtextColor }]} numberOfLines={1}>
-                                                {replyingTo.text}
-                                            </Text>
-                                        </View>
-                                        <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.replyPreviewClose}>
-                                            <IconSymbol name="xmark" size={20} color={subtextColor} />
-                                        </TouchableOpacity>
-                                    </View>
-                                )}
-                                <View style={styles.toolbarRow}>
-                                    <InputToolbar
-                                        {...props}
-                                        containerStyle={[styles.toolbar, { backgroundColor }]}
-                                        primaryStyle={styles.toolbarPrimary}
+                            }}
+                            onLongPressMessage={(_: any, message: ExtendedMessage) => handleOpenMessageActions(message)}
+                            renderCustomView={(props: any) => {
+                                const { currentMessage, position } = props;
+                                if (currentMessage?.replyTo) {
+                                    const isRight = position === 'right';
+                                    const bubbleBg = isRight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.06)';
+                                    const barColor = isRight ? 'rgba(255,255,255,0.7)' : primaryColor;
+                                    const nameColor = isRight ? '#FFFFFF' : primaryColor;
+                                    const messageColor = isRight ? 'rgba(255,255,255,0.85)' : subtextColor;
+
+                                    return (
+                                        <Pressable 
+                                            onPress={() => scrollToMessage(currentMessage.replyTo.documentId)}
+                                            className="mx-2 mt-2 mb-1 p-3 rounded-[20px] flex-row overflow-hidden"
+                                            style={{ backgroundColor: bubbleBg, minWidth: 160 }}
+                                        >
+                                            <Box className="w-1.5 h-full rounded-full mr-3" style={{ backgroundColor: barColor }} />
+                                            <VStack className="flex-1">
+                                                <GSText className="text-[11px] font-extrabold uppercase tracking-widest" style={{ color: nameColor }} numberOfLines={1}>
+                                                    {currentMessage.replyTo.sender.username || currentMessage.replyTo.sender.name}
+                                                </GSText>
+                                                <GSText className="text-xs font-medium mt-0.5" style={{ color: messageColor }} numberOfLines={2}>
+                                                    {currentMessage.replyTo.message}
+                                                </GSText>
+                                            </VStack>
+                                        </Pressable>
+                                    );
+                                }
+                                return null;
+                            }}
+                            renderInputToolbar={(props: any) => (
+                                <Box className="border-t" style={{ backgroundColor, borderTopColor: borderColor }}>
+                                    {replyingTo && (
+                                        <Box className="flex-row items-center px-4 py-2 border-b bg-gray-50/50" style={{ borderBottomColor: borderColor }}>
+                                            <Box className="w-1 h-8 rounded-full mr-3" style={{ backgroundColor: primaryColor }} />
+                                            <VStack className="flex-1">
+                                                <GSText className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                                                    Replying to {replyingTo.user.name || (replyingTo.user as any).username || 'Member'}
+                                                </GSText>
+                                                <GSText className="text-xs font-semibold opacity-70" style={{ color: subtextColor }} numberOfLines={1}>
+                                                    {replyingTo.text}
+                                                </GSText>
+                                            </VStack>
+                                            <Pressable 
+                                                onPress={() => setReplyingTo(null)} 
+                                                className="w-7 h-7 rounded-full items-center justify-center bg-gray-200"
+                                            >
+                                                <IconSymbol name="xmark" size={12} color={subtextColor} />
+                                            </Pressable>
+                                        </Box>
+                                    )}
+                                    <HStack className="items-end px-4 py-2.5" space="sm">
+                                        <InputToolbar
+                                            {...props}
+                                            containerStyle={{
+                                                borderTopWidth: 0,
+                                                paddingHorizontal: 0,
+                                                backgroundColor: 'transparent',
+                                                flex: 1,
+                                                justifyContent: 'flex-end',
+                                            }}
+                                            primaryStyle={{ alignItems: 'flex-end' }}
+                                        />
+                                        <Pressable
+                                            onPress={handlePressSend}
+                                            disabled={!composerText.trim() || isSending}
+                                            className="w-11 h-11 rounded-full items-center justify-center shadow-sm mb-0.5"
+                                            style={{
+                                                backgroundColor: composerText.trim() && !isSending ? primaryColor : `${subtextColor}20`,
+                                            }}
+                                        >
+                                            <IconSymbol
+                                                name="paperplane.fill"
+                                                size={18}
+                                                color={composerText.trim() && !isSending ? '#FFFFFF' : subtextColor}
+                                            />
+                                        </Pressable>
+                                    </HStack>
+                                </Box>
+                            )}
+                            renderSend={() => null}
+                            renderChatEmpty={() => (
+                                <Box className="items-center px-10 py-20" style={{ transform: [{ rotate: '180deg' }] }}>
+                                    <Box className="w-20 h-20 rounded-[32px] bg-primary-500/10 items-center justify-center mb-6 shadow-sm">
+                                        <IconSymbol name="person.2.fill" size={32} color={primaryColor} />
+                                    </Box>
+                                    <GSText className="text-xl font-extrabold uppercase tracking-widest text-center" style={{ color: textColor }}>{cityLabel} room</GSText>
+                                    <GSText className="text-sm font-medium leading-6 text-center opacity-60 mt-4 px-4" style={{ color: subtextColor }}>
+                                        Ready to ride? Say hello to the {cityLabel} community and find your next travel partner.
+                                    </GSText>
+                                </Box>
+                            )}
+                        />
+                    </Box>
+                )}
+
+                <BottomSheetModal
+                    ref={citySheetRef}
+                    snapPoints={['74%']}
+                    backdropComponent={renderBackdrop}
+                    backgroundStyle={{ backgroundColor: cardColor, borderRadius: 40 }}
+                    handleIndicatorStyle={{ backgroundColor: subtextColor, width: 40 }}
+                    enablePanDownToClose
+                    keyboardBehavior="fillParent"
+                    keyboardBlurBehavior="restore"
+                    onDismiss={() => setCitySearch('')}
+                >
+                    <BottomSheetFlatList
+                        data={filteredCities}
+                        keyExtractor={(item: string) => item}
+                        ListHeaderComponent={
+                            <Box className="px-8 pt-4 pb-6 space-y-6">
+                                <VStack>
+                                    <GSText className="text-2xl font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Select Room</GSText>
+                                    <GSText className="text-[11px] font-medium leading-5 opacity-60 mt-1" style={{ color: subtextColor }}>
+                                        Browse active community rooms by city and connect with local members.
+                                    </GSText>
+                                </VStack>
+                                <HStack 
+                                    className="items-center px-4 h-14 rounded-[24px] border-2 shadow-sm mt-6" 
+                                    style={{ backgroundColor: cardColor, borderColor }}
+                                    space="md"
+                                >
+                                    <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
+                                    <BottomSheetTextInput
+                                        placeholder="Search your city..."
+                                        placeholderTextColor={subtextColor}
+                                        className="flex-1 text-[15px] font-medium"
+                                        style={{ color: textColor, marginLeft: 2 }}
+                                        value={citySearch}
+                                        onChangeText={setCitySearch}
+                                        autoCorrect={false}
+                                        autoCapitalize="words"
                                     />
-                                    <TouchableOpacity
-                                        onPress={handlePressSend}
-                                        disabled={!composerText.trim() || isSending}
-                                        style={[
-                                            styles.sendButton,
-                                            {
-                                                backgroundColor: composerText.trim() && !isSending ? primaryColor : '#E5E7EB',
-                                            },
-                                        ]}
-                                    >
-                                        <IconSymbol
-                                            name="paperplane.fill"
-                                            size={18}
-                                            color={composerText.trim() && !isSending ? '#FFFFFF' : '#9CA3AF'}
-                                        />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        )}
-                        renderSend={() => null}
-                        renderChatEmpty={() => (
-                            <View style={styles.emptyState}>
-                                <View style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}14` }]}>
-                                    <IconSymbol name="person.2.fill" size={34} color={primaryColor} />
-                                </View>
-                                <Text style={[styles.emptyTitle, { color: textColor }]}>{cityLabel} room is open</Text>
-                                <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
-                                    Introduce yourself, ask about routes, and chat with riders around {cityLabel}.
-                                </Text>
-                            </View>
-                        )}
+                                </HStack>
+                            </Box>
+                        }
+                        renderItem={({ item }: { item: string }) => {
+                            const isActive = selectedCity === item;
+
+                            return (
+                                <Pressable
+                                    className="mx-6 p-4 rounded-[24px] border-2 mb-3 shadow-sm flex-row items-center justify-between"
+                                    style={{
+                                        backgroundColor: isActive ? `${primaryColor}08` : 'transparent',
+                                        borderColor: isActive ? primaryColor : borderColor,
+                                    }}
+                                    onPress={() => {
+                                        setSelectedCity(item);
+                                        setCitySearch('');
+                                        setReplyingTo(null);
+                                        citySheetRef.current?.dismiss();
+                                    }}
+                                >
+                                    <HStack className="items-center flex-1" space="md">
+                                        <Box
+                                            className="w-10 h-10 rounded-full items-center justify-center shadow-sm"
+                                            style={{ backgroundColor: isActive ? primaryColor : `${subtextColor}08` }}
+                                        >
+                                            <IconSymbol
+                                                name="mappin.circle.fill"
+                                                size={18}
+                                                color={isActive ? '#FFFFFF' : subtextColor}
+                                            />
+                                        </Box>
+                                        <GSText className="text-sm font-extrabold uppercase tracking-tight" style={{ color: isActive ? primaryColor : textColor }}>
+                                            {item}
+                                        </GSText>
+                                    </HStack>
+                                    {isActive && (
+                                        <Box className="w-6 h-6 rounded-full items-center justify-center bg-primary-500 shadow-sm">
+                                            <IconSymbol name="checkmark" size={12} color="#FFFFFF" />
+                                        </Box>
+                                    )}
+                                </Pressable>
+                            );
+                        }}
+                        ListEmptyComponent={
+                            <BottomSheetView className="items-center py-20 px-10">
+                                <GSText className="text-lg font-extrabold uppercase tracking-widest text-center" style={{ color: textColor }}>Location not found</GSText>
+                                <GSText className="text-sm font-medium leading-6 text-center opacity-60 mt-2 px-4" style={{ color: subtextColor }}>
+                                    We couldn't find a room for that city. Try adjusting your search term.
+                                </GSText>
+                            </BottomSheetView>
+                        }
+                        contentContainerStyle={{ paddingHorizontal: 0, paddingBottom: 40 }}
+                        showsVerticalScrollIndicator={false}
                     />
-                </View>
-            )}
-
-            <BottomSheetModal
-                ref={citySheetRef}
-                snapPoints={['74%']}
-                backdropComponent={renderBackdrop}
-                backgroundStyle={{ backgroundColor: cardColor }}
-                handleIndicatorStyle={{ backgroundColor: subtextColor }}
-                enablePanDownToClose
-                keyboardBehavior="fillParent"
-                keyboardBlurBehavior="restore"
-                onDismiss={() => setCitySearch('')}
-            >
-                <BottomSheetFlatList
-                    data={filteredCities}
-                    keyExtractor={(item: string) => item}
-                    ListHeaderComponent={
-                        <View style={styles.sheetHeader}>
-                            <View style={styles.sheetHeaderCopy}>
-                                <Text style={[styles.sheetTitle, { color: textColor }]}>Select City Room</Text>
-                                <Text style={[styles.sheetSubtitle, { color: subtextColor }]}>
-                                    Join the community room for a specific city.
-                                </Text>
-                            </View>
-                            <View style={[styles.sheetSearchBox, { backgroundColor: `${subtextColor}10` }]}>
-                                <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
-                                <BottomSheetTextInput
-                                    placeholder="Search city..."
-                                    placeholderTextColor={subtextColor}
-                                    style={[styles.sheetSearchInput, { color: textColor }]}
-                                    value={citySearch}
-                                    onChangeText={setCitySearch}
-                                    autoCorrect={false}
-                                    autoCapitalize="words"
-                                />
-                            </View>
-                        </View>
-                    }
-                    renderItem={({ item }: { item: string }) => {
-                        const isActive = selectedCity === item;
-
-                        return (
-                            <TouchableOpacity
-                                activeOpacity={0.85}
-                                style={[
-                                    styles.cityRow,
-                                    {
-                                        backgroundColor: isActive ? `${primaryColor}10` : 'transparent',
-                                        borderColor: isActive ? primaryColor : 'transparent',
-                                    },
-                                ]}
-                                onPress={() => {
-                                    setSelectedCity(item);
-                                    setCitySearch('');
-                                    setReplyingTo(null);
-                                    citySheetRef.current?.dismiss();
-                                }}
-                            >
-                                <View style={styles.cityRowLeft}>
-                                    <View
-                                        style={[
-                                            styles.cityRowIcon,
-                                            { backgroundColor: isActive ? primaryColor : `${subtextColor}15` },
-                                        ]}
-                                    >
-                                        <IconSymbol
-                                            name="mappin.circle.fill"
-                                            size={20}
-                                            color={isActive ? '#FFFFFF' : subtextColor}
-                                        />
-                                    </View>
-                                    <Text style={[styles.cityRowTitle, { color: isActive ? primaryColor : textColor }]}>
-                                        {item}
-                                    </Text>
-                                </View>
-                                {isActive ? (
-                                    <View style={[styles.cityRowCheck, { backgroundColor: primaryColor }]}>
-                                        <IconSymbol name="checkmark" size={14} color="#FFFFFF" />
-                                    </View>
-                                ) : null}
-                            </TouchableOpacity>
-                        );
-                    }}
-                    ListEmptyComponent={
-                        <BottomSheetView style={styles.sheetEmptyState}>
-                            <Text style={[styles.sheetEmptyTitle, { color: textColor }]}>No matching city</Text>
-                            <Text style={[styles.sheetEmptySubtitle, { color: subtextColor }]}>
-                                Try another search keyword or update your profile city.
-                            </Text>
-                        </BottomSheetView>
-                    }
-                    contentContainerStyle={styles.sheetListContent}
-                    showsVerticalScrollIndicator={false}
-                />
-            </BottomSheetModal>
-        </SafeAreaView>
+                </BottomSheetModal>
+            </SafeAreaView>
+        </Box>
     );
 }
-
-const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-    },
-    customHeader: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-    },
-    headerIconButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitleWrap: {
-        flex: 1,
-        alignItems: 'center',
-        paddingHorizontal: 12,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-    },
-    cityPill: {
-        marginTop: 6,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        maxWidth: 170,
-    },
-    cityPillText: {
-        fontSize: 12,
-        fontWeight: '700',
-    },
-    chatWrapper: {
-        flex: 1,
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    emptyList: {
-        flexGrow: 1,
-        justifyContent: 'center',
-    },
-    emptyState: {
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        transform: [{ rotate: '180deg' }],
-    },
-    emptyIconWrap: {
-        width: 72,
-        height: 72,
-        borderRadius: 36,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 18,
-    },
-    emptyTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    emptySubtitle: {
-        fontSize: 15,
-        lineHeight: 22,
-        textAlign: 'center',
-    },
-    selectCityButton: {
-        marginTop: 20,
-        paddingHorizontal: 18,
-        paddingVertical: 12,
-        borderRadius: 999,
-    },
-    selectCityButtonText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    toolbarRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        paddingHorizontal: 8,
-        gap: 8,
-    },
-    toolbar: {
-        borderTopWidth: 0,
-        paddingTop: 6,
-        paddingHorizontal: 0,
-        paddingBottom: 6,
-        flex: 1,
-    },
-    toolbarPrimary: {
-        alignItems: 'flex-end',
-    },
-    input: {
-        borderWidth: 1,
-        borderRadius: 24,
-        paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 12,
-        minHeight: 48,
-        fontSize: 15,
-    },
-    sendButton: {
-        width: 46,
-        height: 46,
-        borderRadius: 23,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 6,
-    },
-    replyPreviewContainer: {
-        flexDirection: 'row',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderTopWidth: 1,
-    },
-    replyPreviewBar: {
-        width: 4,
-        borderRadius: 2,
-        marginRight: 8,
-    },
-    replyPreviewContent: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    replyPreviewName: {
-        fontSize: 13,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    replyPreviewMessage: {
-        fontSize: 13,
-    },
-    replyPreviewClose: {
-        padding: 4,
-        justifyContent: 'center',
-    },
-    replyBubbleView: {
-        flexDirection: 'row',
-        borderRadius: 8,
-        marginHorizontal: 8,
-        marginTop: 6,
-        marginBottom: 2,
-        paddingRight: 8,
-        overflow: 'hidden',
-        minWidth: 140,
-    },
-    replyBubbleBar: {
-        width: 4,
-        marginRight: 8,
-    },
-    replyBubbleContent: {
-        paddingVertical: 8,
-        paddingRight: 6,
-        flex: 1,
-    },
-    replyBubbleName: {
-        fontSize: 12,
-        fontWeight: '700',
-        marginBottom: 2,
-    },
-    replyBubbleMessage: {
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    messageActionWrap: {
-        maxWidth: '100%',
-    },
-    messageActionMenu: {
-        borderWidth: 1,
-        borderRadius: 16,
-        paddingVertical: 6,
-        minWidth: 150,
-        marginBottom: 8,
-    },
-    messageActionItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-    },
-    messageActionText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    sheetHeader: {
-        paddingHorizontal: 20,
-        paddingTop: 8,
-        paddingBottom: 18,
-        gap: 16,
-    },
-    sheetHeaderCopy: {
-        gap: 4,
-    },
-    sheetTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-    },
-    sheetSubtitle: {
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    sheetSearchBox: {
-        borderRadius: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        gap: 8,
-    },
-    sheetSearchInput: {
-        flex: 1,
-        fontSize: 15,
-        paddingVertical: 0,
-    },
-    sheetListContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 24,
-    },
-    cityRow: {
-        borderWidth: 1,
-        borderRadius: 18,
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        marginBottom: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    cityRowLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        flex: 1,
-    },
-    cityRowIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    cityRowTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
-    cityRowCheck: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: 12,
-    },
-    sheetEmptyState: {
-        alignItems: 'center',
-        paddingVertical: 32,
-        paddingHorizontal: 24,
-    },
-    sheetEmptyTitle: {
-        fontSize: 17,
-        fontWeight: '700',
-        marginBottom: 6,
-    },
-    sheetEmptySubtitle: {
-        fontSize: 14,
-        lineHeight: 20,
-        textAlign: 'center',
-    },
-});

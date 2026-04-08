@@ -1,34 +1,21 @@
 import React from 'react';
-import { StyleSheet, View, ViewProps } from 'react-native';
+import { ViewProps } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Radius, Shadows, Spacing } from '@/constants/ui';
+import { Box } from '@/components/ui/box';
 
 type AppCardProps = ViewProps & {
   padded?: boolean;
 };
 
-export function AppCard({ style, padded = true, ...rest }: AppCardProps) {
+export function AppCard({ className, padded = true, style, ...rest }: AppCardProps) {
   const backgroundColor = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
 
   return (
-    <View
-      style={[
-        styles.base,
-        padded && styles.padded,
-        { backgroundColor },
-        style,
-      ]}
+    <Box
+      className={`rounded-[32px] border-2 shadow-sm ${padded ? 'p-6' : ''} ${className || ''}`}
+      style={[{ backgroundColor, borderColor }, style]}
       {...rest}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: Radius.lg,
-    ...Shadows.card,
-  },
-  padded: {
-    padding: Spacing.lg,
-  },
-});

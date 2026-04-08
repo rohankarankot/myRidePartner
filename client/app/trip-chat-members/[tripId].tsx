@@ -1,11 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+    RefreshControl,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,8 +11,15 @@ import { tripService } from '@/services/trip-service';
 import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { AppLoader } from '@/components/app-loader';
 import { maskPhoneNumber } from '@/utils/phone';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { HStack } from '@/components/ui/hstack';
+import { VStack } from '@/components/ui/vstack';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Divider } from '@/components/ui/divider';
+import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
 type MemberRow = {
     id: number;
@@ -40,7 +43,7 @@ export default function TripChatMembersScreen() {
     const offlineColor = useMemo(() => `${subtextColor}55`, [subtextColor]);
     const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
 
-    const { data: members = [], isLoading } = useQuery({
+    const { data: members = [], isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['trip-chat-members', tripId],
         queryFn: async () => {
             const trip = await tripService.getTripById(tripId!);
@@ -119,9 +122,9 @@ export default function TripChatMembersScreen() {
     const titleText = useMemo(() => {
         const riderCount = Math.max(0, members.length - 1);
         if (riderCount === 0) {
-            return 'Captain only for now';
+            return 'Just the captain for now';
         }
-        return `${riderCount} rider${riderCount > 1 ? 's' : ''} in this ride`;
+        return `${riderCount} approved rider${riderCount > 1 ? 's' : ''} in this group`;
     }, [members.length]);
 
     useEffect(() => {
@@ -150,277 +153,141 @@ export default function TripChatMembersScreen() {
     }, [tripId]);
 
     return (
-        <SafeAreaView style={[styles.safe, { backgroundColor }]} edges={['bottom']}>
+        <Box className="flex-1" style={{ backgroundColor }}>
             <Stack.Screen
                 options={{
-                    title: 'Ride Members',
+                    title: 'Group Members',
                     headerShown: true,
                     headerStyle: { backgroundColor },
                     headerTintColor: textColor,
                     headerShadowVisible: false,
+                    headerTitleStyle: { fontWeight: '800' },
                 }}
             />
 
-            {isLoading ? (
-                <View style={[styles.center, { backgroundColor }]}>
-                    <AppLoader />
-                </View>
+            {isLoading && !isRefetching ? (
+                <ListPageSkeleton />
             ) : (
                 <FlatList
                     data={members}
                     keyExtractor={(item) => String(item.id)}
-                    contentContainerStyle={styles.container}
+                    contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+                    refreshControl={
+                        <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={primaryColor} colors={[primaryColor]} />
+                    }
                     ListHeaderComponent={
-                        <View style={styles.headerCopy}>
-                            <Text style={[styles.headerTitle, { color: textColor }]}>
-                                Everyone in this ride
+                        <Box className="mb-6">
+                            <Text className="text-3xl font-extrabold mb-1" style={{ color: textColor }}>
+                                The Squad
                             </Text>
-                            <Text style={[styles.headerSubtitle, { color: subtextColor }]}>
+                            <Text className="text-sm font-medium leading-5" style={{ color: subtextColor }}>
                                 {titleText}
                             </Text>
-                            <TouchableOpacity
-                                style={[styles.tripDetailsCard, { backgroundColor: cardColor, borderColor: `${primaryColor}28` }]}
+                            
+                            <Pressable
+                                className="mt-6 rounded-[32px] border-2 p-5 flex-row items-center shadow-xl"
+                                style={{ backgroundColor: cardColor, borderColor: `${primaryColor}30` }}
                                 onPress={() => router.push(`/trip/${tripId}`)}
-                                activeOpacity={0.85}
                             >
-                                <View style={[styles.tripDetailsIconWrap, { backgroundColor: `${primaryColor}14` }]}>
-                                    <IconSymbol name="car.fill" size={18} color={primaryColor} />
-                                </View>
-                                <View style={styles.tripDetailsCopy}>
-                                    <Text style={[styles.tripDetailsEyebrow, { color: primaryColor }]}>
-                                        Ride Overview
+                                <Box className="w-12 h-12 rounded-2xl items-center justify-center border shadow-sm" style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor + '20' }}>
+                                    <IconSymbol name="car.fill" size={20} color={primaryColor} />
+                                </Box>
+                                <VStack className="flex-1 ml-4" >
+                                    <Text className="text-[9px] font-extrabold uppercase tracking-widest mb-1" style={{ color: primaryColor }}>
+                                        Full Trip Logistics
                                     </Text>
-                                    <Text style={[styles.tripDetailsTitle, { color: textColor }]}>
-                                        View trip details
+                                    <Text className="text-base font-extrabold" style={{ color: textColor }}>
+                                        Explore ride details
                                     </Text>
-                                    <Text style={[styles.tripDetailsSubtitle, { color: subtextColor }]}>
-                                        Check route, timing, seats, and ride status
+                                    <Text className="text-xs font-medium leading-5" style={{ color: subtextColor }}>
+                                        Route, timing, and policies
                                     </Text>
-                                </View>
-                                <View style={[styles.tripDetailsArrowWrap, { backgroundColor: `${primaryColor}10` }]}>
-                                    <IconSymbol name="chevron.right" size={16} color={primaryColor} />
-                                </View>
-                            </TouchableOpacity>
-                        </View>
+                                </VStack>
+                                <Box className="w-8 h-8 rounded-full items-center justify-center border shadow-xs" style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor + '10' }}>
+                                    <IconSymbol name="chevron.right" size={14} color={primaryColor} />
+                                </Box>
+                            </Pressable>
+
+                            <Divider className="my-8" style={{ backgroundColor: borderColor }} />
+                            
+                            <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1 mb-4" style={{ color: subtextColor }}>
+                                Active Members
+                            </Text>
+                        </Box>
                     }
                     renderItem={({ item }) => (
-                        <TouchableOpacity
-                            style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+                        <Pressable
+                            className="rounded-[28px] border p-5 mb-4 flex-row items-center shadow-sm"
+                            style={{ backgroundColor: cardColor, borderColor }}
                             onPress={() => router.push(`/user/${item.id}`)}
                         >
-                            {item.avatarUrl ? (
-                                <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
-                            ) : (
-                                <View style={[styles.avatarFallback, { backgroundColor: `${primaryColor}20` }]}>
-                                    <Text style={[styles.avatarFallbackText, { color: primaryColor }]}>
-                                        {item.name.charAt(0).toUpperCase()}
-                                    </Text>
-                                </View>
-                            )}
+                            <Avatar size="lg" className="border shadow-sm" style={{ borderColor }}>
+                                <AvatarFallbackText>{item.name}</AvatarFallbackText>
+                                {item.avatarUrl ? <AvatarImage source={{ uri: item.avatarUrl }} alt={item.name} /> : null}
+                            </Avatar>
 
-                            <View style={styles.content}>
-                                <View style={styles.row}>
-                                    <Text style={[styles.name, { color: textColor }]} numberOfLines={1}>
+                            <VStack className="flex-1 ml-4">
+                                <HStack className="items-center justify-between mb-1" space="xs">
+                                    <Text className="flex-1 text-base font-extrabold" style={{ color: textColor }} numberOfLines={1}>
                                         {item.name}
                                     </Text>
-                                    <View style={styles.statusRow}>
-                                        <View
-                                            style={[
-                                                styles.statusDot,
-                                                {
-                                                    backgroundColor: onlineUserIds.includes(item.id)
-                                                        ? successColor
-                                                        : offlineColor,
-                                                },
-                                            ]}
-                                        />
-                                        <Text
-                                            style={[
-                                                styles.statusText,
-                                                {
-                                                    color: onlineUserIds.includes(item.id)
-                                                        ? successColor
-                                                        : subtextColor,
-                                                },
-                                            ]}
-                                        >
-                                            {onlineUserIds.includes(item.id) ? 'Online' : 'Offline'}
-                                        </Text>
-                                    </View>
-                                    <View
-                                        style={[
-                                            styles.badge,
-                                            {
-                                                backgroundColor:
-                                                    item.role === 'Captain'
-                                                        ? `${primaryColor}15`
-                                                        : `${subtextColor}14`,
-                                            },
-                                        ]}
+                                    <Box
+                                        className="rounded-full px-3 py-1 border shadow-xs"
+                                        style={{
+                                            backgroundColor:
+                                                item.role === 'Captain'
+                                                    ? `${primaryColor}10`
+                                                    : `#11182708`,
+                                            borderColor: item.role === 'Captain' ? primaryColor + '20' : borderColor
+                                        }}
                                     >
                                         <Text
-                                            style={[
-                                                styles.badgeText,
-                                                {
-                                                    color:
-                                                        item.role === 'Captain'
-                                                            ? primaryColor
-                                                            : subtextColor,
-                                                },
-                                            ]}
+                                            className="text-[9px] font-extrabold uppercase tracking-widest"
+                                            style={{
+                                                color:
+                                                    item.role === 'Captain'
+                                                        ? primaryColor
+                                                        : subtextColor,
+                                            }}
                                         >
                                             {item.role}
                                         </Text>
-                                    </View>
-                                </View>
-                                <Text style={[styles.subtitle, { color: subtextColor }]} numberOfLines={1}>
+                                    </Box>
+                                </HStack>
+                                
+                                <HStack className="items-center mb-1.5" space="xs">
+                                    <Box
+                                        className="w-2 h-2 rounded-full border border-white"
+                                        style={{
+                                            backgroundColor: onlineUserIds.includes(item.id)
+                                                ? successColor
+                                                : offlineColor,
+                                        }}
+                                    />
+                                    <Text
+                                        className="text-[10px] font-extrabold uppercase tracking-tight"
+                                        style={{
+                                            color: onlineUserIds.includes(item.id)
+                                                ? successColor
+                                                : subtextColor,
+                                        }}
+                                    >
+                                        {onlineUserIds.includes(item.id) ? 'Online' : 'Away'}
+                                    </Text>
+                                </HStack>
+
+                                <Text className="text-[13px] font-medium leading-5" style={{ color: subtextColor }} numberOfLines={1}>
                                     {item.subtitle}
                                 </Text>
-                            </View>
+                            </VStack>
 
-                            <IconSymbol name="chevron.right" size={18} color={subtextColor} />
-                        </TouchableOpacity>
+                            <Box className="ml-3 w-7 h-7 rounded-full items-center justify-center border bg-gray-50/50 shadow-xs" style={{ borderColor }}>
+                                <IconSymbol name="chevron.right" size={12} color={subtextColor} />
+                            </Box>
+                        </Pressable>
                     )}
                 />
             )}
-        </SafeAreaView>
+        </Box>
     );
 }
-
-const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-    },
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    container: {
-        padding: 16,
-        gap: 12,
-    },
-    headerCopy: {
-        marginBottom: 10,
-    },
-    headerTitle: {
-        fontSize: 22,
-        fontWeight: '800',
-        marginBottom: 4,
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        lineHeight: 20,
-    },
-    tripDetailsCard: {
-        marginTop: 14,
-        borderRadius: 18,
-        borderWidth: 1,
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        alignItems: 'center',
-        flexDirection: 'row',
-        gap: 12,
-    },
-    tripDetailsIconWrap: {
-        width: 44,
-        height: 44,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    tripDetailsCopy: {
-        flex: 1,
-    },
-    tripDetailsEyebrow: {
-        fontSize: 11,
-        fontWeight: '800',
-        textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        marginBottom: 4,
-    },
-    tripDetailsTitle: {
-        fontSize: 16,
-        fontWeight: '800',
-        marginBottom: 2,
-    },
-    tripDetailsSubtitle: {
-        fontSize: 13,
-        lineHeight: 18,
-    },
-    tripDetailsArrowWrap: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    tripDetailsButtonText: {
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    card: {
-        borderWidth: 1,
-        borderRadius: 18,
-        padding: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-    },
-    avatarFallback: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarFallbackText: {
-        fontSize: 18,
-        fontWeight: '800',
-    },
-    content: {
-        flex: 1,
-    },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    statusRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    statusDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 999,
-    },
-    statusText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    name: {
-        flex: 1,
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    badge: {
-        borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-    },
-    badgeText: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    subtitle: {
-        marginTop: 4,
-        fontSize: 13,
-    },
-});

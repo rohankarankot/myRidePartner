@@ -43,9 +43,12 @@ const MAPPING = {
   'bell.fill': 'notifications',
   'car': 'directions-car',
   'car.fill': 'directions-car',
+  'car.2.fill': 'directions-car',
   'google.logo': 'login',
   'checkmark.circle': 'check-circle-outline',
   'camera.fill': 'photo-camera',
+  'photo.fill': 'photo-library',
+  'map.fill': 'map',
   'trash.fill': 'delete',
   'person.crop.circle.badge.exclamationmark': 'error-outline',
   'exclamationmark.circle.fill': 'error',
@@ -80,6 +83,7 @@ const MAPPING = {
   'globe': 'public',
   'arrowshape.turn.up.left.fill': 'reply',
   'wallet.pass.fill': 'account-balance-wallet',
+  'questionmark.circle.fill': 'help',
 } as IconMapping;
 
 /**

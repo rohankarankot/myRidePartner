@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import {
     BottomSheetModal,
     BottomSheetView,
@@ -8,6 +8,13 @@ import {
 import { useThemeColor } from '@/hooks/use-theme-color';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Button, ButtonText } from '@/components/ui/button';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 interface FilterBottomSheetProps {
     gender: string;
@@ -59,158 +66,112 @@ export const FilterBottomSheet = React.forwardRef<BottomSheetModal, FilterBottom
                 index={0}
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
-                backgroundStyle={{ backgroundColor }}
-                handleIndicatorStyle={{ backgroundColor: borderColor }}
+                backgroundStyle={{ backgroundColor, borderRadius: 32 }}
+                handleIndicatorStyle={{ backgroundColor: borderColor, width: 40 }}
             >
-                <BottomSheetView style={styles.content}>
-                    <View style={styles.header}>
-                        <Text style={[styles.title, { color: textColor }]}>Filters</Text>
-                        <TouchableOpacity onPress={onReset}>
-                            <Text style={[styles.resetText, { color: primaryColor }]}>Reset All</Text>
-                        </TouchableOpacity>
-                    </View>
+                <BottomSheetView>
+                    <Box className="p-8 pb-10">
+                        <HStack className="justify-between items-center mb-10">
+                            <Text className="text-2xl font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                Filter Rides
+                            </Text>
+                            <Pressable 
+                                onPress={onReset}
+                                className="px-4 py-2 rounded-xl bg-gray-50 border shadow-xs"
+                                style={{ borderColor }}
+                            >
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                                    Reset All
+                                </Text>
+                            </Pressable>
+                        </HStack>
 
-                    <View style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: subtextColor }]}>GENDER PREFERENCE</Text>
-                        <View style={styles.genderRow}>
-                            {['both', 'men', 'women'].map((option) => (
-                                <TouchableOpacity
-                                    key={option}
-                                    style={[
-                                        styles.genderButton,
-                                        { borderColor },
-                                        gender === option && { backgroundColor: primaryColor, borderColor: primaryColor },
-                                    ]}
-                                    onPress={() => setGender(option)}
-                                >
-                                    <Text
-                                        style={[
-                                            styles.genderButtonText,
-                                            gender === option ? { color: '#fff' } : { color: textColor },
-                                        ]}
-                                    >
-                                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
+                        <VStack space="xl">
+                            <VStack space="sm">
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
+                                    Gender Preference
+                                </Text>
+                                <HStack space="md">
+                                    {['both', 'men', 'women'].map((option) => {
+                                        const isActive = gender === option;
+                                        return (
+                                            <Pressable
+                                                key={option}
+                                                className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
+                                                style={{ 
+                                                    backgroundColor: isActive ? primaryColor : 'transparent',
+                                                    borderColor: isActive ? primaryColor : borderColor
+                                                }}
+                                                onPress={() => setGender(option)}
+                                            >
+                                                <Text
+                                                    className="text-[11px] font-extrabold uppercase tracking-tight"
+                                                    style={{ color: isActive ? '#fff' : textColor }}
+                                                >
+                                                    {option}
+                                                </Text>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </HStack>
+                            </VStack>
 
-                    <View style={styles.section}>
-                        <Text style={[styles.sectionTitle, { color: subtextColor }]}>DATE</Text>
-                        <View style={styles.dateContainer}>
-                            {Platform.OS === 'android' ? (
-                                <>
-                                    <TouchableOpacity
-                                        style={[styles.dateButton, { borderColor }]}
-                                        onPress={() => setShowPicker(true)}
-                                    >
-                                        <Text style={{ color: date ? textColor : subtextColor }}>
-                                            {date ? format(date, 'MMM d, yyyy') : 'Select Date'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                    {showPicker && (
-                                        <DateTimePicker
-                                            value={date || new Date()}
-                                            mode="date"
-                                            display="default"
-                                            onChange={onChangeDate}
-                                            minimumDate={new Date()}
-                                        />
+                            <VStack space="sm">
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
+                                    Departure Date
+                                </Text>
+                                <Box className="w-full">
+                                    {Platform.OS === 'android' ? (
+                                        <>
+                                            <Pressable
+                                                className="h-14 rounded-2xl border-2 justify-center px-4 shadow-sm"
+                                                style={{ borderColor, backgroundColor: 'transparent' }}
+                                                onPress={() => setShowPicker(true)}
+                                            >
+                                                <HStack className="items-center" space="sm">
+                                                    <IconSymbol name="calendar" size={18} color={primaryColor} />
+                                                    <Text className="text-sm font-medium" style={{ color: date ? textColor : subtextColor }}>
+                                                        {date ? format(date, 'MMM d, yyyy') : 'Pick a journey date'}
+                                                    </Text>
+                                                </HStack>
+                                            </Pressable>
+                                            {showPicker && (
+                                                <DateTimePicker
+                                                    value={date || new Date()}
+                                                    mode="date"
+                                                    display="default"
+                                                    onChange={onChangeDate}
+                                                    minimumDate={new Date()}
+                                                />
+                                            )}
+                                        </>
+                                    ) : (
+                                        <Box className="items-start">
+                                            <DateTimePicker
+                                                value={date || new Date()}
+                                                mode="date"
+                                                display="default"
+                                                onChange={onChangeDate}
+                                                minimumDate={new Date()}
+                                                textColor={textColor}
+                                                themeVariant={useThemeColor({}, 'background') === '#000000' ? 'dark' : 'light'}
+                                            />
+                                        </Box>
                                     )}
-                                </>
-                            ) : (
-                                <DateTimePicker
-                                    value={date || new Date()}
-                                    mode="date"
-                                    display="default"
-                                    onChange={onChangeDate}
-                                    minimumDate={new Date()}
-                                    themeVariant={useThemeColor({}, 'background') === '#000000' ? 'dark' : 'light'}
-                                />
-                            )}
-                        </View>
-                    </View>
+                                </Box>
+                            </VStack>
 
-                    <TouchableOpacity
-                        style={[styles.applyButton, { backgroundColor: primaryColor }]}
-                        onPress={onApply}
-                    >
-                        <Text style={styles.applyButtonText}>Apply Filters</Text>
-                    </TouchableOpacity>
+                            <Button 
+                                className="h-14 rounded-2xl shadow-xl mt-4"
+                                style={{ backgroundColor: primaryColor }}
+                                onPress={onApply}
+                            >
+                                <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Show matches</ButtonText>
+                            </Button>
+                        </VStack>
+                    </Box>
                 </BottomSheetView>
             </BottomSheetModal>
         );
     }
 );
-
-const styles = StyleSheet.create({
-    content: {
-        padding: 24,
-        gap: 24,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    resetText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    section: {
-        gap: 12,
-    },
-    sectionTitle: {
-        fontSize: 12,
-        fontWeight: '700',
-        letterSpacing: 1,
-    },
-    genderRow: {
-        flexDirection: 'row',
-        gap: 10,
-    },
-    genderButton: {
-        flex: 1,
-        height: 44,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    genderButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    dateContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    dateButton: {
-        height: 48,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        justifyContent: 'center',
-        paddingHorizontal: 16,
-        width: '100%',
-    },
-    applyButton: {
-        height: 56,
-        borderRadius: 16,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 8,
-    },
-    applyButtonText: {
-        color: '#FFFFFF',
-        fontSize: 18,
-        fontWeight: '700',
-    },
-});

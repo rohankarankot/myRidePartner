@@ -1,13 +1,6 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ScrollView } from 'react-native';
+import { Stack } from 'expo-router';
 import { useQueries } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 
@@ -16,6 +9,14 @@ import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { CustomAlert } from '@/components/CustomAlert';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Spinner } from '@/components/ui/spinner';
+import { HStack } from '@/components/ui/hstack';
+import { VStack } from '@/components/ui/vstack';
+import { Divider } from '@/components/ui/divider';
 
 export default function BlockedUsersScreen() {
   const backgroundColor = useThemeColor({}, 'background');
@@ -68,25 +69,37 @@ export default function BlockedUsersScreen() {
     (pendingUnblockUserId ? `User #${pendingUnblockUserId}` : 'this user');
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
-      <View style={[styles.heroCard, { backgroundColor: cardColor, borderColor }]}>
+    <ScrollView style={{ flex: 1, backgroundColor }} contentContainerStyle={{ paddingBottom: 40 }}>
+      <Stack.Screen options={{ title: 'Blocked Users', headerTitleStyle: { fontWeight: '800' } }} />
 
-        <Text style={[styles.heroTitle, { color: textColor }]}>Blocked Users</Text>
+      <VStack className="px-6 py-8" space="xs">
+          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Privacy Center</Text>
+          <Text className="text-sm font-medium" style={{ color: subtextColor }}>Manage the accounts you've restricted from interacting with you.</Text>
+      </VStack>
+
+      <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-4" style={{ color: subtextColor }}>
+          Blocked Accounts
+        </Text>
 
         {isLoading ? (
-          <View style={styles.stateCard}>
-            <ActivityIndicator color={primaryColor} />
-          </View>
+          <Box className="min-h-[200px] items-center justify-center">
+            <Spinner color={primaryColor} />
+          </Box>
         ) : blockedUsers.length === 0 ? (
-          <View style={[styles.stateCard, { backgroundColor: cardColor, borderColor }]}>
-            <IconSymbol name="checkmark.shield.fill" size={28} color={primaryColor} />
-            <Text style={[styles.emptyTitle, { color: textColor }]}>No blocked users</Text>
-            <Text style={[styles.emptyCopy, { color: subtextColor }]}>
-              People you block will appear here so you can review or unblock them later.
+          <VStack className="min-h-[200px] items-center justify-center px-6" space="md">
+            <Box className="w-16 h-16 rounded-full bg-gray-50 items-center justify-center mb-2">
+                <IconSymbol name="checkmark.shield.fill" size={32} color={primaryColor} />
+            </Box>
+            <Text className="text-xl font-extrabold text-center" style={{ color: textColor }}>
+              All Clear
             </Text>
-          </View>
+            <Text className="text-sm font-medium text-center leading-6" style={{ color: subtextColor }}>
+              No accounts are currently blocked. Your safety and community trust are our priority.
+            </Text>
+          </VStack>
         ) : (
-          <View style={[styles.listCard, { backgroundColor: cardColor, borderColor }]}>
+          <VStack className="rounded-[24px] overflow-hidden border" style={{ borderColor }}>
             {blockedUsers.map(({ userId, profile, isProfileLoading }, index) => {
               const avatarUri =
                 typeof profile?.avatar === 'string' ? profile.avatar : profile?.avatar?.url;
@@ -94,49 +107,54 @@ export default function BlockedUsersScreen() {
               const subtitle = profile?.city || 'Blocked account';
 
               return (
-                <View
-                  key={userId}
-                  style={[
-                    styles.row,
-                    index < blockedUsers.length - 1 && { borderBottomWidth: 1, borderBottomColor: borderColor },
-                  ]}
-                >
-                  <View style={styles.userMeta}>
-                    {avatarUri ? (
-                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                    ) : (
-                      <View style={[styles.avatarFallback, { backgroundColor: `${primaryColor}16` }]}>
-                        <IconSymbol name="person.fill" size={18} color={primaryColor} />
-                      </View>
-                    )}
-                    <View style={styles.userCopy}>
-                      <Text style={[styles.userName, { color: textColor }]} numberOfLines={1}>
-                        {displayName}
-                      </Text>
-                      <Text style={[styles.userSubtitle, { color: subtextColor }]} numberOfLines={1}>
-                        {isProfileLoading ? 'Loading profile...' : subtitle}
-                      </Text>
-                    </View>
-                  </View>
+                <VStack key={userId} >
+                  <HStack className="items-center justify-between p-4" space="md">
+                    <HStack className="items-center flex-1" space="md">
+                      <Avatar size="md" className="border shadow-sm" style={{ borderColor }}>
+                        <AvatarFallbackText>{displayName}</AvatarFallbackText>
+                        {avatarUri ? <AvatarImage source={{ uri: avatarUri }} alt={displayName} /> : null}
+                      </Avatar>
 
-                  <TouchableOpacity
-                    style={[styles.unblockButton, { borderColor, backgroundColor: `${primaryColor}10` }]}
-                    onPress={() => setPendingUnblockUserId(userId)}
-                    disabled={isUnblocking}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.unblockButtonText, { color: primaryColor }]}>Unblock</Text>
-                  </TouchableOpacity>
-                </View>
+                      <VStack className="flex-1" space="xs">
+                        <Text className="text-base font-bold" style={{ color: textColor }} numberOfLines={1}>
+                          {displayName}
+                        </Text>
+                        <Text className="text-xs font-medium" style={{ color: subtextColor }} numberOfLines={1}>
+                          {isProfileLoading ? 'Loading profile...' : subtitle}
+                        </Text>
+                      </VStack>
+                    </HStack>
+
+                    <Pressable
+                      className="rounded-xl px-4 py-2 border shadow-sm"
+                      style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}10` }}
+                      onPress={() => setPendingUnblockUserId(userId)}
+                      disabled={isUnblocking}
+                    >
+                      <Text className="text-xs font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                        Unblock
+                      </Text>
+                    </Pressable>
+                  </HStack>
+                  {index < blockedUsers.length - 1 ? <Divider style={{ backgroundColor: borderColor }} className="mx-4" /> : null}
+                </VStack>
               );
             })}
-          </View>
+          </VStack>
         )}
-      </View>
+      </Box>
+
+      <VStack className="items-center py-10" space="xs">
+          <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+          Manage your interactions securely
+        </Text>
+      </VStack>
+
       <CustomAlert
         visible={pendingUnblockUserId !== null}
         title="Unblock user?"
-        message={`${pendingDisplayName} will be able to appear in discovery and interact with you again where blocking is enforced.`}
+        message={`${pendingDisplayName} will be able to appear in discovery and interact with you again.`}
         icon="person.crop.circle.badge.checkmark"
         onClose={() => setPendingUnblockUserId(null)}
         primaryButton={{
@@ -155,104 +173,3 @@ export default function BlockedUsersScreen() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  heroCard: {
-    borderRadius: 20,
-    padding: 18,
-  },
-  heroIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  heroTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  heroCopy: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  stateCard: {
-    minHeight: 180,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 12,
-  },
-  emptyCopy: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  listCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    gap: 12,
-  },
-  userMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  avatarFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userCopy: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  userSubtitle: {
-    fontSize: 13,
-    marginTop: 4,
-  },
-  unblockButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  unblockButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-});

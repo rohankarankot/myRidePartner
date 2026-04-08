@@ -10,29 +10,35 @@ import { StatusBar } from 'expo-status-bar';
 import { queryClient } from '@/shared/lib/query-client';
 import { AuthProvider } from '@/features/auth/auth-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { PushNotificationHandler } from '@/components/push-notification-handler';
 import { SocketHandler } from '@/components/socket-handler';
+import { useThemeStore } from '@/store/theme-store';
 
 export function AppProviders({ children }: PropsWithChildren) {
   const colorScheme = useColorScheme();
+  const themeMode = useThemeStore((state) => state.theme);
+  const palette = useThemeStore((state) => state.palette);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <KeyboardProvider>
-            <PushNotificationHandler />
-            <SocketHandler />
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <BottomSheetModalProvider>
-                {children}
-                <StatusBar style="auto" />
-                <Toast position="bottom" bottomOffset={80} />
-              </BottomSheetModalProvider>
-            </ThemeProvider>
-          </KeyboardProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    <GluestackUIProvider mode={themeMode} palette={palette}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <KeyboardProvider>
+              <PushNotificationHandler />
+              <SocketHandler />
+              <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+                <BottomSheetModalProvider>
+                  {children}
+                  <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+                  <Toast position="bottom" bottomOffset={80} />
+                </BottomSheetModalProvider>
+              </ThemeProvider>
+            </KeyboardProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    </GluestackUIProvider>
   );
 }

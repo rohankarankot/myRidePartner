@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import {
     Modal,
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
     TextInput,
     ScrollView,
     KeyboardAvoidingView,
     Platform,
-    ActivityIndicator,
 } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Button, ButtonText, ButtonSpinner } from '@/components/ui/button';
+import { Divider } from '@/components/ui/divider';
 
 const USER_REPORT_REASONS = [
     { id: 'harassment', label: 'Harassment or bullying', icon: 'exclamationmark.bubble.fill' },
@@ -87,11 +89,11 @@ export function ReportModal({
     const borderColor = useThemeColor({}, 'border');
     const dangerColor = useThemeColor({}, 'danger');
     const reportReasons = context === 'message' ? MESSAGE_REPORT_REASONS : USER_REPORT_REASONS;
-    const title = context === 'message' ? 'Report Message' : 'Report User';
-    const subtitlePrefix = context === 'message' ? 'Message from' : 'Reporting';
+    const title = context === 'message' ? 'Report Content' : 'Report Member';
+    const subtitlePrefix = context === 'message' ? 'Sent by' : 'Reporting';
     const questionLabel = context === 'message'
-        ? 'WHAT IS WRONG WITH THIS MESSAGE?'
-        : 'WHY ARE YOU REPORTING THIS USER?';
+        ? 'What is wrong with this message?'
+        : 'Why are you reporting this member?';
     const detailsPlaceholder = context === 'message'
         ? 'Tell us what was wrong with this message...'
         : 'Describe what happened...';
@@ -147,281 +149,151 @@ export function ReportModal({
             animationType="slide"
             onRequestClose={handleClose}
         >
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.overlay}
-            >
-                <View style={[styles.sheet, { backgroundColor: cardColor }]}>
-                    {submitted ? (
-                        /* ── Success State ── */
-                        <View style={styles.successContainer}>
-                            <View style={[styles.successIcon, { backgroundColor: `${primaryColor}15` }]}>
-                                <IconSymbol name="checkmark.shield.fill" size={48} color={primaryColor} />
-                            </View>
-                            <Text style={[styles.successTitle, { color: textColor }]}>Report Submitted</Text>
-                            <Text style={[styles.successBody, { color: subtextColor }]}>
-                                Thank you for helping keep My Ride Partner safe. We&apos;ll review this report and take action if needed.
-                            </Text>
-                            <TouchableOpacity
-                                style={[styles.doneButton, { backgroundColor: primaryColor }]}
-                                onPress={handleClose}
-                            >
-                                <Text style={styles.doneButtonText}>Done</Text>
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        /* ── Questionnaire State ── */
-                        <>
-                            {/* Header */}
-                            <View style={styles.header}>
-                                <View>
-                                    <Text style={[styles.title, { color: textColor }]}>{title}</Text>
-                                    {reportedUserName ? (
-                                        <Text style={[styles.subtitle, { color: subtextColor }]}>
-                                            {subtitlePrefix} {reportedUserName}
-                                        </Text>
-                                    ) : null}
-                                </View>
-                                <TouchableOpacity onPress={handleClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                                    <IconSymbol name="xmark.circle.fill" size={28} color={subtextColor} />
-                                </TouchableOpacity>
-                            </View>
-
-                            <Text style={[styles.sectionLabel, { color: subtextColor }]}>
-                                {questionLabel}
-                            </Text>
-
-                            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
-                                {reportReasons.map(reason => {
-                                    const active = selectedReason === reason.id;
-                                    return (
-                                        <TouchableOpacity
-                                            key={reason.id}
-                                            style={[
-                                                styles.reasonRow,
-                                                {
-                                                    borderColor: active ? primaryColor : borderColor,
-                                                    backgroundColor: active ? `${primaryColor}10` : 'transparent',
-                                                },
-                                            ]}
-                                            onPress={() => setSelectedReason(reason.id)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <View style={[styles.reasonIcon, { backgroundColor: active ? `${primaryColor}20` : `${subtextColor}15` }]}>
-                                                <IconSymbol
-                                                    name={reason.icon as any}
-                                                    size={18}
-                                                    color={active ? primaryColor : subtextColor}
-                                                />
-                                            </View>
-                                            <Text style={[styles.reasonLabel, { color: active ? primaryColor : textColor }]}>
-                                                {reason.label}
-                                            </Text>
-                                            {active && (
-                                                <IconSymbol name="checkmark.circle.fill" size={20} color={primaryColor} />
-                                            )}
-                                        </TouchableOpacity>
-                                    );
-                                })}
-
-                                {/* Optional details */}
-                                <Text style={[styles.sectionLabel, { color: subtextColor, marginTop: 16 }]}>
-                                    {isOtherReason ? 'ADDITIONAL DETAILS (REQUIRED)' : 'ADDITIONAL DETAILS (OPTIONAL)'}
+            <Box className="flex-1 justify-end bg-black/60">
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    className="w-full"
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                >
+                    <Box 
+                        className="rounded-t-[40px] px-8 pt-8 pb-10 max-h-[88%]" 
+                        style={{ backgroundColor: cardColor }}
+                    >
+                        {submitted ? (
+                            <Box className="items-center py-10">
+                                <Box className="w-24 h-24 rounded-[36px] items-center justify-center mb-8 rotate-3 shadow-2xl" style={{ backgroundColor: `${primaryColor}15` }}>
+                                    <IconSymbol name="checkmark.shield.fill" size={48} color={primaryColor} />
+                                </Box>
+                                <Text className="text-2xl font-extrabold text-center uppercase tracking-widest mb-3" style={{ color: textColor }}>
+                                    Report Logged
                                 </Text>
-                                <TextInput
-                                    style={[
-                                        styles.detailsInput,
-                                        {
-                                            borderColor: isDetailsRequiredMissing ? dangerColor : borderColor,
-                                            color: textColor,
-                                            backgroundColor: `${subtextColor}08`,
-                                        },
-                                    ]}
-                                    placeholder={detailsPlaceholder}
-                                    placeholderTextColor={subtextColor}
-                                    multiline
-                                    numberOfLines={4}
-                                    value={details}
-                                    onChangeText={setDetails}
-                                    maxLength={500}
-                                    textAlignVertical="top"
-                                />
-                                <Text style={[styles.charCount, { color: subtextColor }]}>{details.length}/500</Text>
-                                {isDetailsRequiredMissing ? (
-                                    <Text style={[styles.validationText, { color: dangerColor }]}>
-                                        Please tell us the reason when you choose Other.
-                                    </Text>
-                                ) : null}
-                            </ScrollView>
-
-                            {/* Actions */}
-                            <View style={styles.actions}>
-                                <TouchableOpacity
-                                    style={[styles.cancelBtn, { borderColor }]}
+                                <Text className="text-sm font-medium leading-6 text-center opacity-80 mb-10 px-4" style={{ color: subtextColor }}>
+                                    Your safety is our priority. We will investigate this report and take appropriate action immediately.
+                                </Text>
+                                <Button 
+                                    className="w-full h-16 rounded-[24px] shadow-xl"
+                                    style={{ backgroundColor: primaryColor }}
                                     onPress={handleClose}
                                 >
-                                    <Text style={[styles.cancelBtnText, { color: textColor }]}>Cancel</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.submitBtn,
-                                        {
-                                            backgroundColor: selectedReason && !isDetailsRequiredMissing ? dangerColor : `${subtextColor}30`,
-                                        },
-                                    ]}
-                                    onPress={handleSubmit}
-                                    disabled={!selectedReason || isDetailsRequiredMissing || submitting}
+                                    <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Understood</ButtonText>
+                                </Button>
+                            </Box>
+                        ) : (
+                            <>
+                                <HStack className="items-start justify-between mb-8">
+                                    <VStack >
+                                        <Text className="text-2xl font-extrabold uppercase tracking-widest" style={{ color: textColor }}>{title}</Text>
+                                        {reportedUserName ? (
+                                            <Text className="text-[10px] font-extrabold uppercase tracking-widest mt-1" style={{ color: primaryColor }}>
+                                                {subtitlePrefix} {reportedUserName}
+                                            </Text>
+                                        ) : null}
+                                    </VStack>
+                                    <Pressable 
+                                        onPress={handleClose} 
+                                        className="w-10 h-10 rounded-full items-center justify-center bg-gray-50 border shadow-xs"
+                                        style={{ borderColor }}
+                                    >
+                                        <IconSymbol name="xmark" size={20} color={subtextColor} />
+                                    </Pressable>
+                                </HStack>
+
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1 mb-4" style={{ color: subtextColor }}>
+                                    {questionLabel}
+                                </Text>
+
+                                <ScrollView 
+                                    showsVerticalScrollIndicator={false} 
+                                    contentContainerStyle={{ paddingBottom: 24 }}
+                                    className="max-h-[400px]"
                                 >
-                                    {submitting ? (
-                                        <ActivityIndicator color="#fff" />
-                                    ) : (
-                                        <Text style={styles.submitBtnText}>Submit Report</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                        </>
-                    )}
-                </View>
-            </KeyboardAvoidingView>
+                                    <VStack space="sm">
+                                        {reportReasons.map(reason => {
+                                            const active = selectedReason === reason.id;
+                                            return (
+                                                <Pressable
+                                                    key={reason.id}
+                                                    className="flex-row items-center p-4 rounded-[20px] border-2 shadow-sm"
+                                                    style={{
+                                                        borderColor: active ? primaryColor : borderColor,
+                                                        backgroundColor: active ? `${primaryColor}08` : 'transparent',
+                                                    }}
+                                                    onPress={() => setSelectedReason(reason.id)}
+                                                >
+                                                    <Box className="w-10 h-10 rounded-2xl items-center justify-center mr-4" style={{ backgroundColor: active ? `${primaryColor}15` : `${subtextColor}08` }}>
+                                                        <IconSymbol
+                                                            name={reason.icon as any}
+                                                            size={18}
+                                                            color={active ? primaryColor : subtextColor}
+                                                        />
+                                                    </Box>
+                                                    <Text className="flex-1 text-[13px] font-extrabold uppercase tracking-tight" style={{ color: active ? primaryColor : textColor }}>
+                                                        {reason.label}
+                                                    </Text>
+                                                    {active && (
+                                                        <IconSymbol name="checkmark.circle.fill" size={20} color={primaryColor} />
+                                                    )}
+                                                </Pressable>
+                                            );
+                                        })}
+                                    </VStack>
+
+                                    <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1 mt-8 mb-4" style={{ color: subtextColor }}>
+                                        {isOtherReason ? 'Case Details (Required)' : 'Case Details (Optional)'}
+                                    </Text>
+                                    
+                                    <Box className="rounded-[24px] border-2 shadow-sm p-4 h-32" style={{ backgroundColor: `${subtextColor}05`, borderColor: isDetailsRequiredMissing ? dangerColor : borderColor }}>
+                                        <TextInput
+                                            className="flex-1 text-[15px] font-medium"
+                                            style={{ color: textColor, textAlignVertical: 'top' }}
+                                            placeholder={detailsPlaceholder}
+                                            placeholderTextColor={subtextColor}
+                                            multiline
+                                            value={details}
+                                            onChangeText={setDetails}
+                                            maxLength={500}
+                                        />
+                                        <Text className="text-[9px] font-extrabold uppercase tracking-widest text-right mt-2" style={{ color: subtextColor }}>
+                                            {details.length} / 500
+                                        </Text>
+                                    </Box>
+                                    
+                                    {isDetailsRequiredMissing ? (
+                                        <Text className="text-[10px] font-bold mt-2 ml-1" style={{ color: dangerColor }}>
+                                            Please provide details for the "Other" category.
+                                        </Text>
+                                    ) : null}
+                                </ScrollView>
+
+                                <HStack className="mt-8" space="md">
+                                    <Button 
+                                        variant="outline"
+                                        className="flex-1 h-16 rounded-[24px] border-2 shadow-sm"
+                                        style={{ borderColor }}
+                                        onPress={handleClose}
+                                    >
+                                        <ButtonText className="text-xs font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Cancel</ButtonText>
+                                    </Button>
+                                    <Button 
+                                        className="flex-[2] h-16 rounded-[24px] shadow-xl"
+                                        style={{ 
+                                            backgroundColor: selectedReason && !isDetailsRequiredMissing ? dangerColor : `${subtextColor}20`,
+                                        }}
+                                        onPress={handleSubmit}
+                                        disabled={!selectedReason || isDetailsRequiredMissing || submitting}
+                                    >
+                                        {submitting ? (
+                                            <ButtonSpinner color="#fff" />
+                                        ) : (
+                                            <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Submit Case</ButtonText>
+                                        )}
+                                    </Button>
+                                </HStack>
+                            </>
+                        )}
+                    </Box>
+                </KeyboardAvoidingView>
+            </Box>
         </Modal>
     );
 }
-
-const styles = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    sheet: {
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        padding: 24,
-        maxHeight: '88%',
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 20,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: '700',
-    },
-    subtitle: {
-        fontSize: 13,
-        marginTop: 2,
-    },
-    sectionLabel: {
-        fontSize: 11,
-        fontWeight: '700',
-        letterSpacing: 0.6,
-        marginBottom: 10,
-    },
-    reasonRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        padding: 14,
-        borderRadius: 14,
-        borderWidth: 1.5,
-        marginBottom: 8,
-    },
-    reasonIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    reasonLabel: {
-        flex: 1,
-        fontSize: 15,
-        fontWeight: '500',
-    },
-    detailsInput: {
-        borderWidth: 1,
-        borderRadius: 14,
-        padding: 14,
-        fontSize: 15,
-        minHeight: 100,
-        marginBottom: 4,
-    },
-    charCount: {
-        fontSize: 11,
-        textAlign: 'right',
-        marginBottom: 8,
-    },
-    validationText: {
-        fontSize: 12,
-        lineHeight: 16,
-        marginBottom: 8,
-    },
-    actions: {
-        flexDirection: 'row',
-        gap: 12,
-        marginTop: 8,
-    },
-    cancelBtn: {
-        flex: 1,
-        height: 50,
-        borderRadius: 14,
-        borderWidth: 1.5,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cancelBtnText: {
-        fontSize: 15,
-        fontWeight: '600',
-    },
-    submitBtn: {
-        flex: 2,
-        height: 50,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    submitBtnText: {
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    // Success state
-    successContainer: {
-        alignItems: 'center',
-        paddingVertical: 24,
-    },
-    successIcon: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    successTitle: {
-        fontSize: 22,
-        fontWeight: '800',
-        marginBottom: 10,
-    },
-    successBody: {
-        fontSize: 15,
-        lineHeight: 22,
-        textAlign: 'center',
-        marginBottom: 28,
-        paddingHorizontal: 8,
-    },
-    doneButton: {
-        width: '100%',
-        height: 52,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    doneButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-});

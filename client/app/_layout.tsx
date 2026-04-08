@@ -1,3 +1,4 @@
+import '@/global.css';
 import React from 'react';
 import { Stack } from 'expo-router';
 import { TouchableOpacity } from 'react-native';

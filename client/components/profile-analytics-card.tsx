@@ -1,9 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-
 import { UserAnalytics } from '@/types/api';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Divider } from '@/components/ui/divider';
 
 type ProfileAnalyticsCardProps = {
   analytics: UserAnalytics;
@@ -24,16 +27,20 @@ function MetricTile({
 }) {
   const textColor = useThemeColor({}, 'text');
   const subtextColor = useThemeColor({}, 'subtext');
+  const cardColor = useThemeColor({}, 'card');
+  const borderColor = useThemeColor({}, 'border');
 
   return (
-    <View style={[styles.metricTile, { backgroundColor: `${tint}12` }]}>
-      <View style={[styles.metricIcon, { backgroundColor: `${tint}22` }]}>
-        <IconSymbol name={icon} size={16} color={tint} />
-      </View>
-      <Text style={[styles.metricTitle, { color: subtextColor }]}>{title}</Text>
-      <Text style={[styles.metricValue, { color: textColor }]}>{value}</Text>
-      <Text style={[styles.metricCaption, { color: subtextColor }]}>{caption}</Text>
-    </View>
+    <Box className="w-[48%] rounded-[24px] p-4 border shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+      <Box className="w-10 h-10 rounded-2xl items-center justify-center mb-3 shadow-sm" style={{ backgroundColor: tint }}>
+        <IconSymbol name={icon} size={18} color="#fff" />
+      </Box>
+      <VStack space="xs">
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>{title}</Text>
+        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>{value}</Text>
+        <Text className="text-[10px] font-medium leading-4" style={{ color: subtextColor }}>{caption}</Text>
+      </VStack>
+    </Box>
   );
 }
 
@@ -44,10 +51,10 @@ export function ProfileAnalyticsCard({ analytics }: ProfileAnalyticsCardProps) {
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'primary');
   const successColor = useThemeColor({}, 'success');
-  const postedColor = '#2563EB';
-  const approvedColor = '#059669';
-  const completedColor = '#EA580C';
-  const recoveryColor = '#7C3AED';
+  const postedColor = '#3B82F6';
+  const approvedColor = '#10B981';
+  const completedColor = '#F59E0B';
+  const recoveryColor = '#8B5CF6';
 
   const summary = analytics.summary;
   const monthlyActivity = analytics.monthlyActivity;
@@ -66,400 +73,178 @@ export function ProfileAnalyticsCard({ analytics }: ProfileAnalyticsCardProps) {
   );
 
   return (
-    <View style={[styles.card, { backgroundColor: cardColor }]}>
-      <View style={[styles.heroCard, { backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}18` }]}>
-        <View style={styles.headerTopRow}>
-          <View style={[styles.heroIconWrap, { backgroundColor: `${primaryColor}18` }]}>
-            <IconSymbol name="chart.bar.fill" size={18} color={primaryColor} />
-          </View>
-          <View style={[styles.pill, { backgroundColor: '#FFFFFF', borderColor: `${successColor}24` }]}>
-            <Text style={[styles.pillText, { color: successColor }]}>
-              {summary.completionRate}% completed
+    <VStack space="lg" className="w-full">
+      <Box className="rounded-[32px] p-6 shadow-sm border overflow-hidden" style={{ backgroundColor: cardColor, borderColor }}>
+        <HStack className="justify-between items-start mb-6">
+          <VStack space="xs">
+            <Box className="w-12 h-12 rounded-2xl items-center justify-center mb-2 shadow-sm" style={{ backgroundColor: primaryColor }}>
+                <IconSymbol name="chart.bar.fill" size={24} color="#fff" />
+            </Box>
+            <Text className="text-2xl font-extrabold" style={{ color: textColor }}>Ride Insights</Text>
+            <Text className="text-sm font-medium" style={{ color: subtextColor }}>Your performance over 6 months</Text>
+          </VStack>
+          <Box className="px-4 py-2 rounded-full border-2" style={{ borderColor: `${successColor}40`, backgroundColor: `${successColor}10` }}>
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: successColor }}>
+              {summary.completionRate}% Efficiency
             </Text>
-          </View>
-        </View>
-        <View style={styles.headerCopy}>
-          <Text style={[styles.cardTitle, { color: textColor }]}>Ride Analytics</Text>
-          <Text style={[styles.cardSubtitle, { color: subtextColor }]}>
-            Your personal activity over the last 6 months
-          </Text>
-        </View>
-        <View style={styles.heroStatsRow}>
-          <View style={styles.heroStat}>
-            <Text style={[styles.heroStatValue, { color: textColor }]}>{summary.ridesCompleted}</Text>
-            <Text style={[styles.heroStatLabel, { color: subtextColor }]}>Completed</Text>
-          </View>
-          <View style={[styles.heroDivider, { backgroundColor: `${primaryColor}18` }]} />
-          <View style={styles.heroStat}>
-            <Text style={[styles.heroStatValue, { color: textColor }]}>{summary.requestsApproved}</Text>
-            <Text style={[styles.heroStatLabel, { color: subtextColor }]}>Approved</Text>
-          </View>
-          <View style={[styles.heroDivider, { backgroundColor: `${primaryColor}18` }]} />
-          <View style={styles.heroStat}>
-            <Text style={[styles.heroStatValue, { color: textColor }]}>₹{summary.estimatedMoneySaved}</Text>
-            <Text style={[styles.heroStatLabel, { color: subtextColor }]}>Passenger saved</Text>
-          </View>
-        </View>
-      </View>
+          </Box>
+        </HStack>
 
-      <View style={styles.metricsGrid}>
+        <HStack className="bg-transparent border border-dashed rounded-[24px] p-4" style={{ borderColor }}>
+          <VStack className="flex-1 items-center" space="xs">
+            <Text className="text-base font-extrabold" style={{ color: textColor }}>{summary.ridesCompleted}</Text>
+            <Text className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: subtextColor }}>Completed</Text>
+          </VStack>
+          <Divider className="w-px h-8 self-center mx-2" style={{ backgroundColor: borderColor }} />
+          <VStack className="flex-1 items-center" space="xs">
+            <Text className="text-base font-extrabold" style={{ color: textColor }}>{summary.requestsApproved}</Text>
+            <Text className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: subtextColor }}>Approved</Text>
+          </VStack>
+          <Divider className="w-px h-8 self-center mx-2" style={{ backgroundColor: borderColor }} />
+          <VStack className="flex-1 items-center" space="xs">
+            <Text className="text-base font-extrabold" style={{ color: textColor }}>₹{summary.estimatedMoneySaved}</Text>
+            <Text className="text-[10px] font-bold uppercase tracking-widest text-center" style={{ color: subtextColor }}>Saved</Text>
+          </VStack>
+        </HStack>
+      </Box>
+
+      <HStack className="flex-wrap justify-between" >
         <MetricTile
           title="Rides Posted"
           value={String(summary.ridesPosted)}
-          caption="Trips you created"
+          caption="Total trips you've published"
           icon="car.fill"
-          tint={primaryColor}
+          tint={postedColor}
         />
         <MetricTile
-          title="Requests Approved"
+          title="Approved"
           value={String(summary.requestsApproved)}
-          caption="Passengers you approved"
+          caption="Passengers you've welcomed"
           icon="checkmark.circle.fill"
-          tint="#10B981"
+          tint={approvedColor}
         />
+        <Box className="h-4 w-full" />
         <MetricTile
-          title="Trips Completed"
+          title="Completion"
           value={String(summary.ridesCompleted)}
-          caption="Posted rides completed"
+          caption="Succesful rides shared"
           icon="flag.checkered"
-          tint="#F59E0B"
+          tint={completedColor}
         />
         <MetricTile
-          title="Passenger Savings"
-          value={`₹${summary.estimatedMoneySaved}`}
-          caption="Completed rides you joined"
-          icon="indianrupeesign.circle.fill"
-          tint="#EC4899"
-        />
-        <MetricTile
-          title="Captain Recovery"
+          title="Cost Recovery"
           value={`₹${summary.estimatedCostRecovered}`}
-          caption="Passenger payments on your completed rides"
+          caption="Shared expense recovered"
           icon="wallet.pass.fill"
           tint={recoveryColor}
         />
-      </View>
+      </HStack>
 
-      <View style={[styles.chartCard, { borderColor }]}>
-        <Text style={[styles.chartTitle, { color: textColor }]}>Monthly Activity</Text>
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: postedColor }]} />
-            <Text style={[styles.chartLegend, { color: subtextColor }]}>Posted</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: approvedColor }]} />
-            <Text style={[styles.chartLegend, { color: subtextColor }]}>Approved</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: completedColor }]} />
-            <Text style={[styles.chartLegend, { color: subtextColor }]}>Completed</Text>
-          </View>
-        </View>
-        <View style={styles.chartBody}>
+      {/* Monthly Activity Chart */}
+      <Box className="rounded-[32px] p-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-6" style={{ color: subtextColor }}>Monthly Trends</Text>
+        
+        <HStack className="items-end justify-between h-[160px] px-2 mb-6" >
           {monthlyActivity.map((month) => (
-            <View key={month.key} style={styles.chartColumn}>
-              <View style={styles.chartBars}>
-                <View
-                  style={[
-                    styles.bar,
-                    styles.barPrimary,
-                    { backgroundColor: postedColor },
-                    { height: `${(month.ridesPosted / maxActivityValue) * 100}%` },
-                  ]}
+            <VStack key={month.key} className="items-center" style={{ width: '14%' }} space="md">
+              <HStack className="items-end h-[120px]" space="xs">
+                <Box 
+                  className="w-1.5 rounded-full" 
+                  style={{ 
+                    backgroundColor: postedColor, 
+                    height: `${(month.ridesPosted / maxActivityValue) * 100}%`,
+                    minHeight: 4 
+                  }} 
                 />
-                <View
-                  style={[
-                    styles.bar,
-                    styles.barSuccess,
-                    { backgroundColor: approvedColor },
-                    { height: `${(month.requestsApproved / maxActivityValue) * 100}%` },
-                  ]}
+                <Box 
+                  className="w-1.5 rounded-full" 
+                  style={{ 
+                    backgroundColor: approvedColor, 
+                    height: `${(month.requestsApproved / maxActivityValue) * 100}%`,
+                    minHeight: 4 
+                  }} 
                 />
-                <View
-                  style={[
-                    styles.bar,
-                    styles.barWarning,
-                    { backgroundColor: completedColor },
-                    { height: `${(month.ridesCompleted / maxActivityValue) * 100}%` },
-                  ]}
+                <Box 
+                  className="w-1.5 rounded-full" 
+                  style={{ 
+                    backgroundColor: completedColor, 
+                    height: `${(month.ridesCompleted / maxActivityValue) * 100}%`,
+                    minHeight: 4 
+                  }} 
                 />
-              </View>
-              <Text style={[styles.monthLabel, { color: subtextColor }]}>{month.label}</Text>
-            </View>
+              </HStack>
+              <Text className="text-[10px] font-extrabold uppercase" style={{ color: subtextColor }}>{month.label}</Text>
+            </VStack>
           ))}
-        </View>
-      </View>
+        </HStack>
 
-      <View style={[styles.chartCard, { borderColor }]}>
-        <View style={styles.savedHeader}>
-          <Text style={[styles.chartTitle, { color: textColor }]}>Passenger Savings</Text>
-          <Text style={[styles.savedTotal, { color: textColor }]}>₹{summary.estimatedMoneySaved}</Text>
-        </View>
-        <Text style={[styles.chartLegend, { color: subtextColor }]}>
-          Based on your completed shared rides as a passenger
-        </Text>
-        <View style={styles.savedRows}>
-          {monthlyActivity.map((month) => (
-            <View key={month.key} style={styles.savedRow}>
-              <Text style={[styles.savedMonth, { color: subtextColor }]}>{month.label}</Text>
-              <View style={[styles.savedTrack, { backgroundColor: `${primaryColor}10` }]}>
-                <View
-                  style={[
-                    styles.savedFill,
-                    {
-                      backgroundColor: primaryColor,
-                      width: `${(month.moneySaved / maxSavedValue) * 100}%`,
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={[styles.savedValue, { color: textColor }]}>₹{month.moneySaved}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
+        <HStack className="justify-center flex-wrap pt-4 border-t border-dashed" style={{ borderColor }} space="lg">
+          <HStack className="items-center" space="xs">
+            <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: postedColor }} />
+            <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Posted</Text>
+          </HStack>
+          <HStack className="items-center" space="xs">
+            <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: approvedColor }} />
+            <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Approved</Text>
+          </HStack>
+          <HStack className="items-center" space="xs">
+            <Box className="w-2 h-2 rounded-full" style={{ backgroundColor: completedColor }} />
+            <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Completed</Text>
+          </HStack>
+        </HStack>
+      </Box>
 
-      <View style={[styles.chartCard, { borderColor }]}>
-        <View style={styles.savedHeader}>
-          <Text style={[styles.chartTitle, { color: textColor }]}>Captain Cost Recovery</Text>
-          <Text style={[styles.savedTotal, { color: textColor }]}>₹{summary.estimatedCostRecovered}</Text>
-        </View>
-        <Text style={[styles.chartLegend, { color: subtextColor }]}>
-          Based on approved passengers on your completed rides
-        </Text>
-        <View style={styles.savedRows}>
+      {/* Savings Progress Chart */}
+      <Box className="rounded-[32px] p-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <HStack className="justify-between items-center mb-6">
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Savings Growth</Text>
+            <Text className="text-xl font-extrabold" style={{ color: textColor }}>₹{summary.estimatedMoneySaved}</Text>
+        </HStack>
+        
+        <VStack space="lg">
           {monthlyActivity.map((month) => (
-            <View key={`${month.key}-recovery`} style={styles.savedRow}>
-              <Text style={[styles.savedMonth, { color: subtextColor }]}>{month.label}</Text>
-              <View style={[styles.savedTrack, { backgroundColor: `${recoveryColor}10` }]}>
-                <View
-                  style={[
-                    styles.savedFill,
-                    {
-                      backgroundColor: recoveryColor,
-                      width: `${(month.costRecovered / maxRecoveredValue) * 100}%`,
-                    },
-                  ]}
+            <HStack key={month.key} className="items-center" space="md">
+              <Text className="w-8 text-[10px] font-extrabold uppercase" style={{ color: subtextColor }}>{month.label}</Text>
+              <Box className="flex-1 h-3 rounded-full bg-gray-50 overflow-hidden">
+                <Box
+                  className="h-full rounded-full"
+                  style={{
+                    backgroundColor: primaryColor,
+                    width: `${(month.moneySaved / maxSavedValue) * 100}%`,
+                  }}
                 />
-              </View>
-              <Text style={[styles.savedValue, { color: textColor }]}>₹{month.costRecovered}</Text>
-            </View>
+              </Box>
+              <Text className="w-12 text-right text-xs font-bold" style={{ color: textColor }}>₹{month.moneySaved}</Text>
+            </HStack>
           ))}
-        </View>
-      </View>
-    </View>
+        </VStack>
+      </Box>
+
+      {/* Recovery Progress Chart */}
+      <Box className="rounded-[32px] p-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+        <HStack className="justify-between items-center mb-6">
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Cost Recovery</Text>
+            <Text className="text-xl font-extrabold" style={{ color: textColor }}>₹{summary.estimatedCostRecovered}</Text>
+        </HStack>
+        
+        <VStack space="lg">
+          {monthlyActivity.map((month) => (
+            <HStack key={`${month.key}-recovery`} className="items-center" space="md">
+              <Text className="w-8 text-[10px] font-extrabold uppercase" style={{ color: subtextColor }}>{month.label}</Text>
+              <Box className="flex-1 h-3 rounded-full bg-gray-50 overflow-hidden">
+                <Box
+                  className="h-full rounded-full"
+                  style={{
+                    backgroundColor: recoveryColor,
+                    width: `${(month.costRecovered / maxRecoveredValue) * 100}%`,
+                  }}
+                />
+              </Box>
+              <Text className="w-12 text-right text-xs font-bold" style={{ color: textColor }}>₹{month.costRecovered}</Text>
+            </HStack>
+          ))}
+        </VStack>
+      </Box>
+    </VStack>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-  },
-  heroCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 16,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  heroIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerCopy: {
-    marginTop: 14,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  cardSubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  pill: {
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    flexShrink: 1,
-  },
-  pillText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  heroStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 16,
-    gap: 10,
-  },
-  heroStat: {
-    flex: 1,
-  },
-  heroStatValue: {
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  heroStatLabel: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  heroDivider: {
-    width: 1,
-    height: 28,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 18,
-  },
-  metricTile: {
-    width: '48%',
-    borderRadius: 18,
-    padding: 14,
-  },
-  metricIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  metricTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  metricValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginTop: 6,
-  },
-  metricCaption: {
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 16,
-  },
-  chartCard: {
-    marginTop: 18,
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  chartLegend: {
-    fontSize: 12,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 10,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  chartBody: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    gap: 8,
-    marginTop: 18,
-    minHeight: 150,
-  },
-  chartColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  chartBars: {
-    height: 120,
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  bar: {
-    width: 8,
-    minHeight: 6,
-    borderRadius: 999,
-  },
-  barPrimary: {
-    backgroundColor: '#3B82F6',
-  },
-  barSuccess: {
-    backgroundColor: '#10B981',
-  },
-  barWarning: {
-    backgroundColor: '#F59E0B',
-  },
-  monthLabel: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  savedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  savedTotal: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  savedRows: {
-    marginTop: 16,
-    gap: 10,
-  },
-  savedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  savedMonth: {
-    width: 30,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  savedTrack: {
-    flex: 1,
-    height: 10,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  savedFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  savedValue: {
-    width: 52,
-    textAlign: 'right',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-});

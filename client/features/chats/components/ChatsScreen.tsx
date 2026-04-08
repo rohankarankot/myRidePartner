@@ -1,12 +1,7 @@
 import React, { useMemo } from 'react';
 import {
     FlatList,
-    Image,
     RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +11,13 @@ import { useAuth } from '@/context/auth-context';
 import { tripService } from '@/services/trip-service';
 import { joinRequestService } from '@/services/join-request-service';
 import { ChatsTabSkeleton } from '@/features/chats/components/ChatsTabSkeleton';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { Pressable } from '@/components/ui/pressable';
+import { HStack } from '@/components/ui/hstack';
+import { VStack } from '@/components/ui/vstack';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Divider } from '@/components/ui/divider';
 
 type ChatRide = {
     tripDocumentId: string;
@@ -67,15 +69,16 @@ export function ChatsScreen() {
         trips
             .filter((trip) => ACTIVE_STATUSES.includes(trip.status as typeof ACTIVE_STATUSES[number]))
             .forEach((trip) => {
+                const avatar = trip.creator?.userProfile?.avatar;
+                const avatarUrl = typeof avatar === 'string' ? avatar : avatar?.url;
+
                 byTrip.set(trip.documentId, {
                     tripDocumentId: trip.documentId,
                     title: `${trip.startingPoint} to ${trip.destination}`,
                     subtitle: trip.status === 'STARTED' ? 'Your ride is live. Chat with your group.' : 'Coordinate pickup details with your riders.',
                     status: trip.status,
                     role: 'captain',
-                    avatarUrl: typeof trip.creator?.userProfile?.avatar === 'string'
-                        ? trip.creator.userProfile.avatar
-                        : trip.creator?.userProfile?.avatar?.url,
+                    avatarUrl: avatarUrl || null,
                 });
             });
 
@@ -88,6 +91,9 @@ export function ChatsScreen() {
             .forEach((request) => {
                 if (!request.trip) return;
 
+                const avatar = request.trip.creator?.userProfile?.avatar;
+                const avatarUrl = typeof avatar === 'string' ? avatar : avatar?.url;
+
                 byTrip.set(request.trip.documentId, {
                     tripDocumentId: request.trip.documentId,
                     title: `${request.trip.startingPoint} to ${request.trip.destination}`,
@@ -96,9 +102,7 @@ export function ChatsScreen() {
                         : 'You are approved for this ride. Use chat to coordinate before departure.',
                     status: request.trip.status,
                     role: 'passenger',
-                    avatarUrl: typeof request.trip.creator?.userProfile?.avatar === 'string'
-                        ? request.trip.creator.userProfile.avatar
-                        : request.trip.creator?.userProfile?.avatar?.url,
+                    avatarUrl: avatarUrl || null,
                 });
             });
 
@@ -113,14 +117,16 @@ export function ChatsScreen() {
     }
 
     return (
-        <View style={[styles.safe, { backgroundColor }]}>
+        <Box className="flex-1" style={{ backgroundColor }}>
             <FlatList
                 data={chatRides}
                 keyExtractor={(item) => item.tripDocumentId}
-                contentContainerStyle={[
-                    styles.container,
-                    chatRides.length === 0 && styles.emptyList,
-                ]}
+                contentContainerStyle={{
+                    padding: 20,
+                    paddingBottom: 40,
+                    flexGrow: chatRides.length === 0 ? 1 : 0,
+                    justifyContent: chatRides.length === 0 ? 'center' : 'flex-start',
+                }}
                 refreshControl={
                     <RefreshControl
                         refreshing={isRefetching}
@@ -128,164 +134,93 @@ export function ChatsScreen() {
                             refetchTrips();
                             refetchRequests();
                         }}
+                        tintColor={primaryColor}
                     />
                 }
                 renderItem={({ item }) => (
-                    <TouchableOpacity
-                        style={[styles.card, { backgroundColor: cardColor, borderColor }]}
+                    <Pressable
+                        className="rounded-[32px] border p-5 mb-4 shadow-sm"
+                        style={{ backgroundColor: cardColor, borderColor }}
                         onPress={() => router.push(`/trip-chat/${item.tripDocumentId}`)}
                     >
-                        <Image
-                            source={item.avatarUrl
-                                ? { uri: item.avatarUrl }
-                                : { uri: 'https://api.dicebear.com/7.x/avataaars/svg?seed=RideChat' }}
-                            style={styles.avatar}
-                        />
+                        <HStack className="items-start" space="md">
+                            <Avatar size="lg" className="border shadow-sm" style={{ borderColor }}>
+                                <AvatarFallbackText>{item.title}</AvatarFallbackText>
+                                {item.avatarUrl ? <AvatarImage source={{ uri: item.avatarUrl }} alt={item.title} /> : null}
+                            </Avatar>
 
-                        <View style={styles.content}>
-                            <View style={styles.row}>
-                                <Text style={[styles.title, { color: textColor }]} numberOfLines={1}>
-                                    {item.title}
+                            <VStack className="flex-1">
+                                <HStack className="items-center justify-between" space="sm">
+                                    <Text className="flex-1 text-base font-extrabold" style={{ color: textColor }} numberOfLines={1}>
+                                        {item.title}
+                                    </Text>
+                                    <Box
+                                        className="rounded-full px-3 py-1 border shadow-sm"
+                                        style={{ 
+                                            backgroundColor: item.status === 'STARTED' ? `${primaryColor}10` : '#10B98110',
+                                            borderColor: item.status === 'STARTED' ? primaryColor + '20' : '#10B98120'
+                                        }}
+                                    >
+                                        <Text
+                                            className="text-[9px] font-extrabold uppercase tracking-widest"
+                                            style={{ color: item.status === 'STARTED' ? primaryColor : '#10B981' }}
+                                        >
+                                            {item.status}
+                                        </Text>
+                                    </Box>
+                                </HStack>
+
+                                <Text className="text-[13px] font-medium mt-1 leading-5" style={{ color: subtextColor }} numberOfLines={2}>
+                                    {item.subtitle}
                                 </Text>
-                                <View style={[
-                                    styles.badge,
-                                    { backgroundColor: item.status === 'STARTED' ? `${primaryColor}18` : '#10B98118' },
-                                ]}>
-                                    <Text style={[
-                                        styles.badgeText,
-                                        { color: item.status === 'STARTED' ? primaryColor : '#10B981' },
-                                    ]}>
-                                        {item.status}
-                                    </Text>
-                                </View>
-                            </View>
 
-                            <Text style={[styles.subtitle, { color: subtextColor }]} numberOfLines={2}>
-                                {item.subtitle}
-                            </Text>
+                                <Divider className="my-3" style={{ backgroundColor: borderColor }} />
 
-                            <View style={styles.footer}>
-                                <View style={styles.roleRow}>
-                                    <IconSymbol
-                                        name={item.role === 'captain' ? 'steeringwheel' : 'person.2.fill'}
-                                        size={14}
-                                        color={subtextColor}
-                                    />
-                                    <Text style={[styles.roleText, { color: subtextColor }]}>
-                                        {item.role === 'captain' ? 'You are leading this ride' : 'You are part of this ride'}
-                                    </Text>
-                                </View>
+                                <HStack className="items-center justify-between">
+                                    <HStack className="flex-1 items-center" space="xs">
+                                        <Box className="w-6 h-6 rounded-lg items-center justify-center bg-gray-50 border shadow-xs" style={{ borderColor }}>
+                                            <IconSymbol
+                                                name={item.role === 'captain' ? 'steeringwheel' : 'person.2.fill'}
+                                                size={12}
+                                                color={subtextColor}
+                                            />
+                                        </Box>
+                                        <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>
+                                            {item.role === 'captain' ? 'Captain' : 'Passenger'}
+                                        </Text>
+                                    </HStack>
 
-                                <IconSymbol name="chevron.right" size={18} color={subtextColor} />
-                            </View>
-                        </View>
-                    </TouchableOpacity>
+                                    <Box className="w-7 h-7 rounded-full items-center justify-center bg-gray-50 border shadow-xs" style={{ borderColor }}>
+                                        <IconSymbol name="chevron.right" size={14} color={subtextColor} />
+                                    </Box>
+                                </HStack>
+                            </VStack>
+                        </HStack>
+                    </Pressable>
                 )}
                 ListEmptyComponent={
-                    <View style={styles.emptyState}>
-                        <View style={[styles.emptyIconWrap, { backgroundColor: `${primaryColor}12` }]}>
+                    <VStack className="items-center px-10" space="lg">
+                        <Box className="w-20 h-20 rounded-[32px] bg-gray-50 items-center justify-center rotate-3 shadow-xl">
                             <IconSymbol name="bubble.left.and.bubble.right.fill" size={34} color={primaryColor} />
-                        </View>
-                        <Text style={[styles.emptyTitle, { color: textColor }]}>No ride chats yet</Text>
-                        <Text style={[styles.emptySubtitle, { color: subtextColor }]}>
-                            Join a ride or publish one of your own to start coordinating pickup points, timing, and trip updates here.
-                        </Text>
-                    </View>
+                        </Box>
+                        <VStack className="items-center" space="xs">
+                            <Text className="text-2xl font-extrabold text-center" style={{ color: textColor }}>Silence is golden</Text>
+                            <Text className="text-sm font-medium leading-6 text-center" style={{ color: subtextColor }}>
+                                Join a ride or publish one to start coordinating your journey.
+                            </Text>
+                        </VStack>
+                        <Pressable 
+                            className="mt-4 rounded-2xl px-8 py-3.5 border shadow-sm"
+                            style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor }}
+                            onPress={() => router.push('/')}
+                        >
+                            <Text className="text-xs font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                                Discover Rides
+                            </Text>
+                        </Pressable>
+                    </VStack>
                 }
             />
-        </View>
+        </Box>
     );
 }
-
-const styles = StyleSheet.create({
-    safe: {
-        flex: 1,
-    },
-    container: {
-        padding: 16,
-        gap: 12,
-    },
-    emptyList: {
-        flexGrow: 1,
-        justifyContent: 'center',
-    },
-    card: {
-        borderRadius: 18,
-        borderWidth: 1,
-        padding: 14,
-        flexDirection: 'row',
-        gap: 12,
-    },
-    avatar: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
-    },
-    content: {
-        flex: 1,
-    },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    title: {
-        flex: 1,
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    badge: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 999,
-    },
-    badgeText: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    subtitle: {
-        marginTop: 6,
-        fontSize: 13,
-        lineHeight: 19,
-    },
-    footer: {
-        marginTop: 10,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    roleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        flex: 1,
-        marginRight: 8,
-    },
-    roleText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
-    emptyState: {
-        alignItems: 'center',
-        paddingHorizontal: 24,
-    },
-    emptyIconWrap: {
-        width: 72,
-        height: 72,
-        borderRadius: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 18,
-    },
-    emptyTitle: {
-        fontSize: 22,
-        fontWeight: '800',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    emptySubtitle: {
-        fontSize: 14,
-        lineHeight: 21,
-        textAlign: 'center',
-    },
-});

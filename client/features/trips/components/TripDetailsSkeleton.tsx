@@ -1,179 +1,103 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Skeleton } from '@/components/skeleton';
-import { AppCard } from '@/components/ui/app-card';
-import { Radius, Spacing } from '@/constants/ui';
+import { Skeleton } from '@/components/skeleton/Skeleton';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { Box } from '@/components/ui/box';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
+import { Divider } from '@/components/ui/divider';
 
 export function TripDetailsSkeleton() {
   const backgroundColor = useThemeColor({}, 'background');
+  const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'primary');
 
   return (
-    <View style={[styles.safe, { backgroundColor }]}>
-      <View style={styles.container}>
-        <AppCard style={styles.card}>
-          <View style={styles.routeRow}>
-            <View style={styles.iconColumn}>
-              <View style={[styles.dot, { backgroundColor: primaryColor }]} />
-              <View style={[styles.line, { backgroundColor: borderColor }]} />
-              <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
-            </View>
-            <View style={styles.routeContent}>
-              <View style={styles.addressRow}>
-                <Skeleton width="68%" height={18} borderRadius={9} />
-                <Skeleton width={82} height={24} borderRadius={12} />
-              </View>
-              <Skeleton width="74%" height={18} borderRadius={9} style={styles.destinationLine} />
-            </View>
-          </View>
-        </AppCard>
+    <Box className="flex-1" style={{ backgroundColor }}>
+      <VStack className="p-6" space="xl">
+        {/* Route Card Skeleton */}
+        <Box className="rounded-[32px] p-6 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+          <HStack space="md">
+            <VStack className="items-center w-5" space="xs">
+              <Box className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primaryColor }} />
+              <Box className="w-0.5 h-12" style={{ backgroundColor: borderColor }} />
+              <Box className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#10B981' }} />
+            </VStack>
+            <VStack className="flex-1" space="xl">
+              <HStack className="justify-between items-center" space="md">
+                <Skeleton width="70%" height={18} borderRadius={9} />
+                <Skeleton width={80} height={24} borderRadius={12} />
+              </HStack>
+              <Skeleton width="60%" height={18} borderRadius={9} />
+            </VStack>
+          </HStack>
+        </Box>
 
-        <AppCard style={styles.card}>
-          <View style={styles.infoRow}>
-            <InfoSkeleton />
-            <InfoSkeleton />
-          </View>
-          <View style={[styles.divider, { backgroundColor: borderColor }]} />
-          <View style={styles.infoRow}>
-            <InfoSkeleton />
-            <InfoSkeleton valueWidth={118} />
-          </View>
-          <View style={[styles.divider, { backgroundColor: borderColor }]} />
-          <View style={styles.infoRow}>
-            <InfoSkeleton valueWidth={92} />
-          </View>
-        </AppCard>
+        {/* Info Grid Card Skeleton */}
+        <Box className="rounded-[32px] p-6 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+          <VStack space="lg">
+            <HStack className="justify-between" space="md">
+              <InfoItemSkeleton />
+              <InfoItemSkeleton />
+            </HStack>
+            <Divider style={{ backgroundColor: borderColor }} />
+            <HStack className="justify-between" space="md">
+              <InfoItemSkeleton labelWidth={60} valueWidth={100} />
+              <InfoItemSkeleton labelWidth={40} valueWidth={80} />
+            </HStack>
+            <Divider style={{ backgroundColor: borderColor }} />
+            <InfoItemSkeleton labelWidth={80} valueWidth={120} />
+          </VStack>
+        </Box>
 
-        <Skeleton width="100%" height={52} borderRadius={Radius.lg} style={styles.chatButton} />
+        {/* Chat Button Skeleton */}
+        <Skeleton width="100%" height={56} borderRadius={28} />
 
-        <AppCard style={styles.card}>
-          <Skeleton width={108} height={18} borderRadius={9} />
-          <Skeleton width="100%" height={14} borderRadius={7} style={styles.noteLine} />
-          <Skeleton width="84%" height={14} borderRadius={7} style={styles.compactLine} />
-        </AppCard>
+        {/* Notes Card Skeleton */}
+        <Box className="rounded-[32px] p-6 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+           <Skeleton width={120} height={18} borderRadius={9} className="mb-4" />
+           <VStack space="sm">
+             <Skeleton width="100%" height={14} borderRadius={7} />
+             <Skeleton width="85%" height={14} borderRadius={7} />
+           </VStack>
+        </Box>
 
-        <AppCard style={styles.card}>
-          <Skeleton width={72} height={18} borderRadius={9} />
-          <View style={styles.captainRow}>
-            <Skeleton width={54} height={54} borderRadius={27} />
-            <View style={styles.captainContent}>
-              <Skeleton width={140} height={16} borderRadius={8} />
-              <Skeleton width={96} height={13} borderRadius={7} style={styles.compactLine} />
-            </View>
-          </View>
-        </AppCard>
+        {/* Captain Card Skeleton */}
+        <Box className="rounded-[32px] p-6 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+           <Skeleton width={80} height={18} borderRadius={9} className="mb-5" />
+           <HStack className="items-center" space="md">
+              <Skeleton width={56} height={56} borderRadius={28} />
+              <VStack className="flex-1" space="xs">
+                <Skeleton width="60%" height={16} borderRadius={8} />
+                <Skeleton width="40%" height={12} borderRadius={6} />
+              </VStack>
+           </HStack>
+        </Box>
 
-        <AppCard style={styles.card}>
-          <Skeleton width={64} height={18} borderRadius={9} />
-          <View style={styles.safetyButtons}>
-            <Skeleton width="48%" height={48} borderRadius={Radius.md} />
-            <Skeleton width="48%" height={48} borderRadius={Radius.md} />
-          </View>
-        </AppCard>
+        {/* Safety Actions Skeleton */}
+        <Box className="rounded-[32px] p-6 border-2 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+           <Skeleton width={70} height={18} borderRadius={9} className="mb-5" />
+           <HStack space="md">
+              <Skeleton width="48%" height={50} borderRadius={16} />
+              <Skeleton width="48%" height={50} borderRadius={16} />
+           </HStack>
+        </Box>
 
-        <Skeleton width="100%" height={54} borderRadius={Radius.lg} style={styles.primaryAction} />
-      </View>
-    </View>
+        {/* Primary Action Button Skeleton */}
+        <Skeleton width="100%" height={56} borderRadius={28} />
+      </VStack>
+    </Box>
   );
 }
 
-function InfoSkeleton({ valueWidth = 72 }: { valueWidth?: number }) {
+function InfoItemSkeleton({ labelWidth = 50, valueWidth = 70 }: { labelWidth?: number; valueWidth?: number }) {
   return (
-    <View style={styles.infoItem}>
-      <View style={styles.infoLabelRow}>
+    <VStack className="flex-1" space="xs">
+      <HStack className="items-center" space="xs">
         <Skeleton width={16} height={16} borderRadius={8} />
-        <Skeleton width={52} height={12} borderRadius={6} />
-      </View>
-      <Skeleton width={valueWidth} height={16} borderRadius={8} style={styles.compactLine} />
-    </View>
+        <Skeleton width={labelWidth} height={12} borderRadius={6} />
+      </HStack>
+      <Skeleton width={valueWidth} height={16} borderRadius={8} className="mt-1" />
+    </VStack>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-  },
-  container: {
-    padding: Spacing.xl,
-  },
-  card: {
-    marginBottom: 16,
-  },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  iconColumn: {
-    alignItems: 'center',
-    marginRight: Spacing.md,
-    paddingVertical: 4,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  line: {
-    width: 2,
-    height: 44,
-    marginVertical: 4,
-  },
-  routeContent: {
-    flex: 1,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  destinationLine: {
-    marginTop: Spacing.xl,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-  },
-  infoItem: {
-    flex: 1,
-  },
-  infoLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  divider: {
-    height: 1,
-    marginVertical: Spacing.md,
-  },
-  chatButton: {
-    marginBottom: 16,
-  },
-  noteLine: {
-    marginTop: Spacing.md,
-  },
-  compactLine: {
-    marginTop: 8,
-  },
-  captainRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.md,
-    gap: Spacing.md,
-  },
-  captainContent: {
-    flex: 1,
-  },
-  safetyButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-  },
-  primaryAction: {
-    marginTop: 2,
-  },
-});

@@ -1,14 +1,15 @@
 import React from 'react';
 import {
-    StyleSheet,
-    View,
-    Text,
     Modal,
-    TouchableOpacity,
     Dimensions,
 } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from './ui/icon-symbol';
+import { Pressable } from '@/components/ui/pressable';
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
+import { HStack } from '@/components/ui/hstack';
 
 interface CustomAlertProps {
     visible: boolean;
@@ -17,6 +18,7 @@ interface CustomAlertProps {
     primaryButton: {
         text: string;
         onPress: () => void;
+        style?: any;
     };
     secondaryButton?: {
         text: string;
@@ -30,6 +32,8 @@ interface CustomAlertProps {
     icon?: any;
     dismissible?: boolean;
 }
+
+const { width } = Dimensions.get('window');
 
 export function CustomAlert({
     visible,
@@ -47,7 +51,7 @@ export function CustomAlert({
     const subtextColor = useThemeColor({}, 'subtext');
     const primaryColor = useThemeColor({}, 'primary');
     const borderColor = useThemeColor({}, 'border');
-    const overlayColor = 'rgba(0,0,0,0.5)';
+    const overlayColor = 'rgba(0,0,0,0.6)';
 
     return (
         <Modal
@@ -60,116 +64,69 @@ export function CustomAlert({
                 }
             }}
         >
-            <View style={[styles.overlay, { backgroundColor: overlayColor }]}>
-                <View style={[styles.alertBox, { backgroundColor }]}>
-                    <View style={[styles.iconContainer, { backgroundColor: `${primaryColor}15` }]}>
-                        <IconSymbol name={icon} size={40} color={primaryColor} />
-                    </View>
+            <Box className="flex-1 justify-center items-center px-6" style={{ backgroundColor: overlayColor }}>
+                <Box 
+                    className="rounded-[32px] p-8 border-2 shadow-2xl items-center" 
+                    style={{ 
+                        backgroundColor, 
+                        borderColor: `${primaryColor}15`,
+                        width: Math.min(width - 48, 380)
+                    }}
+                >
+                    <Box className="w-16 h-16 rounded-[24px] bg-gray-50 items-center justify-center mb-6 shadow-sm border" style={{ borderColor }}>
+                        <IconSymbol name={icon} size={30} color={primaryColor} />
+                    </Box>
 
-                    <Text style={[styles.title, { color: textColor }]}>{title}</Text>
-                    <Text style={[styles.message, { color: subtextColor }]}>{message}</Text>
+                    <VStack className="items-center mb-8" space="xs">
+                        <Text className="text-xl font-extrabold text-center uppercase tracking-widest" style={{ color: textColor }}>
+                            {title}
+                        </Text>
+                        <Text className="text-sm font-medium leading-6 text-center opacity-80" style={{ color: subtextColor }}>
+                            {message}
+                        </Text>
+                    </VStack>
 
-                    <View style={styles.buttonContainer}>
+                    <HStack className="w-full" space="md">
                         {tertiaryButton && (
-                            <TouchableOpacity
-                                style={[styles.button, styles.secondaryButton, { borderColor }]}
+                            <Pressable
+                                className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
+                                style={{ borderColor }}
                                 onPress={tertiaryButton.onPress}
                             >
-                                <Text style={[styles.buttonText, { color: textColor }]}>
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
                                     {tertiaryButton.text}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                         {secondaryButton && (
-                            <TouchableOpacity
-                                style={[styles.button, styles.secondaryButton, { borderColor }]}
+                            <Pressable
+                                className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
+                                style={{ borderColor }}
                                 onPress={secondaryButton.onPress}
                             >
-                                <Text style={[styles.buttonText, { color: textColor }]}>
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
                                     {secondaryButton.text}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
-                        <TouchableOpacity
-                            style={[styles.button, styles.primaryButton, { backgroundColor: primaryColor }]}
+                        <Pressable
+                            className="flex-1 h-12 rounded-2xl items-center justify-center shadow-xl border"
+                            style={[
+                                { 
+                                    backgroundColor: primaryColor, 
+                                    borderColor: `${primaryColor}20` 
+                                },
+                                primaryButton.style
+                            ]}
                             onPress={primaryButton.onPress}
                         >
-                            <Text style={[styles.buttonText, styles.primaryButtonText]}>
+                            <Text className="text-[10px] font-extrabold uppercase tracking-widest text-white text-center">
                                 {primaryButton.text}
                             </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </View>
+                        </Pressable>
+                    </HStack>
+                </Box>
+            </Box>
         </Modal>
     );
 }
-
-const { width } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
-    overlay: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    alertBox: {
-        width: Math.min(width - 40, 340),
-        borderRadius: 24,
-        padding: 24,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 8,
-    },
-    iconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: '700',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    message: {
-        fontSize: 15,
-        lineHeight: 22,
-        textAlign: 'center',
-        marginBottom: 24,
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        gap: 12,
-        width: '100%',
-    },
-    button: {
-        flex: 1,
-        height: 48,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    primaryButton: {
-        // Background color from props
-    },
-    primaryButtonText: {
-        color: '#fff',
-        fontWeight: '700',
-    },
-    secondaryButton: {
-        borderWidth: 1.5,
-    },
-    buttonText: {
-        fontSize: 15,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-});
