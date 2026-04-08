@@ -93,6 +93,8 @@ function FormField({
   const dangerColor = useThemeColor({}, 'danger');
   const cardColor = useThemeColor({}, 'card');
   const multilinePadding = 14;
+  const horizontalPadding = FormFieldTokens.horizontalPadding;
+  const iconSpacing = 12;
   const singleLineContentHeight = 24;
   const initialContentHeight = compactMultiline
     ? singleLineContentHeight
@@ -135,10 +137,11 @@ function FormField({
       >
         <Pressable
           onPress={onPress}
-          className="flex-1 w-full flex-row px-3"
+          className="flex-1 w-full flex-row"
           style={{
             minHeight: multiline ? multilineHeight : FormFieldTokens.height,
             alignItems: isExpandedMultiline ? 'flex-start' : 'center',
+            paddingHorizontal: horizontalPadding,
           }}
           disabled={!onPress}
         >
@@ -147,9 +150,9 @@ function FormField({
             size={18}
             color={subtextColor}
             style={{
-              marginRight: 10,
+              marginRight: iconSpacing,
               marginTop: isExpandedMultiline ? 16 : 0,
-              alignSelf: isExpandedMultiline ? 'flex-start' : 'center'
+              alignSelf: isExpandedMultiline ? 'flex-start' : 'center',
             }}
           />
           <InputField
@@ -158,6 +161,7 @@ function FormField({
             className="flex-1 text-[15px] font-medium"
             style={{
               color: textColor,
+              lineHeight: FormFieldTokens.fontSize * 1.35,
               textAlignVertical: isExpandedMultiline ? 'top' : 'center',
               paddingTop: isExpandedMultiline ? multilinePadding : 0,
               paddingBottom: isExpandedMultiline ? multilinePadding : 0,
@@ -258,14 +262,14 @@ export default function CreateScreen() {
 
     if (!trimmedFrom) {
       nextErrors.from = 'Starting point is required.';
-    } else if (trimmedFrom.length > 50) {
-      nextErrors.from = 'Starting point must be 50 characters or less.';
+    } else if (trimmedFrom.length > 150) {
+      nextErrors.from = 'Starting point must be 150 characters or less.';
     }
 
     if (!trimmedTo) {
       nextErrors.to = 'Destination is required.';
-    } else if (trimmedTo.length > 50) {
-      nextErrors.to = 'Destination must be 50 characters or less.';
+    } else if (trimmedTo.length > 150) {
+      nextErrors.to = 'Destination must be 150 characters or less.';
     }
 
     if (selectedDate < today || selectedDate > maxTripDate) {
@@ -591,6 +595,7 @@ export default function CreateScreen() {
           setErrors((current) => ({ ...current, from: undefined }));
         }}
         title="Pickup Point"
+        allowCurrentLocation
       />
 
       <LocationSearchModal
@@ -669,7 +674,7 @@ export default function CreateScreen() {
             className="mx-6 mb-8 rounded-[32px] border p-5 shadow-sm"
             style={{ backgroundColor: cardColor, borderColor }}
           >
-            <Box className="px-6">
+            <Box  >
               <FormField
                 label="Starting Point"
                 placeholder="Search pickup location..."
@@ -679,7 +684,7 @@ export default function CreateScreen() {
                 onPress={() => setShowFromPicker(true)}
                 multiline
                 compactMultiline
-                numberOfLines={1}
+                numberOfLines={3}
               />
 
               <FormField
@@ -691,7 +696,7 @@ export default function CreateScreen() {
                 onPress={() => setShowToPicker(true)}
                 multiline
                 compactMultiline
-                numberOfLines={1}
+                numberOfLines={3}
               />
 
               <VStack space="md">
