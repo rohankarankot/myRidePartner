@@ -260,7 +260,7 @@ export function ReportModal({
                                     
                                     {isDetailsRequiredMissing ? (
                                         <Text className="text-[10px] font-bold mt-2 ml-1" style={{ color: dangerColor }}>
-                                            Please provide details for the "Other" category.
+                                            Please provide details for the &quot;Other&quot; category.
                                         </Text>
                                     ) : null}
                                 </ScrollView>

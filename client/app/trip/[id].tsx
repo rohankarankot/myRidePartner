@@ -34,7 +34,7 @@ import { tripChatService } from '@/services/trip-chat-service';
 import { maskPhoneNumber } from '@/utils/phone';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 import { saveReport } from '@/features/safety/report-service';
-import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { TripDetailsSkeleton } from '@/features/trips/components/TripDetailsSkeleton';
 import { buildTripStartDateTime, canCaptainEditTrip, hasApprovedPassengers } from '@/features/trips/utils/trip-editability';
 import { buildTripShareMessage } from '@/features/trips/utils/trip-share';

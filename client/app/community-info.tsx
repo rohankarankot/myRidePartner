@@ -31,7 +31,7 @@ function CommunityInfoAction({
 }) {
   return (
     <Pressable
-      className="rounded-[28px] border p-5 mb-4 shadow-sm"
+      className="rounded-[28px] border p-5 mb-4"
       style={{ backgroundColor: 'transparent', borderColor }}
       onPress={onPress}
     >
@@ -63,7 +63,6 @@ export default function CommunityInfoScreen() {
   const subtextColor = useThemeColor({}, 'subtext');
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'primary');
-  const cardColor = useThemeColor({}, 'card');
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>

@@ -1,69 +1,16 @@
-import { useRouter } from 'expo-router';
+import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
-import { userService } from '@/services/user-service';
-
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { Box } from '@/components/ui/box';
-import { Text } from '@/components/ui/text';
-import { Pressable } from '@/components/ui/pressable';
-import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
-import { Spinner } from '@/components/ui/spinner';
-
-type CommunityActionCardProps = {
-  icon: string;
-  title: string;
-  subtitle: string;
-  cardColor: string;
-  primaryColor: string;
-  subtextColor: string;
-  textColor: string;
-  borderColor: string;
-  onPress: () => void;
-};
-
-function CommunityActionCard({
-  icon,
-  title,
-  subtitle,
-  cardColor,
-  primaryColor,
-  subtextColor,
-  textColor,
-  borderColor,
-  onPress,
-}: CommunityActionCardProps) {
-  return (
-    <Pressable
-      className="rounded-[28px] border p-5 mb-4 shadow-sm"
-      style={{ backgroundColor: cardColor, borderColor }}
-      onPress={onPress}
-    >
-      <HStack className="items-center justify-between">
-        <Box
-          className="h-12 w-12 rounded-full items-center justify-center shadow-inner"
-          style={{ backgroundColor: `${primaryColor}10` }}
-        >
-          <IconSymbol name={icon as any} size={22} color={primaryColor} />
-        </Box>
-        <VStack className="flex-1 mx-4" space="xs">
-          <Text className="text-base font-bold" style={{ color: textColor }}>
-            {title}
-          </Text>
-          <Text className="text-xs font-medium leading-5" style={{ color: subtextColor }}>
-            {subtitle}
-          </Text>
-        </VStack>
-        <IconSymbol name="chevron.right" size={18} color={subtextColor} />
-      </HStack>
-    </Pressable>
-  );
-}
+import {
+  CommunityActionCard,
+  CommunityHeroCard,
+} from '@/features/chats/components/community-tab';
+import { useCommunityTabScreen } from '@/features/chats/hooks/use-community-tab-screen';
 
 export default function CommunityTabScreen() {
-  const router = useRouter();
+  const { isLoading, router, totalMembers } = useCommunityTabScreen();
+
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const subtextColor = useThemeColor({}, 'subtext');
@@ -71,66 +18,21 @@ export default function CommunityTabScreen() {
   const borderColor = useThemeColor({}, 'border');
   const primaryColor = useThemeColor({}, 'primary');
 
-  const { data: communityData, isLoading } = useQuery({
-    queryKey: ['community-members-count'],
-    queryFn: () => userService.getCommunityMembers({ pageSize: 1 }),
-  });
-
-  const totalMembers = communityData?.meta?.pagination?.total || 0;
-
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor }}
       edges={['left', 'right', 'bottom']}
     >
       <VStack className="p-6" space="xl">
-        <Box
-          className="rounded-[32px] border p-8 shadow-sm overflow-hidden"
-          style={{ backgroundColor: cardColor, borderColor }}
-        >
-          <VStack space="lg">
-            <HStack
-              className="self-start items-center rounded-full px-3 py-1.5 border"
-              space="xs"
-              style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}20` }}
-            >
-              <IconSymbol
-                name="bubble.left.and.bubble.right.fill"
-                size={12}
-                color={primaryColor}
-              />
-              <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-                City community
-              </Text>
-            </HStack>
-
-            <VStack space="sm">
-              <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
-                Travellers Community
-              </Text>
-              <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
-                Talk routes, connect with nearby riders, and keep local travel
-                conversations in one place.
-              </Text>
-            </VStack>
-
-            <HStack className="items-center" space="sm">
-              <Box
-                className="h-8 w-8 rounded-full items-center justify-center shadow-inner"
-                style={{ backgroundColor: `${primaryColor}10` }}
-              >
-                <IconSymbol name="person.2.fill" size={14} color={primaryColor} />
-              </Box>
-              {isLoading ? (
-                <Spinner size="small" color={primaryColor} />
-              ) : (
-                <Text className="text-xs font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-                  {totalMembers > 0 ? `${totalMembers} active members & growing rapidly` : 'Active members & growing rapidly'}
-                </Text>
-              )}
-            </HStack>
-          </VStack>
-        </Box>
+        <CommunityHeroCard
+          borderColor={borderColor}
+          cardColor={cardColor}
+          isLoading={isLoading}
+          primaryColor={primaryColor}
+          subtextColor={subtextColor}
+          textColor={textColor}
+          totalMembers={totalMembers}
+        />
 
         <VStack space="xs">
           <CommunityActionCard

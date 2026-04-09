@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Text, TouchableOpacity, View, FlatList, TextInput } from 'react-native';
+import { FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -26,7 +26,7 @@ import { PaginatedPublicChatMessages, PublicChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { userService } from '@/services/user-service';
 import { useUserStore } from '@/store/user-store';
-import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 import { Box } from '@/components/ui/box';
 import { Text as GSText } from '@/components/ui/text';
@@ -299,6 +299,11 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const borderColor = useThemeColor({}, 'border');
     const primaryColor = useThemeColor({}, 'primary');
     const dangerColor = useThemeColor({}, 'danger');
+    const surfaceContainerLow = useThemeColor({}, 'surfaceContainerLow');
+    const surfaceContainerHigh = useThemeColor({}, 'surfaceContainerHigh');
+    const surfaceContainerHighest = useThemeColor({}, 'surfaceContainerHighest');
+    const surfaceVariantMuted = useThemeColor({}, 'surfaceVariantMuted');
+    const outlineVariant = useThemeColor({}, 'outlineVariant');
     const cityLabel = selectedCity || 'Global Room';
 
     const { data: cities = [] } = useQuery({
@@ -578,8 +583,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     <HStack className="items-center px-6 pb-4" space="md">
                         <Pressable
                             onPress={() => router.back()}
-                            className="w-10 h-10 rounded-full items-center justify-center border shadow-xs"
-                            style={{ backgroundColor: cardColor, borderColor }}
+                            className="w-10 h-10 items-center justify-center"
                         >
                             <IconSymbol name="chevron.left" size={20} color={textColor} />
                         </Pressable>
@@ -591,11 +595,18 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                             <GSText className="text-[10px] font-extrabold uppercase tracking-widest opacity-60" style={{ color: textColor }}>
                                 Community Room
                             </GSText>
-                            <HStack className="items-center mt-0.5" space="xs">
-                                <Box className="w-5 h-5 rounded-full items-center justify-center bg-primary-500 shadow-sm">
-                                    <IconSymbol name="mappin.circle.fill" size={10} color="#fff" />
+                            <HStack
+                                className="items-center mt-1 px-3 py-1.5 rounded-full"
+                                space="xs"
+                                style={{ backgroundColor: `${primaryColor}12` }}
+                            >
+                                <Box
+                                    className="w-5 h-5 rounded-full items-center justify-center"
+                                    style={{ backgroundColor: primaryColor }}
+                                >
+                                    <IconSymbol name="mappin.circle.fill" size={10} color="#FFFFFF" />
                                 </Box>
-                                <GSText className="text-lg font-extrabold uppercase tracking-tight" style={{ color: primaryColor }} numberOfLines={1}>
+                                <GSText className="text-base font-extrabold uppercase tracking-tight" style={{ color: textColor }} numberOfLines={1}>
                                     {cityLabel}
                                 </GSText>
                             </HStack>
@@ -607,9 +618,9 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                 params: selectedCity ? { city: selectedCity } : undefined,
                             })}
                             className="w-10 h-10 rounded-full items-center justify-center border shadow-xs"
-                            style={{ backgroundColor: cardColor, borderColor }}
+                            style={{ backgroundColor: `${primaryColor}12`, borderColor: `${primaryColor}24` }}
                         >
-                            <IconSymbol name="info.circle.fill" size={20} color={primaryColor} />
+                            <IconSymbol name="info.circle.fill" size={20} color={textColor} />
                         </Pressable>
                     </HStack>
                 </Box>
@@ -736,7 +747,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                                         </Pressable>
                                                     )}
                                                     <Pressable
-                                                        className="flex-row items-center p-3 rounded-2xl bg-gray-50/50 mt-1"
+                                                        className="flex-row items-center p-3 rounded-2xl mt-1"
+                                                        style={{ backgroundColor: surfaceContainerHigh }}
                                                         onPress={() => setActiveMessageMenuId(null)}
                                                     >
                                                         <IconSymbol name="xmark" size={16} color={subtextColor} />
@@ -804,7 +816,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                             renderInputToolbar={(props: any) => (
                                 <Box className="border-t" style={{ backgroundColor, borderTopColor: borderColor }}>
                                     {replyingTo && (
-                                        <Box className="flex-row items-center px-4 py-2 border-b bg-gray-50/50" style={{ borderBottomColor: borderColor }}>
+                                        <Box
+                                            className="flex-row items-center px-4 py-2 border-b"
+                                            style={{ backgroundColor: surfaceContainerHigh, borderBottomColor: borderColor }}
+                                        >
                                             <Box className="w-1 h-8 rounded-full mr-3" style={{ backgroundColor: primaryColor }} />
                                             <VStack className="flex-1">
                                                 <GSText className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
@@ -816,7 +831,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                             </VStack>
                                             <Pressable 
                                                 onPress={() => setReplyingTo(null)} 
-                                                className="w-7 h-7 rounded-full items-center justify-center bg-gray-200"
+                                                className="w-7 h-7 rounded-full items-center justify-center"
+                                                style={{ backgroundColor: surfaceContainerLow }}
                                             >
                                                 <IconSymbol name="xmark" size={12} color={subtextColor} />
                                             </Pressable>
@@ -871,8 +887,13 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     ref={citySheetRef}
                     snapPoints={['74%']}
                     backdropComponent={renderBackdrop}
-                    backgroundStyle={{ backgroundColor: cardColor, borderRadius: 40 }}
-                    handleIndicatorStyle={{ backgroundColor: subtextColor, width: 40 }}
+                    backgroundStyle={{
+                        backgroundColor: surfaceContainerHighest,
+                        borderRadius: 40,
+                        borderWidth: 1,
+                        borderColor: outlineVariant,
+                    }}
+                    handleIndicatorStyle={{ backgroundColor: primaryColor, width: 40 }}
                     enablePanDownToClose
                     keyboardBehavior="fillParent"
                     keyboardBlurBehavior="restore"
@@ -891,7 +912,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                 </VStack>
                                 <HStack 
                                     className="items-center px-4 h-14 rounded-[24px] border-2 shadow-sm mt-6" 
-                                    style={{ backgroundColor: cardColor, borderColor }}
+                                    style={{ backgroundColor: surfaceContainerHigh, borderColor: outlineVariant }}
                                     space="md"
                                 >
                                     <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
@@ -913,10 +934,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
 
                             return (
                                 <Pressable
-                                    className="mx-6 p-4 rounded-[24px] border-2 mb-3 shadow-sm flex-row items-center justify-between"
+                                    className="mx-6 p-4 rounded-[24px] border-2 mb-3 flex-row items-center justify-between"
                                     style={{
-                                        backgroundColor: isActive ? `${primaryColor}08` : 'transparent',
-                                        borderColor: isActive ? primaryColor : borderColor,
+                                        backgroundColor: isActive ? `${primaryColor}16` : surfaceContainerLow,
+                                        borderColor: isActive ? primaryColor : outlineVariant,
                                     }}
                                     onPress={() => {
                                         setSelectedCity(item);
@@ -927,8 +948,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                 >
                                     <HStack className="items-center flex-1" space="md">
                                         <Box
-                                            className="w-10 h-10 rounded-full items-center justify-center shadow-sm"
-                                            style={{ backgroundColor: isActive ? primaryColor : `${subtextColor}08` }}
+                                            className="w-10 h-10 rounded-full items-center justify-center"
+                                            style={{ backgroundColor: isActive ? primaryColor : surfaceVariantMuted }}
                                         >
                                             <IconSymbol
                                                 name="mappin.circle.fill"
@@ -941,8 +962,11 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                         </GSText>
                                     </HStack>
                                     {isActive && (
-                                        <Box className="w-6 h-6 rounded-full items-center justify-center bg-primary-500 shadow-sm">
-                                            <IconSymbol name="checkmark" size={12} color="#FFFFFF" />
+                                        <Box
+                                            className="w-8 h-8 rounded-full items-center justify-center"
+                                            style={{ backgroundColor: primaryColor }}
+                                        >
+                                            <IconSymbol name="checkmark" size={13} color="#FFFFFF" />
                                         </Box>
                                     )}
                                 </Pressable>
@@ -952,7 +976,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                             <BottomSheetView className="items-center py-20 px-10">
                                 <GSText className="text-lg font-extrabold uppercase tracking-widest text-center" style={{ color: textColor }}>Location not found</GSText>
                                 <GSText className="text-sm font-medium leading-6 text-center opacity-60 mt-2 px-4" style={{ color: subtextColor }}>
-                                    We couldn't find a room for that city. Try adjusting your search term.
+                                    We couldn&apos;t find a room for that city. Try adjusting your search term.
                                 </GSText>
                             </BottomSheetView>
                         }

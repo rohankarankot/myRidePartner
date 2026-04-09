@@ -22,7 +22,7 @@ import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
 import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
-import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';

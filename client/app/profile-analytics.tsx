@@ -6,7 +6,7 @@ import { Stack } from 'expo-router';
 import { userService } from '@/features/auth/api/user-service';
 import { useAuth } from '@/context/auth-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { ProfileAnalyticsCard } from '@/components/profile-analytics-card';
+import { ProfileAnalyticsCard } from '@/features/profile/components/ProfileAnalyticsCard';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';

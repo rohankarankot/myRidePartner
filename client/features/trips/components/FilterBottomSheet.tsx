@@ -28,6 +28,7 @@ interface FilterBottomSheetProps {
 export const FilterBottomSheet = React.forwardRef<BottomSheetModal, FilterBottomSheetProps>(
     ({ gender, setGender, date, setDate, onApply, onReset }, ref) => {
         const backgroundColor = useThemeColor({}, 'card');
+        const appBackgroundColor = useThemeColor({}, 'background');
         const textColor = useThemeColor({}, 'text');
         const subtextColor = useThemeColor({}, 'subtext');
         const primaryColor = useThemeColor({}, 'primary');
@@ -154,7 +155,7 @@ export const FilterBottomSheet = React.forwardRef<BottomSheetModal, FilterBottom
                                                 onChange={onChangeDate}
                                                 minimumDate={new Date()}
                                                 textColor={textColor}
-                                                themeVariant={useThemeColor({}, 'background') === '#000000' ? 'dark' : 'light'}
+                                                themeVariant={appBackgroundColor === '#000000' ? 'dark' : 'light'}
                                             />
                                         </Box>
                                     )}
@@ -175,3 +176,5 @@ export const FilterBottomSheet = React.forwardRef<BottomSheetModal, FilterBottom
         );
     }
 );
+
+FilterBottomSheet.displayName = 'FilterBottomSheet';
