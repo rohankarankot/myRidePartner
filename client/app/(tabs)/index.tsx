@@ -18,6 +18,7 @@ import { useScrollToTop } from '@react-navigation/native';
 import { DiscoveryBannerAd } from '@/features/ads/components/discovery-banner-ad';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 import { FindRidesSkeleton } from '@/features/trips/components/FindRidesSkeleton';
+import { tripQueryKeys } from '@/features/trips/query-keys';
 
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
@@ -28,9 +29,9 @@ import { Divider } from '@/components/ui/divider';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Spinner } from '@/components/ui/spinner';
-import { Input, InputField } from '@/components/ui/input';
 
 const LAST_SELECTED_CITY_KEY = 'find_rides_last_selected_city';
+const SEARCH_DEBOUNCE_MS = 400;
 
 const formatDisplayDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -178,6 +179,10 @@ export default function FindRidesScreen() {
 
   const [selectedCity, setSelectedCity] = useState('');
   const [citySearch, setCitySearch] = useState('');
+  const [fromSearch, setFromSearch] = useState('');
+  const [toSearch, setToSearch] = useState('');
+  const [debouncedFromSearch, setDebouncedFromSearch] = useState('');
+  const [debouncedToSearch, setDebouncedToSearch] = useState('');
   const citySheetRef = useRef<BottomSheetModal>(null);
   const [hasLoadedInitialCity, setHasLoadedInitialCity] = useState(false);
 
@@ -199,8 +204,24 @@ export default function FindRidesScreen() {
 
   useEffect(() => {
     if (!hasLoadedInitialCity || !selectedCity) return;
-    AsyncStorage.setItem(LAST_SELECTED_CITY_KEY, selectedCity).catch(() => {});
+    AsyncStorage.setItem(LAST_SELECTED_CITY_KEY, selectedCity).catch(() => { });
   }, [hasLoadedInitialCity, selectedCity]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedFromSearch(fromSearch.trim());
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [fromSearch]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedToSearch(toSearch.trim());
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [toSearch]);
 
   const filteredCities = CITIES.filter(city => city.toLowerCase().includes(citySearch.toLowerCase()));
 
@@ -223,8 +244,21 @@ export default function FindRidesScreen() {
     hasNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ['all-trips-paged', selectedCity, gender, date ? format(date, 'yyyy-MM-dd') : 'all'],
-    queryFn: ({ pageParam = 1 }) => tripService.getTrips(pageParam as number, 10, { gender, date: date ? format(date, 'yyyy-MM-dd') : undefined, city: selectedCity }),
+    queryKey: tripQueryKeys.pagedList(
+      selectedCity,
+      gender,
+      date ? format(date, 'yyyy-MM-dd') : undefined,
+      debouncedFromSearch,
+      debouncedToSearch,
+    ),
+    queryFn: ({ pageParam = 1 }) => tripService.getTrips(pageParam as number, 10, {
+      gender,
+      date: date ? format(date, 'yyyy-MM-dd') : undefined,
+      city: selectedCity,
+      fromQuery: debouncedFromSearch || undefined,
+      toQuery: debouncedToSearch || undefined,
+    }),
+    placeholderData: (previousData) => previousData,
     enabled: hasLoadedInitialCity && Boolean(selectedCity),
     getNextPageParam: (lastPage) => {
       const { page, pageCount } = lastPage.meta.pagination;
@@ -249,27 +283,52 @@ export default function FindRidesScreen() {
   const handleApplyFilters = () => bottomSheetModalRef.current?.dismiss();
   const handleResetFilters = () => { setGender('both'); setDate(undefined); bottomSheetModalRef.current?.dismiss(); };
 
-  const trips = data as unknown as Trip[];
+  const trips = (data as unknown as Trip[] | undefined) ?? [];
   const loading = isLoading && !isRefetching;
+  const hasActiveRouteSearch = Boolean(debouncedFromSearch || debouncedToSearch || fromSearch.trim() || toSearch.trim());
+  const showInitialLoading = loading && trips.length === 0 && !hasActiveRouteSearch;
 
   const renderHeader = () => (
     <VStack className="pb-4" space="lg">
-      <Box className="h-14 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: cardColor, borderColor }}>
-        <IconSymbol name="magnifyingglass" size={18} color={subtextColor} />
-        <RNTextInput
-          ref={searchInputRef}
-          placeholder="Search for a city or area..."
-          placeholderTextColor={subtextColor}
-          style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 16 }}
-        />
-      </Box>
+
       <VStack space="xs">
-        <Text className="text-2xl font-extrabold" style={{ color: textColor }}>
-            {date ? `Rides in ${selectedCity}` : `Nearby Rides`}
+        <Text className="text-lg font-extrabold" style={{ color: textColor }}>
+          {hasActiveRouteSearch ? `Matching routes in ${selectedCity}` : date ? `Rides in ${selectedCity}` : `Nearby Rides`}
         </Text>
         <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: subtextColor }}>
-            {date ? format(date, 'MMM d, yyyy') : `Upcoming in ${selectedCity || 'your city'}`}
+          {hasActiveRouteSearch
+            ? 'Published rides matching your route search'
+            : date ? format(date, 'MMM d, yyyy') : `Upcoming in ${selectedCity || 'your city'}`}
         </Text>
+      </VStack>
+      <VStack space="md">
+        <Box className="h-14 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: cardColor, borderColor }}>
+          <IconSymbol name="location.fill" size={18} color={primaryColor} />
+          <RNTextInput
+            ref={searchInputRef}
+            placeholder="From"
+            placeholderTextColor={subtextColor}
+            style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 16 }}
+            value={fromSearch}
+            onChangeText={setFromSearch}
+            autoCorrect={false}
+            autoCapitalize="words"
+            returnKeyType="next"
+          />
+        </Box>
+        <Box className="h-14 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: cardColor, borderColor }}>
+          <IconSymbol name="mappin.and.ellipse" size={18} color="#10B981" />
+          <RNTextInput
+            placeholder="To"
+            placeholderTextColor={subtextColor}
+            style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 16 }}
+            value={toSearch}
+            onChangeText={setToSearch}
+            autoCorrect={false}
+            autoCapitalize="words"
+            returnKeyType="search"
+          />
+        </Box>
       </VStack>
       <DiscoveryBannerAd />
     </VStack>
@@ -284,15 +343,21 @@ export default function FindRidesScreen() {
     return (
       <VStack className="items-center justify-center py-20 px-10" space="lg">
         <Box className="w-20 h-20 rounded-[32px] bg-gray-50 items-center justify-center rotate-3 shadow-xl">
-            <IconSymbol name="car.fill" size={40} color={subtextColor} />
+          <IconSymbol name="car.fill" size={40} color={subtextColor} />
         </Box>
         <VStack space="xs">
-            <Text className="text-3xl font-extrabold text-center" style={{ color: textColor }}>
-            {selectedCity ? `No rides in ${selectedCity}` : 'Select a city'}
-            </Text>
-            <Text className="text-sm font-medium text-center leading-6" style={{ color: subtextColor }}>
-            Be the first one to create a ride in this city and help others!
-            </Text>
+          <Text className="text-3xl font-extrabold text-center" style={{ color: textColor }}>
+            {selectedCity
+              ? hasActiveRouteSearch
+                ? `No matching routes in ${selectedCity}`
+                : `No rides in ${selectedCity}`
+              : 'Select a city'}
+          </Text>
+          <Text className="text-sm font-medium text-center leading-6" style={{ color: subtextColor }}>
+            {hasActiveRouteSearch
+              ? 'Try changing your start or destination search to discover more published rides.'
+              : 'Be the first one to create a ride in this city and help others!'}
+          </Text>
         </VStack>
         {selectedCity && (
           <Button className="h-14 rounded-2xl w-full" style={{ backgroundColor: primaryColor }} onPress={() => router.push('/create')}>
@@ -330,8 +395,12 @@ export default function FindRidesScreen() {
           )
         }}
       />
-      
-      {loading ? (
+
+      <Box className="px-5 pt-5">
+        {renderHeader()}
+      </Box>
+
+      {showInitialLoading ? (
         <FindRidesSkeleton />
       ) : (
         <FlatList
@@ -354,10 +423,11 @@ export default function FindRidesScreen() {
               onPress={(id) => router.push(`/trip/${id}`)}
             />
           )}
-          ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={renderEmpty}
-          contentContainerStyle={{ padding: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           onEndReached={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); }}
           onEndReachedThreshold={0.5}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={onRefresh} tintColor={primaryColor} />}
