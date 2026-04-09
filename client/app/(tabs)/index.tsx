@@ -1,4 +1,3 @@
-import React from 'react';
 import { FlatList, RefreshControl } from 'react-native';
 import { BottomSheetFlatList, BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Tabs, useRouter } from 'expo-router';
