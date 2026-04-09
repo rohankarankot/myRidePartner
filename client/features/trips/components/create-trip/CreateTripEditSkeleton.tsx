@@ -23,7 +23,7 @@ export function CreateTripEditSkeleton({
           <Skeleton width="64%" height={16} borderRadius={8} />
         </VStack>
 
-        <Box className="mx-6 rounded-[32px] border p-6 shadow-sm" style={{ backgroundColor: cardColor, borderColor }}>
+        <Box className="mx-6 rounded-[32px] border p-6" style={{ backgroundColor: cardColor, borderColor }}>
           <VStack space="md">
             {Array.from({ length: 6 }).map((_, index) => (
               <VStack key={index} space="xs">

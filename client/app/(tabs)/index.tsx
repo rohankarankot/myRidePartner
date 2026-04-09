@@ -84,6 +84,7 @@ export default function FindRidesScreen() {
           date={date}
           fromSearch={fromSearch}
           hasActiveRouteSearch={hasActiveRouteSearch}
+          showRouteInputs={trips.length > 0 || hasActiveRouteSearch}
           onFromSearchChange={setFromSearch}
           onToSearchChange={setToSearch}
           primaryColor={primaryColor}
