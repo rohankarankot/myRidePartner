@@ -20,11 +20,12 @@ import { FormField as FormFieldTokens } from '@/constants/ui';
 import { Spinner } from '@/components/ui/spinner';
 import { olaPlacesService, type OlaPlaceSuggestion } from '@/services/ola-places-service';
 import { CONFIG } from '@/constants/config';
+import type { LocationSelection } from '@/features/trips/types/location';
 
 interface LocationSearchModalProps {
     visible: boolean;
     onClose: () => void;
-    onSelectLocation: (address: string) => void;
+    onSelectLocation: (selection: LocationSelection) => void;
     title: string;
     allowCurrentLocation?: boolean;
 }
@@ -132,7 +133,7 @@ export function LocationSearchModal({
 
     const handleConfirm = () => {
         if (query.trim()) {
-            onSelectLocation(query);
+            onSelectLocation({ address: query.trim() });
             setQuery('');
             onClose();
         }
@@ -144,7 +145,11 @@ export function LocationSearchModal({
     };
 
     const handleSuggestionSelect = (suggestion: OlaPlaceSuggestion) => {
-        onSelectLocation(suggestion.address);
+        onSelectLocation({
+            address: suggestion.address,
+            latitude: suggestion.latitude,
+            longitude: suggestion.longitude,
+        });
         setQuery('');
         onClose();
     };
@@ -172,7 +177,11 @@ export function LocationSearchModal({
             const resolvedAddress = buildAddressFromGeocode(geocodeResults[0])
                 || `Current location (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)})`;
 
-            onSelectLocation(resolvedAddress);
+            onSelectLocation({
+                address: resolvedAddress,
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            });
             setQuery('');
             onClose();
         } catch (error) {
