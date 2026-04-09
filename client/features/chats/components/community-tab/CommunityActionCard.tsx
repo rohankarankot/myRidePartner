@@ -31,7 +31,7 @@ export function CommunityActionCard({
 }: CommunityActionCardProps) {
   return (
     <Pressable
-      className="rounded-[28px] border p-5 mb-4 shadow-sm"
+      className="rounded-[28px] border p-5 mb-4"
       style={{ backgroundColor: cardColor, borderColor }}
       onPress={onPress}
     >

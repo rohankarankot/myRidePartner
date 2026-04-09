@@ -11,7 +11,6 @@ import { Text } from '@/components/ui/text';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Button, ButtonText } from '@/components/ui/button';
-import { Divider } from '@/components/ui/divider';
 
 export default function CommunityRoomScreen() {
   const router = useRouter();
@@ -50,11 +49,11 @@ export default function CommunityRoomScreen() {
 
       <VStack className="p-6" space="xl">
         <Box
-          className="rounded-[32px] border items-center p-8 shadow-sm"
+          className="rounded-[32px] border items-center p-8"
           style={{ backgroundColor: `${primaryColor}05`, borderColor: `${primaryColor}20` }}
         >
           <Box
-            className="h-16 w-16 rounded-full items-center justify-center mb-5 shadow-sm"
+            className="h-16 w-16 rounded-full items-center justify-center mb-5"
             style={{ backgroundColor: primaryColor }}
           >
             <IconSymbol name="message.fill" size={28} color="#FFFFFF" />

@@ -139,12 +139,12 @@ export function ChatsScreen() {
                 }
                 renderItem={({ item }) => (
                     <Pressable
-                        className="rounded-[32px] border p-5 mb-4 shadow-sm"
+                        className="rounded-[32px] border p-5 mb-4"
                         style={{ backgroundColor: cardColor, borderColor }}
                         onPress={() => router.push(`/trip-chat/${item.tripDocumentId}`)}
                     >
                         <HStack className="items-start" space="md">
-                            <Avatar size="lg" className="border shadow-sm" style={{ borderColor }}>
+                            <Avatar size="lg" className="border" style={{ borderColor }}>
                                 <AvatarFallbackText>{item.title}</AvatarFallbackText>
                                 {item.avatarUrl ? <AvatarImage source={{ uri: item.avatarUrl }} alt={item.title} /> : null}
                             </Avatar>
@@ -155,7 +155,7 @@ export function ChatsScreen() {
                                         {item.title}
                                     </Text>
                                     <Box
-                                        className="rounded-full px-3 py-1 border shadow-sm"
+                                        className="rounded-full px-3 py-1 border"
                                         style={{ 
                                             backgroundColor: item.status === 'STARTED' ? `${primaryColor}10` : '#10B98110',
                                             borderColor: item.status === 'STARTED' ? primaryColor + '20' : '#10B98120'
@@ -178,7 +178,7 @@ export function ChatsScreen() {
 
                                 <HStack className="items-center justify-between">
                                     <HStack className="flex-1 items-center" space="xs">
-                                        <Box className="w-6 h-6 rounded-lg items-center justify-center bg-gray-50 border shadow-xs" style={{ borderColor }}>
+                                        <Box className="w-6 h-6 rounded-lg items-center justify-center bg-gray-50 border" style={{ borderColor }}>
                                             <IconSymbol
                                                 name={item.role === 'captain' ? 'steeringwheel' : 'person.2.fill'}
                                                 size={12}
@@ -190,7 +190,7 @@ export function ChatsScreen() {
                                         </Text>
                                     </HStack>
 
-                                    <Box className="w-7 h-7 rounded-full items-center justify-center bg-gray-50 border shadow-xs" style={{ borderColor }}>
+                                    <Box className="w-7 h-7 rounded-full items-center justify-center bg-gray-50 border" style={{ borderColor }}>
                                         <IconSymbol name="chevron.right" size={14} color={subtextColor} />
                                     </Box>
                                 </HStack>
@@ -200,7 +200,7 @@ export function ChatsScreen() {
                 )}
                 ListEmptyComponent={
                     <VStack className="items-center px-10" space="lg">
-                        <Box className="w-20 h-20 rounded-[32px] bg-gray-50 items-center justify-center rotate-3 shadow-xl">
+                        <Box className="w-20 h-20 rounded-[32px] bg-gray-50 items-center justify-center rotate-3">
                             <IconSymbol name="bubble.left.and.bubble.right.fill" size={34} color={primaryColor} />
                         </Box>
                         <VStack className="items-center" space="xs">
@@ -210,7 +210,7 @@ export function ChatsScreen() {
                             </Text>
                         </VStack>
                         <Pressable 
-                            className="mt-4 rounded-2xl px-8 py-3.5 border shadow-sm"
+                            className="mt-4 rounded-2xl px-8 py-3.5 border"
                             style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor }}
                             onPress={() => router.push('/')}
                         >

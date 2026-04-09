@@ -27,7 +27,7 @@ export function CommunityHeroCard({
 }: CommunityHeroCardProps) {
   return (
     <Box
-      className="rounded-[32px] border p-8 shadow-sm overflow-hidden"
+      className="rounded-[32px] border p-8 overflow-hidden"
       style={{ backgroundColor: cardColor, borderColor }}
     >
       <VStack space="lg">
