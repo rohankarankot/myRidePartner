@@ -26,7 +26,7 @@ import { PaginatedPublicChatMessages, PublicChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { userService } from '@/services/user-service';
 import { useUserStore } from '@/store/user-store';
-import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 import { Box } from '@/components/ui/box';
 import { Text as GSText } from '@/components/ui/text';
@@ -952,7 +952,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                             <BottomSheetView className="items-center py-20 px-10">
                                 <GSText className="text-lg font-extrabold uppercase tracking-widest text-center" style={{ color: textColor }}>Location not found</GSText>
                                 <GSText className="text-sm font-medium leading-6 text-center opacity-60 mt-2 px-4" style={{ color: subtextColor }}>
-                                    We couldn't find a room for that city. Try adjusting your search term.
+                                    We couldn&apos;t find a room for that city. Try adjusting your search term.
                                 </GSText>
                             </BottomSheetView>
                         }

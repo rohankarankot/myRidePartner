@@ -1,6 +1,6 @@
 import React from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { CommunityChatScreen } from '@/components/chat/community-chat-screen';
+import { CommunityChatScreen } from '@/features/chats/components/CommunityChatScreen';
 
 export default function CommunityChatRoute() {
     const { city } = useLocalSearchParams<{ city?: string }>();

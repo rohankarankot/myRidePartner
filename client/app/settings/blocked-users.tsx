@@ -74,7 +74,7 @@ export default function BlockedUsersScreen() {
 
       <VStack className="px-6 py-8" space="xs">
           <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Privacy Center</Text>
-          <Text className="text-sm font-medium" style={{ color: subtextColor }}>Manage the accounts you've restricted from interacting with you.</Text>
+          <Text className="text-sm font-medium" style={{ color: subtextColor }}>Manage the accounts you&apos;ve restricted from interacting with you.</Text>
       </VStack>
 
       <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>

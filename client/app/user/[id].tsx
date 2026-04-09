@@ -12,7 +12,7 @@ import { useAuth } from '@/context/auth-context';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
 import { saveReport } from '@/features/safety/report-service';
 import { CustomAlert } from '@/components/CustomAlert';
-import { ReportModal, ReportPayload } from '@/components/ReportModal';
+import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
@@ -126,7 +126,7 @@ export default function UserProfileScreen() {
             User profile not found
           </Text>
           <Text className="text-sm text-center leading-6" style={{ color: subtextColor }}>
-            We couldn't retrieve the information for this user. They might have deleted their account or it's temporarily unavailable.
+            We couldn&apos;t retrieve the information for this user. They might have deleted their account or it&apos;s temporarily unavailable.
           </Text>
         </VStack>
       </SafeAreaView>

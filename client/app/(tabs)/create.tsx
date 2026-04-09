@@ -19,7 +19,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useAuth } from '@/context/auth-context';
 import { tripService } from '@/services/trip-service';
-import { LocationSearchModal } from '@/components/LocationSearchModal';
+import { LocationSearchModal } from '@/features/trips/components/LocationSearchModal';
 import { useUserStore } from '@/store/user-store';
 import { CustomAlert } from '@/components/CustomAlert';
 import { joinRequestService } from '@/services/join-request-service';
