@@ -350,7 +350,7 @@ export function useCreateScreen() {
         } else {
           scrollViewRef.current?.scrollTo({ y: offset, animated: true });
         }
-      }, Platform.OS === 'ios' ? 250 : 150);
+      }, Platform.OS === 'ios' ? 250 : 100);
     });
   };
 

@@ -80,7 +80,7 @@ export function CreateTripFormField({
         size="md"
         isDisabled={!editable || !!onPress}
         isInvalid={!!error}
-        className="rounded-[24px] border-2 shadow-sm"
+        className="rounded-[24px] border-2"
         style={{
           borderColor: error ? dangerColor : borderColor,
           backgroundColor: cardColor,
@@ -97,7 +97,6 @@ export function CreateTripFormField({
             alignItems: isExpandedMultiline ? 'flex-start' : 'center',
             paddingHorizontal: horizontalPadding,
           }}
-          disabled={!onPress}
         >
           <IconSymbol
             name={icon}

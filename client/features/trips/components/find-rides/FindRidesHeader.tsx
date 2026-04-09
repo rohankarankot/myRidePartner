@@ -12,6 +12,7 @@ type FindRidesHeaderProps = {
   date?: Date;
   fromSearch: string;
   hasActiveRouteSearch: boolean;
+  showRouteInputs: boolean;
   onFromSearchChange: (value: string) => void;
   onToSearchChange: (value: string) => void;
   primaryColor: string;
@@ -29,6 +30,7 @@ export function FindRidesHeader({
   date,
   fromSearch,
   hasActiveRouteSearch,
+  showRouteInputs,
   onFromSearchChange,
   onToSearchChange,
   primaryColor,
@@ -38,51 +40,63 @@ export function FindRidesHeader({
   textColor,
   toSearch,
 }: FindRidesHeaderProps) {
+  const title = hasActiveRouteSearch
+    ? `Matching routes in ${selectedCity}`
+    : date
+      ? `Rides in ${selectedCity}`
+      : null;
+
+  const subtitle = hasActiveRouteSearch
+    ? 'Published rides matching your route search'
+    : date
+      ? format(date, 'MMM d, yyyy')
+      : null;
+
   return (
     <VStack className="pb-4" space="lg">
-      <VStack space="xs">
-        <Text className="text-lg font-extrabold" style={{ color: textColor }}>
-          {hasActiveRouteSearch ? `Matching routes in ${selectedCity}` : date ? `Rides in ${selectedCity}` : 'Nearby Rides'}
-        </Text>
-        <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: subtextColor }}>
-          {hasActiveRouteSearch
-            ? 'Published rides matching your route search'
-            : date
-              ? format(date, 'MMM d, yyyy')
-              : `Upcoming in ${selectedCity || 'your city'}`}
-        </Text>
-      </VStack>
+      {title && subtitle ? (
+        <VStack space="xs">
+          <Text className="text-lg font-extrabold" style={{ color: textColor }}>
+            {title}
+          </Text>
+          <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: subtextColor }}>
+            {subtitle}
+          </Text>
+        </VStack>
+      ) : null}
 
-      <VStack space="md">
-        <Box className="h-14 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: cardColor, borderColor }}>
-          <IconSymbol name="location.fill" size={18} color={primaryColor} />
-          <RNTextInput
-            ref={searchInputRef}
-            placeholder="From"
-            placeholderTextColor={subtextColor}
-            style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 16 }}
-            value={fromSearch}
-            onChangeText={onFromSearchChange}
-            autoCorrect={false}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
-        </Box>
+      {showRouteInputs ? (
+        <VStack space="md">
+          <Box className="h-14 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: cardColor, borderColor }}>
+            <IconSymbol name="location.fill" size={18} color={primaryColor} />
+            <RNTextInput
+              ref={searchInputRef}
+              placeholder="From"
+              placeholderTextColor={subtextColor}
+              style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 16 }}
+              value={fromSearch}
+              onChangeText={onFromSearchChange}
+              autoCorrect={false}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </Box>
 
-        <Box className="h-14 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: cardColor, borderColor }}>
-          <IconSymbol name="mappin.and.ellipse" size={18} color="#10B981" />
-          <RNTextInput
-            placeholder="To"
-            placeholderTextColor={subtextColor}
-            style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 16 }}
-            value={toSearch}
-            onChangeText={onToSearchChange}
-            autoCorrect={false}
-            autoCapitalize="words"
-            returnKeyType="search"
-          />
-        </Box>
-      </VStack>
+          <Box className="h-14 rounded-2xl flex-row items-center px-4 border" style={{ backgroundColor: cardColor, borderColor }}>
+            <IconSymbol name="flag.checkered" size={18} color={primaryColor} />
+            <RNTextInput
+              placeholder="To"
+              placeholderTextColor={subtextColor}
+              style={{ flex: 1, marginLeft: 10, color: textColor, fontSize: 16 }}
+              value={toSearch}
+              onChangeText={onToSearchChange}
+              autoCorrect={false}
+              autoCapitalize="words"
+              returnKeyType="search"
+            />
+          </Box>
+        </VStack>
+      ) : null}
 
       <DiscoveryBannerAd />
     </VStack>

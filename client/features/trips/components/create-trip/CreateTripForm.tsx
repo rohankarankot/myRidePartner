@@ -119,7 +119,7 @@ export function CreateTripForm({
         </VStack>
 
         <Box
-          className="mx-6 mb-8 rounded-[32px] border p-5 shadow-sm"
+          className="mx-6 mb-8 rounded-[32px] border p-5"
           style={{ backgroundColor: cardColor, borderColor }}
         >
           <Box>
@@ -254,7 +254,7 @@ export function CreateTripForm({
                   return (
                     <Pressable
                       key={option.key}
-                      className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
+                      className="flex-1 h-12 rounded-2xl border-2 items-center justify-center"
                       style={{
                         borderColor: active ? primaryColor : borderColor,
                         backgroundColor: active ? primaryColor : 'transparent',
@@ -284,7 +284,7 @@ export function CreateTripForm({
 
         <Box className="px-6 mb-10">
           <Button
-            className="h-14 rounded-2xl shadow-md"
+            className="h-14 rounded-2xl"
             style={{
               backgroundColor: primaryColor,
               opacity: isPublishing ? 0.8 : 1,
