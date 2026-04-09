@@ -5,6 +5,8 @@ export interface GetTripsFilters {
   gender?: string;
   date?: string;
   city?: string;
+  fromQuery?: string;
+  toQuery?: string;
 }
 
 export interface CreateTripInput {
@@ -63,6 +65,12 @@ class TripService {
     }
     if (filters?.city) {
       params.set('city', filters.city);
+    }
+    if (filters?.fromQuery?.trim()) {
+      params.set('fromQuery', filters.fromQuery.trim());
+    }
+    if (filters?.toQuery?.trim()) {
+      params.set('toQuery', filters.toQuery.trim());
     }
 
     const { data } = await apiClient.get<TripResponse>(`/trips?${params.toString()}`);

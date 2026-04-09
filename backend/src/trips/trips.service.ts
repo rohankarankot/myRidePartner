@@ -16,6 +16,8 @@ export interface TripFilters {
   date?: string;
   creatorId?: number;
   city?: string;
+  fromQuery?: string;
+  toQuery?: string;
   viewerId?: number;
 }
 
@@ -51,6 +53,18 @@ export class TripsService {
     }
     if (filters.city) {
       where.city = filters.city;
+    }
+    if (filters.fromQuery) {
+      where.startingPoint = {
+        contains: filters.fromQuery,
+        mode: 'insensitive',
+      };
+    }
+    if (filters.toQuery) {
+      where.destination = {
+        contains: filters.toQuery,
+        mode: 'insensitive',
+      };
     }
     if (filters.viewerId) {
       where.creator = {

@@ -33,6 +33,8 @@ export class TripsController {
   @ApiQuery({ name: 'date', required: false, example: '2025-03-20' })
   @ApiQuery({ name: 'creatorId', required: false, example: 1 })
   @ApiQuery({ name: 'city', required: false, example: 'Pune' })
+  @ApiQuery({ name: 'fromQuery', required: false, example: 'Kothrud' })
+  @ApiQuery({ name: 'toQuery', required: false, example: 'Hinjewadi' })
   findAll(
     @Req() req: any,
     @Query('page') page?: string,
@@ -42,6 +44,8 @@ export class TripsController {
     @Query('date') date?: string,
     @Query('creatorId') creatorId?: string,
     @Query('city') city?: string,
+    @Query('fromQuery') fromQuery?: string,
+    @Query('toQuery') toQuery?: string,
   ) {
     const pagination = parsePagination({ page, pageSize });
 
@@ -51,6 +55,8 @@ export class TripsController {
     if (date) filters.date = date;
     if (creatorId) filters.creatorId = parseInt(creatorId, 10);
     if (city) filters.city = city;
+    if (fromQuery?.trim()) filters.fromQuery = fromQuery.trim();
+    if (toQuery?.trim()) filters.toQuery = toQuery.trim();
     if (req?.user?.id) filters.viewerId = req.user.id;
 
     return this.tripsService.findAll(pagination, filters);

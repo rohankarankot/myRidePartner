@@ -176,6 +176,9 @@ model Trip {
   @@index([status])
   @@index([date])
   @@index([creatorId])
+  @@index([city])
+  @@index([createdAt])
+  @@index([city, status, date, createdAt])
 }
 
 model JoinRequest {
