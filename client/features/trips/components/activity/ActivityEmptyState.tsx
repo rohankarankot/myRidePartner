@@ -35,7 +35,7 @@ export function ActivityEmptyState({
         </Text>
       </VStack>
       <Pressable
-        className="rounded-2xl px-8 py-3.5 mt-4 shadow-sm border"
+        className="rounded-2xl px-8 py-3.5 mt-4 border"
         style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor }}
         onPress={onFindRide}
       >

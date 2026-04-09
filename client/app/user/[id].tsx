@@ -167,12 +167,12 @@ export default function UserProfileScreen() {
       >
         <VStack className="px-6 py-8 items-center" space="xl">
           <Box className="relative">
-            <Avatar size="2xl" className="border-4 shadow-xl" style={{ borderColor: cardColor }}>
+            <Avatar size="2xl" className="border-4" style={{ borderColor: cardColor }}>
               <AvatarFallbackText>{profile.fullName || '?'}</AvatarFallbackText>
               {avatarUrl ? <AvatarImage source={{ uri: avatarUrl }} alt={profile.fullName || 'User'} /> : null}
             </Avatar>
             {profile.isVerified && (
-              <Box className="absolute bottom-1 right-1 w-8 h-8 rounded-full items-center justify-center border-4 shadow-sm" style={{ backgroundColor: '#10B981', borderColor: cardColor }}>
+              <Box className="absolute bottom-1 right-1 w-8 h-8 rounded-full items-center justify-center border-4" style={{ backgroundColor: '#10B981', borderColor: cardColor }}>
                 <IconSymbol name="checkmark" size={14} color="#fff" />
               </Box>
             )}
@@ -192,7 +192,7 @@ export default function UserProfileScreen() {
           {!isOwnProfile && (
             <HStack className="w-full" space="md">
               <Pressable
-                className="flex-1 h-14 rounded-2xl flex-row items-center justify-center border shadow-sm"
+                className="flex-1 h-14 rounded-2xl flex-row items-center justify-center border"
                 style={{ backgroundColor: blocked ? `${dangerColor}10` : cardColor, borderColor: blocked ? dangerColor : borderColor }}
                 onPress={() => setShowBlockAlert(true)}
                 disabled={isBlocking || isUnblocking}
@@ -208,7 +208,7 @@ export default function UserProfileScreen() {
               </Pressable>
 
               <Pressable
-                className="flex-1 h-14 rounded-2xl flex-row items-center justify-center border shadow-sm"
+                className="flex-1 h-14 rounded-2xl flex-row items-center justify-center border"
                 style={{ backgroundColor: cardColor, borderColor }}
                 onPress={() => setShowReportModal(true)}
               >
@@ -223,7 +223,7 @@ export default function UserProfileScreen() {
           <HStack className="w-full justify-between items-center bg-transparent px-2">
             <Pressable className="items-center flex-1" onPress={() => router.push(`/ratings?userId=${userId}`)}>
               <VStack className="items-center" space="xs">
-                <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                <Box className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
                     <IconSymbol name="star.fill" size={20} color="#F59E0B" />
                 </Box>
                 <Text className="text-xl font-extrabold" style={{ color: textColor }}>
@@ -236,7 +236,7 @@ export default function UserProfileScreen() {
             <Divider className="h-12 w-px" style={{ backgroundColor: borderColor }} />
 
             <VStack className="items-center flex-1" space="xs">
-                <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                <Box className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
                     <IconSymbol name="car.fill" size={20} color={primaryColor} />
                 </Box>
                 <Text className="text-xl font-extrabold" style={{ color: textColor }}>
@@ -249,7 +249,7 @@ export default function UserProfileScreen() {
 
             <Pressable className="items-center flex-1" onPress={() => router.push(`/ratings?userId=${userId}`)}>
               <VStack className="items-center" space="xs">
-                <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+                <Box className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
                     <IconSymbol name="person.2.fill" size={20} color="#6366F1" />
                 </Box>
                 <Text className="text-xl font-extrabold" style={{ color: textColor }}>
@@ -262,10 +262,10 @@ export default function UserProfileScreen() {
 
           <VStack className="w-full" space="md">
             <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-2" style={{ color: subtextColor }}>About</Text>
-            <Box className="rounded-[32px] p-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+            <Box className="rounded-[32px] p-6 border" style={{ backgroundColor: cardColor, borderColor }}>
                 <VStack space="xl">
                     <HStack className="items-center" space="lg">
-                        <Box className="w-10 h-10 rounded-full items-center justify-center shadow-sm" style={{ backgroundColor: profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' :  subtextColor }}>
+                        <Box className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: profile.gender === 'men' ? '#3B82F6' : profile.gender === 'women' ? '#EC4899' :  subtextColor }}>
                             <IconSymbol name="person.fill" size={18} color="#fff" />
                         </Box>
                         <VStack >
@@ -278,7 +278,7 @@ export default function UserProfileScreen() {
                         <>
                             <Divider style={{ backgroundColor: borderColor }} />
                             <HStack className="items-center" space="lg">
-                                <Box className="w-10 h-10 rounded-full items-center justify-center shadow-sm" style={{ backgroundColor: '#F59E0B' }}>
+                                <Box className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: '#F59E0B' }}>
                                     <IconSymbol name="mappin.circle.fill" size={18} color="#fff" />
                                 </Box>
                                 <VStack >

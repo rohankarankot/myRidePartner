@@ -32,7 +32,7 @@ export function ActivityTabs({
           return (
             <Pressable
               key={tab.id}
-              className="rounded-full border px-5 py-2 mr-3 shadow-sm"
+              className="rounded-full border px-5 py-2 mr-3"
               style={{
                 backgroundColor: isActive ? primaryColor : 'transparent',
                 borderColor: isActive ? primaryColor : borderColor,

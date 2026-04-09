@@ -131,7 +131,7 @@ export default function SettingsScreen() {
         <Text className="text-sm font-medium" style={{ color: subtextColor }}>Customize your experience and manage your account.</Text>
       </VStack>
 
-      <Box className="mx-6 rounded-[32px] p-4 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+      <Box className="mx-6 rounded-[32px] p-4 border" style={{ backgroundColor: cardColor, borderColor }}>
         <Text className="mx-2 mb-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
           Appearance
         </Text>
@@ -142,7 +142,7 @@ export default function SettingsScreen() {
             return (
               <Pressable
                 key={mode}
-                className="flex-1 h-12 rounded-2xl items-center justify-center border shadow-sm"
+                className="flex-1 h-12 rounded-2xl items-center justify-center border"
                 style={{
                   borderColor: active ? primaryColor : borderColor,
                   backgroundColor: active ? primaryColor : `${subtextColor}05`,
@@ -171,7 +171,7 @@ export default function SettingsScreen() {
               <Pressable
                 key={option.id}
                 accessibilityLabel={option.label}
-                className="h-14 flex-1 items-center justify-center rounded-2xl border shadow-sm"
+                className="h-14 flex-1 items-center justify-center rounded-2xl border"
                 style={{
                   backgroundColor: active ? `${option.swatch}15` : `${subtextColor}05`,
                   borderColor: active ? option.swatch : borderColor,
@@ -211,7 +211,7 @@ export default function SettingsScreen() {
         />
       </Box>
 
-      <Box className="mx-6 mt-6 rounded-[32px] p-4 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+      <Box className="mx-6 mt-6 rounded-[32px] p-4 border" style={{ backgroundColor: cardColor, borderColor }}>
         <Text className="mx-2 mb-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
           Account Management
         </Text>

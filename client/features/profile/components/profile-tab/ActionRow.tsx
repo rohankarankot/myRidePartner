@@ -37,7 +37,7 @@ export function ActionRow({
         <HStack className="items-center justify-between">
           <HStack space="md" className="items-center">
             <Box
-              className="h-10 w-10 rounded-2xl items-center justify-center shadow-sm"
+              className="h-10 w-10 rounded-2xl items-center justify-center"
               style={{ backgroundColor: iconBackground }}
             >
               <IconSymbol name={icon as any} size={18} color={iconColor} />

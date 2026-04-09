@@ -4,6 +4,7 @@ import { Text } from '@/components/ui/text';
 import { ActionRow } from '@/features/profile/components/profile-tab/ActionRow';
 
 type ProfileActionsCardProps = {
+  borderColor: string;
   cardColor: string;
   dangerColor: string;
   onEditProfile: () => void;
@@ -16,6 +17,7 @@ type ProfileActionsCardProps = {
 };
 
 export function ProfileActionsCard({
+  borderColor,
   cardColor,
   dangerColor,
   hasProfile,
@@ -27,7 +29,7 @@ export function ProfileActionsCard({
   textColor,
 }: ProfileActionsCardProps) {
   return (
-    <Box className="mx-6 rounded-[32px] p-4 shadow-sm border" style={{ backgroundColor: cardColor }}>
+    <Box className="mx-6 rounded-[32px] p-4 border" style={{ backgroundColor: cardColor, borderColor }}>
       <Text className="text-[10px] font-extrabold uppercase tracking-widest mt-2 ml-4 mb-2" style={{ color: subtextColor }}>
         Actions
       </Text>

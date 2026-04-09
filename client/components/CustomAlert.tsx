@@ -66,14 +66,14 @@ export function CustomAlert({
         >
             <Box className="flex-1 justify-center items-center px-6" style={{ backgroundColor: overlayColor }}>
                 <Box 
-                    className="rounded-[32px] p-8 border-2 shadow-2xl items-center" 
+                    className="rounded-[32px] p-8 border-2 items-center" 
                     style={{ 
                         backgroundColor, 
                         borderColor: `${primaryColor}15`,
                         width: Math.min(width - 48, 380)
                     }}
                 >
-                    <Box className="w-16 h-16 rounded-[24px] bg-gray-50 items-center justify-center mb-6 shadow-sm border" style={{ borderColor }}>
+                    <Box className="w-16 h-16 rounded-[24px] bg-gray-50 items-center justify-center mb-6 border" style={{ borderColor }}>
                         <IconSymbol name={icon} size={30} color={primaryColor} />
                     </Box>
 
@@ -89,7 +89,7 @@ export function CustomAlert({
                     <HStack className="w-full" space="md">
                         {tertiaryButton && (
                             <Pressable
-                                className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
+                                className="flex-1 h-12 rounded-2xl border-2 items-center justify-center"
                                 style={{ borderColor }}
                                 onPress={tertiaryButton.onPress}
                             >
@@ -100,7 +100,7 @@ export function CustomAlert({
                         )}
                         {secondaryButton && (
                             <Pressable
-                                className="flex-1 h-12 rounded-2xl border-2 items-center justify-center shadow-sm"
+                                className="flex-1 h-12 rounded-2xl border-2 items-center justify-center"
                                 style={{ borderColor }}
                                 onPress={secondaryButton.onPress}
                             >
@@ -110,7 +110,7 @@ export function CustomAlert({
                             </Pressable>
                         )}
                         <Pressable
-                            className="flex-1 h-12 rounded-2xl items-center justify-center shadow-xl border"
+                            className="flex-1 h-12 rounded-2xl items-center justify-center border"
                             style={[
                                 { 
                                     backgroundColor: primaryColor, 

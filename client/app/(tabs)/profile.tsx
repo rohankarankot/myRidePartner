@@ -169,6 +169,7 @@ export default function ProfileScreen() {
         />
 
         <ProfileActionsCard
+          borderColor={borderColor}
           cardColor={cardColor}
           dangerColor={dangerColor}
           hasProfile={Boolean(profile)}

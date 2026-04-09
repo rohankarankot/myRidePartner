@@ -33,7 +33,7 @@ export function ProfilePerformanceCard({
   textColor,
 }: ProfilePerformanceCardProps) {
   return (
-    <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
+    <Box className="mx-6 rounded-[32px] p-6 mb-6 border" style={{ backgroundColor: cardColor, borderColor }}>
       <Text className="text-[10px] font-extrabold uppercase tracking-widest mb-6" style={{ color: subtextColor }}>
         Performance
       </Text>
@@ -41,7 +41,7 @@ export function ProfilePerformanceCard({
       <HStack className="justify-between items-center">
         <Pressable className="flex-1 items-center" onPress={onOpenRatings}>
           <VStack className="items-center" space="xs">
-            <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+            <Box className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
               <IconSymbol name="star.fill" size={20} color="#F59E0B" />
             </Box>
             <Text className="text-xl font-extrabold" style={{ color: textColor }}>{Number(rating).toFixed(1)}</Text>
@@ -53,7 +53,7 @@ export function ProfilePerformanceCard({
 
         <Pressable className="flex-1 items-center" onPress={onOpenCompletedTrips}>
           <VStack className="items-center" space="xs">
-            <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+            <Box className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
               <IconSymbol name="flag.checkered" size={18} color={primaryColor} />
             </Box>
             <Text className="text-xl font-extrabold" style={{ color: textColor }}>{completedTripsCount}</Text>
@@ -65,7 +65,7 @@ export function ProfilePerformanceCard({
 
         <Pressable className="flex-1 items-center" onPress={onOpenAnalytics}>
           <VStack className="items-center" space="xs">
-            <Box className="w-12 h-12 rounded-2xl items-center justify-center shadow-sm" style={{ backgroundColor: `${primaryColor}10` }}>
+            <Box className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
               <IconSymbol name="chart.bar.fill" size={18} color="#8B5CF6" />
             </Box>
             <Text className="text-xl font-extrabold" style={{ color: textColor }}>View</Text>
