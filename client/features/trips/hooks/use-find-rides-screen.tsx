@@ -9,6 +9,7 @@ import { useScrollToTop } from '@react-navigation/native';
 import { CITIES } from '@/constants/cities';
 import { useAuth } from '@/context/auth-context';
 import { useBlockedUsers } from '@/features/safety/hooks/use-blocked-users';
+import { useBottomSheetBackHandler } from '@/hooks/use-bottom-sheet-back-handler';
 import { notificationService } from '@/services/notification-service';
 import { tripService } from '@/services/trip-service';
 import { useUserStore } from '@/store/user-store';
@@ -39,6 +40,13 @@ export function useFindRidesScreen() {
   const [debouncedFromSearch, setDebouncedFromSearch] = useState('');
   const [debouncedToSearch, setDebouncedToSearch] = useState('');
   const [hasLoadedInitialCity, setHasLoadedInitialCity] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
+
+  useBottomSheetBackHandler([
+    { isOpen: isFilterSheetOpen, ref: filterSheetRef },
+    { isOpen: isCitySheetOpen, ref: citySheetRef },
+  ]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('tabLongPress' as never, () => {
@@ -169,9 +177,15 @@ export function useFindRidesScreen() {
   );
   const showInitialLoading = loading && trips.length === 0 && !hasActiveRouteSearch;
 
-  const openFilters = () => filterSheetRef.current?.present();
+  const openFilters = () => {
+    setIsFilterSheetOpen(true);
+    filterSheetRef.current?.present();
+  };
   const applyFilters = () => filterSheetRef.current?.dismiss();
-  const openCitySheet = () => citySheetRef.current?.present();
+  const openCitySheet = () => {
+    setIsCitySheetOpen(true);
+    citySheetRef.current?.present();
+  };
   const refreshTrips = () => refetch();
 
   const resetFilters = () => {
@@ -209,6 +223,8 @@ export function useFindRidesScreen() {
     loading,
     openCitySheet,
     openFilters,
+    onCitySheetDismiss: () => setIsCitySheetOpen(false),
+    onFilterSheetDismiss: () => setIsFilterSheetOpen(false),
     refreshTrips,
     renderBackdrop,
     resetFilters,

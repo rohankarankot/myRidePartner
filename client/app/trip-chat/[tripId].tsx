@@ -15,6 +15,7 @@ import {
     InputToolbar,
 } from 'react-native-gifted-chat';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useBottomSheetBackHandler } from '@/hooks/use-bottom-sheet-back-handler';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripChatService } from '@/services/trip-chat-service';
@@ -289,6 +290,7 @@ export default function TripChatScreen() {
     const [isSendingMedia, setIsSendingMedia] = useState(false);
     const [previewMedia, setPreviewMedia] = useState<ParsedMediaMessage | null>(null);
     const [pendingMediaDraft, setPendingMediaDraft] = useState<PendingMediaDraft | null>(null);
+    const [isMediaSheetOpen, setIsMediaSheetOpen] = useState(false);
     const [typingUsers, setTypingUsers] = useState<{ userId: number; userName: string }[]>([]);
     const isTypingRef = useRef(false);
     const stopTypingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -297,6 +299,8 @@ export default function TripChatScreen() {
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const mediaSheetRef = useRef<BottomSheetModal>(null);
     const keyboardHeight = useRef(new Animated.Value(0)).current;
+
+    useBottomSheetBackHandler([{ isOpen: isMediaSheetOpen, ref: mediaSheetRef }]);
 
     useEffect(() => {
         const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -856,6 +860,7 @@ export default function TripChatScreen() {
             return;
         }
 
+        setIsMediaSheetOpen(true);
         mediaSheetRef.current?.present();
     };
 
@@ -1188,6 +1193,7 @@ export default function TripChatScreen() {
                 backdropComponent={renderMediaSheetBackdrop}
                 backgroundStyle={{ backgroundColor: cardColor }}
                 handleIndicatorStyle={{ backgroundColor: subtextColor }}
+                onDismiss={() => setIsMediaSheetOpen(false)}
             >
                 <BottomSheetView style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 70 }}>
                     <VStack space="lg">

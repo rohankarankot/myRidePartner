@@ -816,6 +816,11 @@ export default function TripDetailsScreen() {
                 snapPoints={['90%']}
                 backdropComponent={renderBackdrop}
                 onChange={handleSheetChanges}
+                backgroundStyle={{ backgroundColor: cardColor, borderRadius: 32 }}
+                handleIndicatorStyle={{ backgroundColor: borderColor, width: 40 }}
+                enablePanDownToClose
+                keyboardBehavior="fillParent"
+                keyboardBlurBehavior="restore"
             >
                 <BottomSheetView style={{ padding: 24 }}>
                     <Text className="text-xl font-bold mb-4" style={{ color: textColor }}>Join Ride</Text>
@@ -823,12 +828,22 @@ export default function TripDetailsScreen() {
                         <HStack className="justify-between items-center">
                             <Text style={{ color: textColor }}>Seats</Text>
                             <HStack space="md" className="items-center">
-                                <Pressable onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
-                                    <Text>-</Text>
+                                <Pressable
+                                    onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}
+                                    className="w-10 h-10 rounded-full items-center justify-center"
+                                    style={{ backgroundColor }}
+                                >
+                                    <Text style={{ color: textColor }}>-</Text>
                                 </Pressable>
-                                <Text className="font-bold">{selectedSeats}</Text>
-                                <Pressable onPress={() => setSelectedSeats(Math.min(trip.availableSeats, selectedSeats + 1))} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
-                                    <Text>+</Text>
+                                <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+                                    {selectedSeats}
+                                </Text>
+                                <Pressable
+                                    onPress={() => setSelectedSeats(Math.min(trip.availableSeats, selectedSeats + 1))}
+                                    className="w-10 h-10 rounded-full items-center justify-center"
+                                    style={{ backgroundColor }}
+                                >
+                                    <Text style={{ color: textColor }}>+</Text>
                                 </Pressable>
                             </HStack>
                         </HStack>
@@ -883,9 +898,14 @@ export default function TripDetailsScreen() {
                                     multiline
                                     textAlignVertical="top"
                                     style={{
+                                        backgroundColor,
+                                        borderColor,
+                                        borderRadius: 16,
+                                        borderWidth: 1,
                                         color: textColor,
                                         minHeight: 84,
                                         fontSize: 15,
+                                        paddingHorizontal: 14,
                                         paddingVertical: 12,
                                     }}
                                 />

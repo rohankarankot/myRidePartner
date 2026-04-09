@@ -22,11 +22,12 @@ interface FilterBottomSheetProps {
     date: Date | undefined;
     setDate: (date: Date | undefined) => void;
     onApply: () => void;
+    onDismiss?: () => void;
     onReset: () => void;
 }
 
 export const FilterBottomSheet = React.forwardRef<BottomSheetModal, FilterBottomSheetProps>(
-    ({ gender, setGender, date, setDate, onApply, onReset }, ref) => {
+    ({ gender, setGender, date, setDate, onApply, onDismiss, onReset }, ref) => {
         const backgroundColor = useThemeColor({}, 'card');
         const appBackgroundColor = useThemeColor({}, 'background');
         const textColor = useThemeColor({}, 'text');
@@ -69,6 +70,7 @@ export const FilterBottomSheet = React.forwardRef<BottomSheetModal, FilterBottom
                 backdropComponent={renderBackdrop}
                 backgroundStyle={{ backgroundColor, borderRadius: 32 }}
                 handleIndicatorStyle={{ backgroundColor: borderColor, width: 40 }}
+                onDismiss={onDismiss}
             >
                 <BottomSheetView>
                     <Box className="p-8 pb-10">

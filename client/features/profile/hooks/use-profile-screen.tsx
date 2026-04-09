@@ -8,6 +8,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import { useBottomSheetBackHandler } from '@/hooks/use-bottom-sheet-back-handler';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { useAuth } from '@/context/auth-context';
 import { useUserStore } from '@/store/user-store';
@@ -41,10 +42,13 @@ export function useProfileScreen() {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [citySearch, setCitySearch] = useState('');
+  const [isEditorSheetOpen, setIsEditorSheetOpen] = useState(false);
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const hasOpenedFromRouteRef = useRef(false);
   const snapPoints = ['90%'];
+
+  useBottomSheetBackHandler([{ isOpen: isEditorSheetOpen, ref: bottomSheetModalRef }]);
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -141,6 +145,7 @@ export function useProfileScreen() {
       setGender('men');
       setCity('');
     }
+    setIsEditorSheetOpen(true);
     bottomSheetModalRef.current?.present();
   }, [profile]);
 
@@ -316,6 +321,8 @@ export function useProfileScreen() {
     error,
     fullName,
     gender,
+    handleEditorSheetChange: (index: number) => setIsEditorSheetOpen(index >= 0),
+    handleEditorSheetDismiss: () => setIsEditorSheetOpen(false),
     handlePickImage,
     handlePresentModalPress,
     handleRefresh,

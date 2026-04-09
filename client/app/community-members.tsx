@@ -9,6 +9,7 @@ import {
   BottomSheetModal,
 } from '@gorhom/bottom-sheet';
 
+import { useBottomSheetBackHandler } from '@/hooks/use-bottom-sheet-back-handler';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { userService } from '@/services/user-service';
 import { useUserStore } from '@/store/user-store';
@@ -41,6 +42,9 @@ export default function CommunityMembersScreen() {
   const citySheetRef = useRef<BottomSheetModal>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(city || profile?.city || null);
   const [citySearch, setCitySearch] = useState('');
+  const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
+
+  useBottomSheetBackHandler([{ isOpen: isCitySheetOpen, ref: citySheetRef }]);
 
   const { data: cities = [] } = useQuery({
     queryKey: ['community-member-cities'],
@@ -145,7 +149,10 @@ export default function CommunityMembersScreen() {
       />
 
       <Pressable
-        onPress={() => citySheetRef.current?.present()}
+        onPress={() => {
+          setIsCitySheetOpen(true);
+          citySheetRef.current?.present();
+        }}
         className="absolute right-6 bottom-8 h-16 w-16 rounded-full items-center justify-center shadow-xl"
         style={{ backgroundColor: primaryColor }}
       >
@@ -161,7 +168,10 @@ export default function CommunityMembersScreen() {
         enablePanDownToClose
         keyboardBehavior="fillParent"
         keyboardBlurBehavior="restore"
-        onDismiss={() => setCitySearch('')}
+        onDismiss={() => {
+          setIsCitySheetOpen(false);
+          setCitySearch('');
+        }}
       >
         <BottomSheetFlatList
           data={filteredCities}

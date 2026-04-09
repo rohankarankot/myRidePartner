@@ -17,6 +17,7 @@ import {
     BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
+import { useBottomSheetBackHandler } from '@/hooks/use-bottom-sheet-back-handler';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -221,9 +222,12 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     } | null>(null);
     const [selectedCity, setSelectedCity] = useState<string | null>(normalizeCity(initialCity) || normalizeCity(profile?.city));
     const [citySearch, setCitySearch] = useState('');
+    const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
     const flatListRef = useRef<FlatList<any>>(null);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const citySheetRef = useRef<BottomSheetModal>(null);
+
+    useBottomSheetBackHandler([{ isOpen: isCitySheetOpen, ref: citySheetRef }]);
 
     const flashMessageHighlight = (messageId: string) => {
         if (highlightTimeoutRef.current) {
@@ -590,7 +594,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
 
                         <Pressable
                             className="flex-1 items-center"
-                            onPress={() => citySheetRef.current?.present()}
+                            onPress={() => {
+                                setIsCitySheetOpen(true);
+                                citySheetRef.current?.present();
+                            }}
                         >
                             <GSText className="text-[10px] font-extrabold uppercase tracking-widest opacity-60" style={{ color: textColor }}>
                                 Community Room
@@ -641,7 +648,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                             Select your city room to discover rides, chat with local members, and share your journey updates.
                         </GSText>
                         <Button
-                            onPress={() => citySheetRef.current?.present()}
+                            onPress={() => {
+                                setIsCitySheetOpen(true);
+                                citySheetRef.current?.present();
+                            }}
                             className="h-16 w-full rounded-[24px] shadow-2xl"
                             style={{ backgroundColor: primaryColor }}
                         >
@@ -897,7 +907,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     enablePanDownToClose
                     keyboardBehavior="fillParent"
                     keyboardBlurBehavior="restore"
-                    onDismiss={() => setCitySearch('')}
+                    onDismiss={() => {
+                        setIsCitySheetOpen(false);
+                        setCitySearch('');
+                    }}
                 >
                     <BottomSheetFlatList
                         data={filteredCities}

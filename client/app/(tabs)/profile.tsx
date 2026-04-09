@@ -30,6 +30,8 @@ export default function ProfileScreen() {
     error,
     fullName,
     gender,
+    handleEditorSheetChange,
+    handleEditorSheetDismiss,
     handlePickImage,
     handlePresentModalPress,
     handleRefresh,
@@ -219,7 +221,9 @@ export default function ProfileScreen() {
         gender={gender}
         isPending={isPending}
         onBackdrop={borderBackdrop}
-        onDismiss={() => bottomSheetModalRef.current?.dismiss()}
+        onChange={handleEditorSheetChange}
+        onClose={() => bottomSheetModalRef.current?.dismiss()}
+        onSheetDismiss={handleEditorSheetDismiss}
         onSelectCity={selectCity}
         onSubmit={handleSubmit}
         phoneNumber={phoneNumber}
