@@ -122,50 +122,33 @@ export function CreateTripForm({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <Box style={{ height: MAP_HEADER_HEIGHT }}>
-        <OlaMapView
-          borderColor={borderColor}
-          centerCoordinate={residenceCoordinate}
-          currentLocationCoordinate={currentLocationCoordinate}
-          fromCoordinate={fromCoordinate}
-          height={MAP_HEADER_HEIGHT}
-          primaryColor={primaryColor}
-          textColor={subtextColor}
-          toCoordinate={toCoordinate}
-        />
-        <Box
-          className="absolute inset-x-0 top-0 px-4 pt-4"
-        >
-          <HStack className="justify-end" space="xs">
-            <Pressable
-              className="h-9 w-9 rounded-full items-center justify-center"
-              style={{ backgroundColor: 'rgba(255,255,255,0.92)' }}
-              onPress={onShowMyLocation}
-            >
-              <IconSymbol name="location.fill" size={16} color="#0f172a" />
-            </Pressable>
-            <Pressable
-              className="rounded-full px-3 h-9 items-center justify-center"
-              style={{ backgroundColor: 'rgba(255,255,255,0.92)' }}
-              onPress={onShowFromMapPicker}
-            >
-              <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: '#0f172a' }}>
-                From
-              </Text>
-            </Pressable>
-            <Pressable
-              className="rounded-full px-3 h-9 items-center justify-center"
-              style={{ backgroundColor: 'rgba(255,255,255,0.92)' }}
-              onPress={onShowToMapPicker}
-            >
-              <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: '#0f172a' }}>
-                To
-              </Text>
-            </Pressable>
-          </HStack>
+      {step === 1 ? (
+        <Box style={{ height: MAP_HEADER_HEIGHT }}>
+          <OlaMapView
+            borderColor={borderColor}
+            centerCoordinate={residenceCoordinate}
+            currentLocationCoordinate={currentLocationCoordinate}
+            fromCoordinate={fromCoordinate}
+            height={MAP_HEADER_HEIGHT}
+            primaryColor={primaryColor}
+            textColor={subtextColor}
+            toCoordinate={toCoordinate}
+          />
+          <Box
+            className="absolute inset-x-0 top-0 px-4 pt-4"
+          >
+            <HStack className="justify-end" space="xs">
+              <Pressable
+                className="h-9 w-9 rounded-full items-center justify-center"
+                style={{ backgroundColor: 'rgba(255,255,255,0.92)' }}
+                onPress={onShowMyLocation}
+              >
+                <IconSymbol name="location.fill" size={16} color="#0f172a" />
+              </Pressable>
+            </HStack>
+          </Box>
         </Box>
-
-      </Box>
+      ) : null}
 
       <ScrollView
         ref={scrollViewRef}
@@ -174,8 +157,19 @@ export function CreateTripForm({
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         style={{ flex: 1 }}
       >
+        {step === 2 ? (
+          <VStack space="xs" className="mb-4 mt-4 px-4">
+            <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+              Fill the other details
+            </Text>
+            <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+              Add timing, seats, pricing, and trip preferences before publishing.
+            </Text>
+          </VStack>
+        ) : null}
+
         <Box
-          className="mb-8 mt-4 rounded-[20px] border p-5"
+          className={`mb-8 rounded-[20px] border p-5 ${step === 1 ? 'mt-4' : 'mt-0'}`}
           style={{ backgroundColor: cardColor, borderColor }}
         >
           <Box className="mt-2">
@@ -202,29 +196,52 @@ export function CreateTripForm({
 
             {step === 1 ? (
               <VStack space="sm">
-                <CreateTripFormField
-                  label="Starting Point"
-                  placeholder="Search pickup location..."
-                  icon="house.fill"
-                  value={from}
-                  error={errors.from}
-                  onPress={onShowFromPicker}
-                  multiline
-                  compactMultiline
-                  numberOfLines={3}
-                />
+                <VStack space="sm" className="mt-1">
+                  <CreateTripFormField
+                    label="Starting Point"
+                    placeholder="Search pickup location..."
+                    icon="house.fill"
+                    value={from}
+                    error={errors.from}
+                    onPress={onShowFromPicker}
+                    multiline
+                    compactMultiline
+                    numberOfLines={3}
+                  />
+                  <Pressable
+                    className="flex-1 h-10 rounded-2xl items-center justify-center border"
+                    style={{ borderColor, backgroundColor }}
+                    onPress={onShowFromMapPicker}
+                  >
+                    <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                      Pick From On Map
+                    </Text>
+                  </Pressable>
 
-                <CreateTripFormField
-                  label="Destination"
-                  placeholder="Search drop location..."
-                  icon="location.fill"
-                  value={to}
-                  error={errors.to}
-                  onPress={onShowToPicker}
-                  multiline
-                  compactMultiline
-                  numberOfLines={3}
-                />
+                </VStack>
+
+                <VStack space="sm" className="mt-1">
+                  <CreateTripFormField
+                    label="Destination"
+                    placeholder="Search drop location..."
+                    icon="location.fill"
+                    value={to}
+                    error={errors.to}
+                    onPress={onShowToPicker}
+                    multiline
+                    compactMultiline
+                    numberOfLines={3}
+                  />
+                  <Pressable
+                    className="flex-1 h-10 rounded-2xl items-center justify-center border"
+                    style={{ borderColor, backgroundColor }}
+                    onPress={onShowToMapPicker}
+                  >
+                    <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                      Pick To On Map
+                    </Text>
+                  </Pressable>
+                </VStack>
 
 
 

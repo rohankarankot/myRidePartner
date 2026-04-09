@@ -25,13 +25,19 @@ const DEFAULT_CENTER: LocationCoordinate = {
   longitude: 77.5946,
 };
 
-const buildMarkerScript = (coordinate: LocationCoordinate | null | undefined, color: string, label: string) => {
+const buildMarkerScript = (
+  coordinate: LocationCoordinate | null | undefined,
+  color: string,
+  label: string,
+  kind: 'default' | 'current' = 'default'
+) => {
   if (!coordinate) {
     return 'null';
   }
 
   return JSON.stringify({
     color,
+    kind,
     label,
     latitude: coordinate.latitude,
     longitude: coordinate.longitude,
@@ -80,6 +86,34 @@ const buildHtml = ({
         border-radius: 999px;
         border: 3px solid #ffffff;
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+        position: relative;
+      }
+
+      .pin.current {
+        width: 20px;
+        height: 20px;
+        background: #2563eb !important;
+        box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.18);
+      }
+
+      .pin.current::after {
+        content: '';
+        position: absolute;
+        inset: -10px;
+        border-radius: 999px;
+        border: 2px solid rgba(37, 99, 235, 0.45);
+        animation: pulse 1.8s ease-out infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(0.7);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1.6);
+          opacity: 0;
+        }
       }
 
     </style>
@@ -89,15 +123,13 @@ const buildHtml = ({
     <div id="map"></div>
     <script>
       const fallbackCenter = ${JSON.stringify([fallbackCenter.longitude, fallbackCenter.latitude])};
-      const centerPoint = ${buildMarkerScript(centerCoordinate, '#475569', 'Home')};
-      const currentLocationPoint = ${buildMarkerScript(currentLocationCoordinate, '#2563eb', 'Current Location')};
+      const currentLocationPoint = ${buildMarkerScript(currentLocationCoordinate, '#2563eb', 'Current Location', 'current')};
       const fromPoint = ${buildMarkerScript(fromCoordinate, '#16a34a', 'Pickup')};
       const toPoint = ${buildMarkerScript(toCoordinate, '#dc2626', 'Drop')};
       const interactive = ${interactive ? 'true' : 'false'};
       const olaMaps = new OlaMaps({ apiKey: ${JSON.stringify(CONFIG.OLA_MAPS_API_KEY)} });
 
       let map;
-      let centerMarker = null;
       let currentLocationMarker = null;
       let fromMarker = null;
       let toMarker = null;
@@ -107,7 +139,7 @@ const buildHtml = ({
 
       function createMarker(point) {
         const el = document.createElement('div');
-        el.className = 'pin';
+        el.className = point.kind === 'current' ? 'pin current' : 'pin';
         el.style.background = point.color;
         return olaMaps.addMarker({ element: el, anchor: 'center' })
           .setLngLat([point.longitude, point.latitude]);
@@ -131,7 +163,13 @@ const buildHtml = ({
 
       function focusMap() {
         if (currentLocationPoint) {
-          map.flyTo({ center: [currentLocationPoint.longitude, currentLocationPoint.latitude], zoom: 15, duration: 500 });
+          map.flyTo({
+            center: [currentLocationPoint.longitude, currentLocationPoint.latitude],
+            zoom: 17,
+            speed: 1.2,
+            curve: 1.3,
+            essential: true,
+          });
           return;
         }
 
@@ -212,7 +250,6 @@ const buildHtml = ({
           zoom: fromPoint || toPoint ? 14 : 11,
         });
 
-        centerMarker = syncMarker(centerMarker, centerPoint);
         currentLocationMarker = syncMarker(currentLocationMarker, currentLocationPoint);
         fromMarker = syncMarker(fromMarker, fromPoint);
         toMarker = syncMarker(toMarker, toPoint);
