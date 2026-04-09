@@ -96,6 +96,7 @@ class UserService {
       aadhaarNumber?: string;
       governmentIdVerified?: boolean;
       isVerified?: boolean;
+      communityConsent?: boolean;
       pushToken?: string;
     }
   ): Promise<UserProfile> {

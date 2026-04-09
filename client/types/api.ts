@@ -45,6 +45,7 @@ export interface UserProfile {
     ratingsCount?: number;
     isVerified?: boolean;
     governmentIdVerified?: boolean;
+    communityConsent?: boolean;
     governmentIdDocument?: string;
     aadhaarNumber?: string;
     userId: number;

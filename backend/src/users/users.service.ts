@@ -221,6 +221,7 @@ export class UsersService {
       accountStatus: UserAccountStatus.ACTIVE,
       userProfile: {
         is: {
+          communityConsent: true,
           city: options?.city
             ? options.city
             : {
@@ -280,6 +281,7 @@ export class UsersService {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const profiles = await this.prisma.userProfile.findMany({
       where: {
+        communityConsent: true,
         city: {
           not: null,
         },

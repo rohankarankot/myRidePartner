@@ -136,6 +136,7 @@ model UserProfile {
   ratingsCount         Int       @default(0)
   isVerified           Boolean   @default(false)
   governmentIdVerified Boolean   @default(false)
+  communityConsent     Boolean   @default(false)
   gender               Gender?
   city                 String?
   pushToken            String?
