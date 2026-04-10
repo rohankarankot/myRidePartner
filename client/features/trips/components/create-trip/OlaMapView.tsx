@@ -195,6 +195,12 @@ const buildHtml = ({
 
       function renderRouteLine() {
         if (!fromPoint || !toPoint) {
+          if (map.getLayer(routeId)) {
+            map.removeLayer(routeId);
+          }
+          if (map.getSource(routeId)) {
+            map.removeSource(routeId);
+          }
           return;
         }
 

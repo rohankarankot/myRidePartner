@@ -9,25 +9,19 @@ import { Pressable } from '@/components/ui/pressable';
 import { Spinner } from '@/components/ui/spinner';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
-import { OlaMapView } from '@/features/trips/components/create-trip/OlaMapView';
 import { CreateTripFormErrors, CREATE_TRIP_GENDER_OPTIONS } from '@/features/trips/utils/create-trip';
 import { CreateTripFormField } from '@/features/trips/components/create-trip/CreateTripFormField';
-import type { LocationCoordinate } from '@/features/trips/types/location';
-
-const MAP_HEADER_HEIGHT = 320;
 
 type CreateTripFormProps = {
   backgroundColor: string;
   borderColor: string;
   cardColor: string;
-  currentLocationCoordinate?: LocationCoordinate | null;
   date: Date;
   description: string;
   errors: CreateTripFormErrors;
   formatDate: (value: Date) => string;
   formatTime: (value: Date) => string;
   from: string;
-  fromCoordinate?: LocationCoordinate | null;
   genderPreference: 'men' | 'women' | 'both';
   handleDescriptionFocus: () => void;
   handleInputFocus: (offset?: number) => void;
@@ -44,15 +38,11 @@ type CreateTripFormProps = {
   onSeatsChange: (text: string) => void;
   onShowDatePicker: () => void;
   onShowFromPicker: () => void;
-  onShowMyLocation: () => void;
-  onShowFromMapPicker: () => void;
   onShowTimePicker: () => void;
   onShowToPicker: () => void;
-  onShowToMapPicker: () => void;
   onTimeChange: (event: any, selectedDate?: Date) => void;
   primaryColor: string;
   price: string;
-  residenceCoordinate?: LocationCoordinate | null;
   scrollViewRef: React.RefObject<ScrollView | null>;
   seats: string;
   showDatePicker: boolean;
@@ -61,7 +51,6 @@ type CreateTripFormProps = {
   textColor: string;
   time: Date;
   to: string;
-  toCoordinate?: LocationCoordinate | null;
   today: Date;
 };
 
@@ -69,14 +58,12 @@ export function CreateTripForm({
   backgroundColor,
   borderColor,
   cardColor,
-  currentLocationCoordinate,
   date,
   description,
   errors,
   formatDate,
   formatTime,
   from,
-  fromCoordinate,
   genderPreference,
   handleDescriptionFocus,
   handleInputFocus,
@@ -92,16 +79,12 @@ export function CreateTripForm({
   onPriceCalculatedChange,
   onSeatsChange,
   onShowDatePicker,
-  onShowMyLocation,
   onShowTimePicker,
   onTimeChange,
   onShowFromPicker,
-  onShowFromMapPicker,
   onShowToPicker,
-  onShowToMapPicker,
   primaryColor,
   price,
-  residenceCoordinate,
   scrollViewRef,
   seats,
   showDatePicker,
@@ -110,7 +93,6 @@ export function CreateTripForm({
   textColor,
   time,
   to,
-  toCoordinate,
   today,
 }: CreateTripFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
@@ -122,33 +104,7 @@ export function CreateTripForm({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      {step === 1 ? (
-        <Box style={{ height: MAP_HEADER_HEIGHT }}>
-          <OlaMapView
-            borderColor={borderColor}
-            centerCoordinate={residenceCoordinate}
-            currentLocationCoordinate={currentLocationCoordinate}
-            fromCoordinate={fromCoordinate}
-            height={MAP_HEADER_HEIGHT}
-            primaryColor={primaryColor}
-            textColor={subtextColor}
-            toCoordinate={toCoordinate}
-          />
-          <Box
-            className="absolute inset-x-0 top-0 px-4 pt-4"
-          >
-            <HStack className="justify-end" space="xs">
-              <Pressable
-                className="h-9 w-9 rounded-full items-center justify-center"
-                style={{ backgroundColor: 'rgba(255,255,255,0.92)' }}
-                onPress={onShowMyLocation}
-              >
-                <IconSymbol name="location.fill" size={16} color="#0f172a" />
-              </Pressable>
-            </HStack>
-          </Box>
-        </Box>
-      ) : null}
+
 
       <ScrollView
         ref={scrollViewRef}
@@ -169,7 +125,7 @@ export function CreateTripForm({
         ) : null}
 
         <Box
-          className={`mb-8 rounded-[20px] border p-5 ${step === 1 ? 'mt-4' : 'mt-0'}`}
+          className={`mb-8 rounded-[20px] border p-5 mt-4`}
           style={{ backgroundColor: cardColor, borderColor }}
         >
           <Box className="mt-2">
@@ -208,16 +164,6 @@ export function CreateTripForm({
                     compactMultiline
                     numberOfLines={3}
                   />
-                  <Pressable
-                    className="flex-1 h-10 rounded-2xl items-center justify-center border"
-                    style={{ borderColor, backgroundColor }}
-                    onPress={onShowFromMapPicker}
-                  >
-                    <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
-                      Pick From On Map
-                    </Text>
-                  </Pressable>
-
                 </VStack>
 
                 <VStack space="sm" className="mt-1">
@@ -232,15 +178,6 @@ export function CreateTripForm({
                     compactMultiline
                     numberOfLines={3}
                   />
-                  <Pressable
-                    className="flex-1 h-10 rounded-2xl items-center justify-center border"
-                    style={{ borderColor, backgroundColor }}
-                    onPress={onShowToMapPicker}
-                  >
-                    <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
-                      Pick To On Map
-                    </Text>
-                  </Pressable>
                 </VStack>
 
 
