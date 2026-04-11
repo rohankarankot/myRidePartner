@@ -373,6 +373,53 @@ export default function TripDetailsScreen() {
         }
     };
 
+    const handleShareViaWhatsApp = async () => {
+        if (!trip) return;
+
+        const message = buildTripShareMessage(trip);
+        const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+        try {
+            const canOpen = await Linking.canOpenURL(whatsappUrl);
+            if (canOpen) {
+                await Linking.openURL(whatsappUrl);
+            } else {
+                await Share.share({ message });
+                Toast.show({
+                    type: 'info',
+                    text1: 'WhatsApp not available',
+                    text2: 'Opened the regular share sheet instead.',
+                });
+            }
+        } catch (error) {
+            console.error('WhatsApp share failed', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Share failed',
+                text2: 'Unable to open WhatsApp right now.',
+            });
+        }
+    };
+
+    const handleShareViaText = async () => {
+        if (!trip) return;
+
+        const message = buildTripShareMessage(trip);
+        const smsSeparator = Platform.OS === 'ios' ? '&' : '?';
+        const smsUrl = `sms:${smsSeparator}body=${encodeURIComponent(message)}`;
+
+        try {
+            await Linking.openURL(smsUrl);
+        } catch (error) {
+            console.error('Text share failed', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Share failed',
+                text2: 'Unable to open your messaging app right now.',
+            });
+        }
+    };
+
     if (loading) return <TripDetailsSkeleton />;
     if (!trip) return (
         <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
@@ -386,7 +433,7 @@ export default function TripDetailsScreen() {
         <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
             <Stack.Screen 
               options={{ 
-                title: 'Trip Details', 
+                title: loading ? 'Trip loading...' : 'Trip Details', 
                 headerStyle: { backgroundColor }, 
                 headerTintColor: textColor,
                 headerRight: () => isCreator ? (
@@ -419,6 +466,34 @@ export default function TripDetailsScreen() {
                             <Text className="text-lg font-bold" style={{ color: textColor }}>{trip.destination}</Text>
                         </VStack>
                     </HStack>
+                </Box>
+
+                <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
+                    <VStack space="sm">
+                        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+                            Share Ride
+                        </Text>
+                        <HStack space="sm">
+                            <Pressable
+                                className="flex-1 h-12 rounded-2xl items-center justify-center border"
+                                style={{ borderColor }}
+                                onPress={handleShareViaWhatsApp}
+                            >
+                                <Text className="text-[11px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                    WhatsApp
+                                </Text>
+                            </Pressable>
+                            <Pressable
+                                className="flex-1 h-12 rounded-2xl items-center justify-center border"
+                                style={{ borderColor }}
+                                onPress={handleShareViaText}
+                            >
+                                <Text className="text-[11px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                    Text
+                                </Text>
+                            </Pressable>
+                        </HStack>
+                    </VStack>
                 </Box>
 
                 {/* Info Grid */}

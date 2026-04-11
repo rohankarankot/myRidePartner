@@ -10,9 +10,14 @@ export const buildTripShareMessage = (trip: Pick<Trip, 'documentId' | 'startingP
   const shareUrl = getTripShareUrl(trip.documentId);
 
   return [
-    `Ride shared on My Ride Partner`,
-    `${trip.startingPoint} to ${trip.destination}`,
-    `${trip.date} at ${trip.time}`,
+    `*Ride shared on My Ride Partner*`,
+    '',
+    `*From:* ${trip.startingPoint}`,
+    `*To:* ${trip.destination}`,
+    `*Date:* ${trip.date}`,
+    `*Time:* ${trip.time}`,
+    '',
+    `View trip details:`,
     shareUrl,
   ].join('\n');
 };

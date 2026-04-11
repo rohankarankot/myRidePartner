@@ -7,6 +7,9 @@ import {
   CreateTripForm,
 } from '@/features/trips/components/create-trip';
 import { useCreateScreen } from '@/features/trips/hooks/use-create-screen';
+import type { LocationSelection } from '@/features/trips/types/location';
+
+
 
 export default function CreateScreen() {
   const backgroundColor = useThemeColor({}, 'background');
@@ -15,6 +18,7 @@ export default function CreateScreen() {
   const primaryColor = useThemeColor({}, 'primary');
   const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
+
 
   const {
     date,
@@ -44,6 +48,7 @@ export default function CreateScreen() {
     setDescription,
     setErrorForField,
     setFrom,
+    setFromCoordinate,
     setGenderPreference,
     setIsPriceCalculated,
     setPrice,
@@ -54,6 +59,7 @@ export default function CreateScreen() {
     setShowTimePicker,
     setShowToPicker,
     setTo,
+    setToCoordinate,
     shareViaText,
     shareViaWhatsApp,
     showDatePicker,
@@ -66,6 +72,27 @@ export default function CreateScreen() {
     to,
     today,
   } = useCreateScreen();
+
+
+
+  const handleLocationSelected = (target: 'from' | 'to', selection: LocationSelection) => {
+    const coordinate = selection.latitude != null && selection.longitude != null
+      ? { latitude: selection.latitude, longitude: selection.longitude }
+      : null;
+
+    if (target === 'from') {
+      setFrom(selection.address);
+      setFromCoordinate(coordinate);
+      setErrorForField('from', undefined);
+      return;
+    }
+
+    setTo(selection.address);
+    setToCoordinate(coordinate);
+    setErrorForField('to', undefined);
+  };
+
+
 
   if (isEditing && isEditTripLoading && !hasLoadedEditTrip) {
     return (
@@ -82,10 +109,7 @@ export default function CreateScreen() {
       <LocationSearchModal
         visible={showFromPicker}
         onClose={() => setShowFromPicker(false)}
-        onSelectLocation={(address: string) => {
-          setFrom(address);
-          setErrorForField('from', undefined);
-        }}
+        onSelectLocation={(selection) => handleLocationSelected('from', selection)}
         title="Pickup Point"
         allowCurrentLocation
       />
@@ -93,12 +117,11 @@ export default function CreateScreen() {
       <LocationSearchModal
         visible={showToPicker}
         onClose={() => setShowToPicker(false)}
-        onSelectLocation={(address: string) => {
-          setTo(address);
-          setErrorForField('to', undefined);
-        }}
+        onSelectLocation={(selection) => handleLocationSelected('to', selection)}
         title="Drop Destination"
       />
+
+
 
       <CustomAlert
         visible={showProfileAlert}
@@ -144,6 +167,7 @@ export default function CreateScreen() {
         backgroundColor={backgroundColor}
         borderColor={borderColor}
         cardColor={cardColor}
+
         date={date}
         description={description}
         errors={errors}
@@ -186,6 +210,7 @@ export default function CreateScreen() {
         onTimeChange={onTimeChange}
         primaryColor={primaryColor}
         price={price}
+
         scrollViewRef={scrollViewRef}
         seats={seats}
         showDatePicker={showDatePicker}
@@ -194,6 +219,7 @@ export default function CreateScreen() {
         textColor={textColor}
         time={time}
         to={to}
+
         today={today}
       />
     </>

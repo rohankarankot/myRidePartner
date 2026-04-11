@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Linking, Platform, ScrollView, Share } from 'react-native';
+import { Linking, Platform, Share } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Toast from 'react-native-toast-message';
@@ -22,6 +22,7 @@ import {
   formatTripTime,
   getStartOfDay,
 } from '@/features/trips/utils/create-trip';
+import type { LocationCoordinate } from '@/features/trips/types/location';
 
 export function useCreateScreen() {
   const { editTripId } = useLocalSearchParams<{ editTripId?: string }>();
@@ -31,6 +32,8 @@ export function useCreateScreen() {
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [fromCoordinate, setFromCoordinate] = useState<LocationCoordinate | null>(null);
+  const [toCoordinate, setToCoordinate] = useState<LocationCoordinate | null>(null);
   const [date, setDate] = useState(today);
   const [time, setTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -47,7 +50,7 @@ export function useCreateScreen() {
   const [publishedTrip, setPublishedTrip] = useState<Trip | null>(null);
   const [errors, setErrors] = useState<CreateTripFormErrors>({});
   const [hasLoadedEditTrip, setHasLoadedEditTrip] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<any>(null);
 
   const { user } = useAuth();
   const router = useRouter();
@@ -103,6 +106,8 @@ export function useCreateScreen() {
 
     setFrom(trip.startingPoint);
     setTo(trip.destination);
+    setFromCoordinate(null);
+    setToCoordinate(null);
     setDate(getStartOfDay(new Date(`${trip.date}T00:00:00`)));
     setTime(buildTripStartDateTime(trip.date, trip.time));
     setSeats(String(trip.availableSeats));
@@ -117,6 +122,8 @@ export function useCreateScreen() {
   const resetForm = () => {
     setFrom('');
     setTo('');
+    setFromCoordinate(null);
+    setToCoordinate(null);
     setDate(today);
     setTime(new Date());
     setSeats('');
@@ -382,6 +389,7 @@ export function useCreateScreen() {
     formatDate: formatTripDate,
     formatTime: formatTripTime,
     from,
+    fromCoordinate,
     genderPreference,
     handleDescriptionFocus,
     handleInputFocus,
@@ -407,6 +415,7 @@ export function useCreateScreen() {
     setDescription,
     setErrorForField,
     setFrom,
+    setFromCoordinate,
     setGenderPreference,
     setIsPriceCalculated,
     setPrice,
@@ -419,6 +428,7 @@ export function useCreateScreen() {
     setShowToPicker,
     setTime,
     setTo,
+    setToCoordinate,
     shareViaText,
     shareViaWhatsApp,
     showDatePicker,
@@ -429,6 +439,7 @@ export function useCreateScreen() {
     showToPicker,
     time,
     to,
+    toCoordinate,
     today,
   };
 }

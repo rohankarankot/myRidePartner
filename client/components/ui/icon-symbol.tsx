@@ -41,6 +41,7 @@ const MAPPING = {
   'slider.horizontal.3': 'tune',
   'chart.bar.fill': 'bar-chart',
   'bell.fill': 'notifications',
+  'bell.slash.fill': 'notifications-off',
   'car': 'directions-car',
   'car.fill': 'directions-car',
   'car.2.fill': 'directions-car',
