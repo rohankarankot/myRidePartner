@@ -75,6 +75,13 @@ enum ReportTargetType {
   MESSAGE
 }
 
+enum ReportReviewStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  ACTION_TAKEN
+}
+
 // --- 10-auth.prisma ---
 model User {
   id                     Int               @id @default(autoincrement())
@@ -102,6 +109,8 @@ model User {
   blockedUsers           UserBlock[]       @relation("Blocker")
   blockedByUsers         UserBlock[]       @relation("BlockedUser")
   appSources             UserAppSource[]
+  reportsReviewed        UserReport[]      @relation("ReportReviewedBy")
+  adminAuditLogs         AdminAuditLog[]
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
@@ -309,23 +318,45 @@ model PublicChatMessage {
 
 // --- 50-moderation.prisma ---
 model UserReport {
-  id                Int              @id @default(autoincrement())
-  documentId        String           @unique @default(uuid())
+  id                Int                 @id @default(autoincrement())
+  documentId        String              @unique @default(uuid())
   reason            ReportReason
   details           String?
   source            ReportSource
-  targetType        ReportTargetType @default(USER)
+  targetType        ReportTargetType    @default(USER)
   tripDocumentId    String?
   messageDocumentId String?
   messagePreview    String?
+  reviewStatus      ReportReviewStatus  @default(PENDING)
+  reviewedAt        DateTime?
+  reviewedById      Int?
+  reviewedBy        User?               @relation("ReportReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNotes       String?             @db.Text
   reportedUserId    Int
-  reportedUser      User             @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reportedUser      User                @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
   reporterId        Int
-  reporter          User             @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  createdAt         DateTime         @default(now())
+  reporter          User                @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  createdAt         DateTime            @default(now())
 
   @@index([reportedUserId])
   @@index([reporterId])
   @@index([source, targetType])
   @@index([messageDocumentId])
+  @@index([reviewStatus])
+}
+
+// --- 55-admin-audit.prisma ---
+model AdminAuditLog {
+  id         Int      @id @default(autoincrement())
+  documentId String   @unique @default(uuid())
+  actorId    Int
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, createdAt])
 }

@@ -9,9 +9,11 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Trip } from './columns';
-import { Edit, MoreHorizontal, Trash, Ban } from 'lucide-react';
+import { MoreHorizontal, Ban } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useSession } from 'next-auth/react';
+import { adminPatch } from '@/lib/admin-fetch';
 
 interface CellActionProps {
   data: Trip;
@@ -19,39 +21,56 @@ interface CellActionProps {
 
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const [loading, setLoading] = useState(false);
+  const { data: session } = useSession();
+  const accessToken = (session as { accessToken?: string } | null)?.accessToken;
+
+  const refresh = () => {
+    window.dispatchEvent(new Event('admin:trips-refresh'));
+  };
 
   const onCancel = async () => {
+    if (!accessToken) {
+      toast.error('Not signed in');
+      return;
+    }
+    if (data.status === 'CANCELLED') {
+      toast.message('Trip already cancelled');
+      return;
+    }
     setLoading(true);
-    // TODO: Implement cancel API
-    toast.success(`Trip from ${data.from} to ${data.to} cancelled`);
-    setLoading(false);
+    try {
+      await adminPatch(
+        accessToken,
+        `/api/admin/trips/${data.documentId}/status`,
+        { status: 'CANCELLED' },
+      );
+      toast.success('Trip cancelled');
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Request failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <>
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button variant='ghost' className='h-8 w-8 p-0'>
-            <span className='sr-only'>Open menu</span>
-            <MoreHorizontal className='h-4 w-4' />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align='end'>
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-
-          <DropdownMenuItem
-            onClick={() => window.open(`/dashboard/trips/${data.id}`, '_blank')}
-          >
-            <Edit className='mr-2 h-4 w-4' /> View Details
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onCancel} className="text-orange-500">
-            <Ban className='mr-2 h-4 w-4' /> Cancel Trip
-          </DropdownMenuItem>
-          <DropdownMenuItem className="text-red-500">
-            <Trash className='mr-2 h-4 w-4' /> Delete Trip
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button variant='ghost' className='h-8 w-8 p-0' disabled={loading}>
+          <span className='sr-only'>Open menu</span>
+          <MoreHorizontal className='h-4 w-4' />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='end'>
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuItem
+          onClick={onCancel}
+          disabled={data.status === 'CANCELLED'}
+          className='text-orange-600'
+        >
+          <Ban className='mr-2 h-4 w-4' /> Cancel trip
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };

@@ -11,6 +11,8 @@
     "build": "npm run prisma:merge && prisma generate && nest build",
     "register:app-source": "npm run prisma:merge && node scripts/register-app-source.mjs",
     "seed:app-sources": "npm run prisma:merge && node scripts/seed-app-sources.mjs",
+    "create:super-admin": "ts-node scripts/create-super-admin.ts",
+    "list:super-admins": "ts-node scripts/list-admins.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

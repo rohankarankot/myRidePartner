@@ -1,8 +1,7 @@
-import { delay } from '@/constants/mock-api';
 import { BarGraph } from '@/features/overview/components/bar-graph';
+import { getAdminStats } from '@/lib/admin-api';
 
 export default async function BarStats() {
-  await await delay(1000);
-
-  return <BarGraph />;
+  const stats = await getAdminStats();
+  return <BarGraph data={stats?.activityByDay ?? []} />;
 }

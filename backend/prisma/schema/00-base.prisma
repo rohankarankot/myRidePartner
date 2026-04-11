@@ -70,3 +70,10 @@ enum ReportTargetType {
   USER
   MESSAGE
 }
+
+enum ReportReviewStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+  ACTION_TAKEN
+}

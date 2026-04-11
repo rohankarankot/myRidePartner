@@ -113,15 +113,4 @@ export class ReportsService {
 
     throw new BadRequestException('Message reports are only supported for chat sources');
   }
-
-  async getAllReports() {
-    const reports = await this.prisma.userReport.findMany({
-      include: {
-        reportedUser: { select: { id: true, username: true, email: true } },
-        reporter: { select: { id: true, username: true, email: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return { data: reports };
-  }
 }

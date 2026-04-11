@@ -7,9 +7,9 @@
 **What it does:**
 
 - **Scripts** (`scripts/`) – Config and Node script that delete feature folders/files, overwrite shared files from templates, remove nav items and deps, and clean env/docs.
-- **Templates** (e.g. `clerk/`, `kanban/`, `sentry/`) – “After removal” versions of files (e.g. providers, nav, pages, next.config, instrumentation). The script copies these over the real files when you run a cleanup.
+- **Templates** (e.g. `kanban/`, `sentry/`) – “After removal” versions of files. The script copies these over the real files when you run a cleanup.
 
-**Available flags:** `clerk` (auth, orgs, billing), `kanban` (drag‑and‑drop board), `sentry` (error tracking). Run with `--list` to see all.
+**Available flags:** `kanban` (drag-and-drop board), `sentry` (error tracking). Run with `--list` to see all.
 
 ---
 
@@ -20,7 +20,6 @@ Before running, the script checks that the project is a **git repo with at least
 ## Run from project root
 
 ```bash
-node __CLEANUP__/scripts/cleanup.js clerk
 node __CLEANUP__/scripts/cleanup.js kanban
 node __CLEANUP__/scripts/cleanup.js sentry
 node __CLEANUP__/scripts/cleanup.js --list

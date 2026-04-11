@@ -12,6 +12,7 @@ export class AuthService {
   private googleClient: OAuth2Client;
   private readonly defaultAuthSource = 'myridepartner';
   private readonly googleAudiences: string[];
+  private readonly supportEmail: string;
 
   constructor(
     private usersService: UsersService,
@@ -22,6 +23,9 @@ export class AuthService {
       this.configService.get<string>('GOOGLE_CLIENT_ID'),
     );
     this.googleAudiences = this.getGoogleAudiences();
+    this.supportEmail =
+      this.configService.get<string>('SUPPORT_EMAIL') ||
+      'rohan.alwayscodes@gmail.com';
   }
 
   async verifyGoogleToken(token: string, source?: string) {
@@ -47,6 +51,8 @@ export class AuthService {
         user = await this.usersService.reactivateAccount(user.id);
       }
 
+      this.assertUserCanLogin(user);
+
       await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
 
       return {
@@ -60,6 +66,10 @@ export class AuthService {
         user,
       };
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
       console.error('Google token verification failed:', error);
       throw new UnauthorizedException('Invalid Google token');
     }
@@ -71,6 +81,8 @@ export class AuthService {
       if (user.accountStatus === UserAccountStatus.PAUSED) {
         user = await this.usersService.reactivateAccount(user.id);
       }
+
+      this.assertUserCanLogin(user);
 
       const { password, ...result } = user;
       return result;
@@ -113,5 +125,13 @@ export class AuthService {
       .filter(Boolean);
 
     return Array.from(new Set(configured));
+  }
+
+  private assertUserCanLogin(user: { blocked?: boolean }) {
+    if (user.blocked) {
+      throw new UnauthorizedException(
+        `Your account has been blocked. If you want to unblock it, contact support at ${this.supportEmail}.`,
+      );
+    }
   }
 }

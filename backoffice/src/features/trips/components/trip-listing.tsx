@@ -4,50 +4,116 @@ import { TripTable } from './trip-tables';
 import PageContainer from '@/components/layout/page-container';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Trip } from './trip-tables/columns';
+import { adminGet, type PaginatedResult } from '@/lib/admin-fetch';
+import { parseAsInteger, parseAsString, useQueryState } from 'nuqs';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
 
 export default function TripListingPage() {
   const [data, setData] = useState<Trip[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const accessToken = (session as { accessToken?: string } | null)?.accessToken;
+
+  const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1));
+  const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
+  const [q, setQ] = useQueryState('q', parseAsString.withDefault(''));
+  const [searchInput, setSearchInput] = useState(q);
 
   useEffect(() => {
-    const fetchTrips = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/trips`, {
-          headers: {
-            Authorization: `Bearer ${(session as any)?.accessToken}`,
-          },
-        });
-        if (res.ok) {
-          const trips = await res.json();
-          setData(trips);
-        }
-      } catch (error) {
-        console.error('Failed to fetch trips:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setSearchInput(q);
+  }, [q]);
 
-    if (session) {
-      fetchTrips();
+  const debouncedSetQ = useDebouncedCallback((value: string) => {
+    void setPage(1);
+    void setQ(value || null);
+  }, 400);
+
+  const load = useCallback(async () => {
+    if (!accessToken) {
+      return;
     }
-  }, [session]);
+    setLoading(true);
+    try {
+      const res = await adminGet<PaginatedResult<Trip>>(accessToken, '/api/admin/trips', {
+        page,
+        limit: perPage,
+        search: q || undefined,
+      });
+      setData(res.items);
+      setTotal(res.total);
+    } catch (e) {
+      console.error(e);
+      setData([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, page, perPage, q]);
+
+  useEffect(() => {
+    const onRefresh = () => void load();
+    window.addEventListener('admin:trips-refresh', onRefresh);
+    return () => window.removeEventListener('admin:trips-refresh', onRefresh);
+  }, [load]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && accessToken) {
+      void load();
+    }
+    if (status === 'unauthenticated') {
+      setLoading(false);
+    }
+  }, [status, accessToken, load]);
 
   return (
     <PageContainer scrollable>
       <div className='space-y-4'>
-        <div className='flex items-start justify-between'>
+        <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
           <Heading
-            title={`Trips (${data.length})`}
-            description='Manage all trips published on MyRidePartner.'
+            title={`Trips (${total})`}
+            description='Manage trips on the platform.'
           />
+          <div className='relative w-full sm:max-w-xs'>
+            <Search className='text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4' />
+            <Input
+              placeholder='Search route, city, document id…'
+              className='pl-9'
+              value={searchInput}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSearchInput(v);
+                debouncedSetQ(v);
+              }}
+            />
+            {searchInput ? (
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                className='absolute top-0.5 right-1 h-8 px-2'
+                onClick={() => {
+                  setSearchInput('');
+                  void setQ(null);
+                }}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
         </div>
         <Separator />
-        <TripTable data={data} totalItems={data.length} />
+        {loading ? (
+          <p className='text-muted-foreground text-sm'>Loading…</p>
+        ) : (
+          <TripTable data={data} totalItems={total} />
+        )}
       </div>
     </PageContainer>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Dimensions,
     Platform,
     Linking,
@@ -25,6 +26,7 @@ import Animated, {
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import Toast from 'react-native-toast-message';
+import axios from 'axios';
 
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
@@ -112,16 +114,40 @@ export default function LoginScreen() {
                 });
             } else {
                 console.error('Google Sign-In Error', error);
+                const backendMessage = axios.isAxiosError(error)
+                    ? error.response?.data?.message
+                    : undefined;
                 const isNetworkError =
                     error?.code === 'NETWORK_ERROR' ||
                     error?.message?.includes('NETWORK_ERROR');
+                const blockedMessage =
+                    typeof backendMessage === 'string' &&
+                    backendMessage.toLowerCase().includes('blocked');
+
+                if (blockedMessage) {
+                    Alert.alert(
+                        'Account Blocked',
+                        backendMessage,
+                        [
+                            {
+                                text: 'Contact Support',
+                                onPress: () => Linking.openURL(`mailto:${CONFIG.SUPPORT_EMAIL}`),
+                            },
+                            {
+                                text: 'OK',
+                                style: 'cancel',
+                            },
+                        ]
+                    );
+                    return;
+                }
 
                 Toast.show({
                     type: 'error',
                     text1: isNetworkError ? 'Google Sign-In failed on emulator' : 'Google Sign-In failed',
                     text2: isNetworkError
                         ? 'Check that the emulator has Google Play, internet access, and a signed-in Google account.'
-                        : 'Please try again. If this keeps happening, restart the app or emulator.',
+                        : backendMessage || 'Please try again. If this keeps happening, restart the app or emulator.',
                 });
             }
         } finally {

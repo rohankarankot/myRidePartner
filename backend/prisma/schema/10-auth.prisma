@@ -24,6 +24,8 @@ model User {
   blockedUsers           UserBlock[]       @relation("Blocker")
   blockedByUsers         UserBlock[]       @relation("BlockedUser")
   appSources             UserAppSource[]
+  reportsReviewed        UserReport[]      @relation("ReportReviewedBy")
+  adminAuditLogs         AdminAuditLog[]
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 

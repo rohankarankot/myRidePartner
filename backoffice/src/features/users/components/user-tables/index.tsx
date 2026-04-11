@@ -14,7 +14,7 @@ interface UserTableProps {
 
 export function UserTable({ data, totalItems }: UserTableProps) {
   const [pageSize] = useQueryState('perPage', parseAsInteger.withDefault(10));
-  const pageCount = Math.ceil(totalItems / pageSize);
+  const pageCount = Math.max(1, Math.ceil(totalItems / pageSize) || 1);
 
   const { table } = useDataTable({
     data,

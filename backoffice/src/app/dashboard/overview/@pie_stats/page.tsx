@@ -1,7 +1,7 @@
-import { delay } from '@/constants/mock-api';
 import { PieGraph } from '@/features/overview/components/pie-graph';
+import { getAdminStats } from '@/lib/admin-api';
 
 export default async function Stats() {
-  await delay(1000);
-  return <PieGraph />;
+  const stats = await getAdminStats();
+  return <PieGraph data={stats?.tripsByStatus ?? []} />;
 }

@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 
 export interface JoinRequest {
   id: number;
+  documentId: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   requestedSeats: number;
   message: string | null;
   passenger: {
+    id: number;
     email: string;
     username: string | null;
     userProfile: {
@@ -19,13 +21,17 @@ export interface JoinRequest {
     } | null;
   };
   trip: {
-    from: string;
-    to: string;
-    departureTime: string;
+    documentId: string;
+    startingPoint: string;
+    destination: string;
+    date: string;
+    time: string;
     creator: {
       userProfile: {
         fullName: string | null;
       } | null;
+      username: string | null;
+      email: string;
     };
   };
   createdAt: string;
@@ -33,7 +39,7 @@ export interface JoinRequest {
 
 export const columns: ColumnDef<JoinRequest>[] = [
   {
-    accessorKey: 'passenger.userProfile.avatar',
+    id: 'passenger',
     header: 'PASSENGER',
     cell: ({ row }) => {
       const request = row.original;
@@ -41,7 +47,10 @@ export const columns: ColumnDef<JoinRequest>[] = [
         <UserAvatarProfile
           user={{
             image: request.passenger.userProfile?.avatar,
-            name: request.passenger.userProfile?.fullName || request.passenger.username || request.passenger.email,
+            name:
+              request.passenger.userProfile?.fullName ||
+              request.passenger.username ||
+              request.passenger.email,
             email: request.passenger.email,
           }}
           showInfo
@@ -50,14 +59,21 @@ export const columns: ColumnDef<JoinRequest>[] = [
     },
   },
   {
-    accessorKey: 'trip',
+    id: 'trip',
     header: 'TRIP',
     cell: ({ row }) => {
       const trip = row.original.trip;
       return (
-        <div className="flex flex-col">
-          <span className="font-medium">{trip.from} → {trip.to}</span>
-          <span className="text-xs text-muted-foreground">{trip.creator.userProfile?.fullName || 'Captain'}</span>
+        <div className='flex flex-col'>
+          <span className='font-medium'>
+            {trip.startingPoint} → {trip.destination}
+          </span>
+          <span className='text-muted-foreground text-xs'>
+            {trip.date} {trip.time} ·{' '}
+            {trip.creator.userProfile?.fullName ||
+              trip.creator.username ||
+              trip.creator.email}
+          </span>
         </div>
       );
     },
@@ -72,7 +88,15 @@ export const columns: ColumnDef<JoinRequest>[] = [
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
       return (
-        <Badge variant={status === 'APPROVED' ? 'default' : status === 'PENDING' ? 'secondary' : 'destructive'}>
+        <Badge
+          variant={
+            status === 'APPROVED'
+              ? 'default'
+              : status === 'PENDING'
+                ? 'secondary'
+                : 'destructive'
+          }
+        >
           {status}
         </Badge>
       );
