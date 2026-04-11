@@ -325,6 +325,11 @@ export function useCreateScreen() {
           text2: 'Opened the regular share sheet instead.',
         });
       }
+      void analyticsService.trackEvent('ride_shared', {
+        channel: canOpen ? 'whatsapp' : 'system_share',
+        destination: publishedTrip.destination,
+        trip_status: publishedTrip.status.toLowerCase(),
+      });
     } catch (error) {
       console.error('WhatsApp share failed:', error);
       Toast.show({
@@ -346,6 +351,11 @@ export function useCreateScreen() {
 
     try {
       await Linking.openURL(smsUrl);
+      void analyticsService.trackEvent('ride_shared', {
+        channel: 'sms',
+        destination: publishedTrip.destination,
+        trip_status: publishedTrip.status.toLowerCase(),
+      });
     } catch (error) {
       console.error('SMS share failed:', error);
       Toast.show({

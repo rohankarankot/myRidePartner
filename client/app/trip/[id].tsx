@@ -166,6 +166,7 @@ export default function TripDetailsScreen() {
     });
 
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const lastTrackedViewedTripRef = useRef<string | null>(null);
     const handleRefresh = useCallback(async () => {
         setIsRefreshing(true);
         await refetch();
@@ -174,6 +175,21 @@ export default function TripDetailsScreen() {
 
     const approvedJoinRequest = user ? tripDetails?.requests?.find(r => r.passenger.id === user.id && r.status === 'APPROVED') : null;
     const isPassenger = Boolean(approvedJoinRequest);
+
+    useEffect(() => {
+        const viewedTrip = tripDetails?.trip;
+        if (!viewedTrip?.documentId || lastTrackedViewedTripRef.current === viewedTrip.documentId) {
+            return;
+        }
+
+        lastTrackedViewedTripRef.current = viewedTrip.documentId;
+        void analyticsService.trackEvent('ride_viewed', {
+            destination: viewedTrip.destination,
+            has_price: viewedTrip.pricePerSeat !== undefined,
+            is_creator: user?.id === viewedTrip.creator?.id,
+            status: viewedTrip.status.toLowerCase(),
+        });
+    }, [tripDetails?.trip, user?.id]);
 
     useEffect(() => {
         if (
@@ -288,6 +304,10 @@ export default function TripDetailsScreen() {
         setIsCancelling(true);
         try {
             await tripService.updateTripStatus(documentId as string, { status: 'CANCELLED' });
+            void analyticsService.trackEvent('ride_cancelled', {
+                destination: trip?.destination,
+                was_creator: true,
+            });
             Toast.show({ type: 'success', text1: 'Trip Cancelled' });
             setShowCancelModal(false);
             router.push('/(tabs)/activity');
@@ -310,6 +330,15 @@ export default function TripDetailsScreen() {
             });
         },
         successMessage: { title: 'Status Updated' },
+        onSuccess: (_data, variables) => {
+            if (variables.status === 'COMPLETED') {
+                void analyticsService.trackEvent('ride_completed', {
+                    destination: trip?.destination,
+                    has_final_price: typeof variables.pricePerSeat === 'number' || Boolean(trip?.pricePerSeat),
+                    was_creator: user?.id === trip?.creator?.id,
+                });
+            }
+        },
     });
 
     const handleUpdateTripStatus = (status: TripStatus) => {
@@ -378,6 +407,11 @@ export default function TripDetailsScreen() {
         if (!trip) return;
         try {
             await Share.share({ message: buildTripShareMessage(trip) });
+            void analyticsService.trackEvent('ride_shared', {
+                channel: 'system_share',
+                destination: trip.destination,
+                trip_status: trip.status.toLowerCase(),
+            });
         } catch (error) {
             console.error('Share failed', error);
         }
@@ -401,6 +435,11 @@ export default function TripDetailsScreen() {
                     text2: 'Opened the regular share sheet instead.',
                 });
             }
+            void analyticsService.trackEvent('ride_shared', {
+                channel: canOpen ? 'whatsapp' : 'system_share',
+                destination: trip.destination,
+                trip_status: trip.status.toLowerCase(),
+            });
         } catch (error) {
             console.error('WhatsApp share failed', error);
             Toast.show({
@@ -420,6 +459,11 @@ export default function TripDetailsScreen() {
 
         try {
             await Linking.openURL(smsUrl);
+            void analyticsService.trackEvent('ride_shared', {
+                channel: 'sms',
+                destination: trip.destination,
+                trip_status: trip.status.toLowerCase(),
+            });
         } catch (error) {
             console.error('Text share failed', error);
             Toast.show({
