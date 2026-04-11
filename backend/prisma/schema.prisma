@@ -103,11 +103,42 @@ model User {
   reportsReceived    UserReport[]   @relation("ReportedUser")
   blockedUsers       UserBlock[]    @relation("Blocker")
   blockedByUsers     UserBlock[]    @relation("BlockedUser")
+  appSources         UserAppSource[]
 
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   @@index([accountStatus])
+}
+
+model AppSource {
+  id             Int             @id @default(autoincrement())
+  slug           String          @unique
+  name           String
+  isActive       Boolean         @default(true)
+  userAppSources UserAppSource[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([isActive])
+}
+
+model UserAppSource {
+  id          Int      @id @default(autoincrement())
+  source      String
+  userId      Int
+  appSourceId Int?
+  lastLoginAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appSource   AppSource? @relation(fields: [appSourceId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source])
+  @@index([source])
+  @@index([userId])
+  @@index([appSourceId])
 }
 
 model UserBlock {

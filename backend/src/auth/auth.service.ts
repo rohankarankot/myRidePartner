@@ -10,19 +10,27 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class AuthService {
   private googleClient: OAuth2Client;
+  private readonly defaultAuthSource = 'myridepartner';
+  private readonly googleAudiences: string[];
 
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {
-    this.googleClient = new OAuth2Client(this.configService.get<string>('GOOGLE_CLIENT_ID'));
+    this.googleClient = new OAuth2Client(
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    );
+    this.googleAudiences = this.getGoogleAudiences();
   }
 
-  async verifyGoogleToken(token: string) {
+  async verifyGoogleToken(token: string, source?: string) {
+    const normalizedSource = this.normalizeSource(source);
+
     try {
       const ticket = await this.googleClient.verifyIdToken({
         idToken: token,
+        audience: this.googleAudiences.length > 0 ? this.googleAudiences : undefined,
       });
       const payload = ticket.getPayload();
       
@@ -39,8 +47,16 @@ export class AuthService {
         user = await this.usersService.reactivateAccount(user.id);
       }
 
+      await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
+
       return {
-        access_token: this.jwtService.sign({ email: user.email, sub: user.id, role: user.role }),
+        access_token: this.jwtService.sign({
+          email: user.email,
+          sub: user.id,
+          role: user.role,
+          source: normalizedSource,
+        }),
+        source: normalizedSource,
         user,
       };
     } catch (error) {
@@ -62,11 +78,40 @@ export class AuthService {
     return null;
   }
 
-  async login(user: any) {
-    const payload = { email: user.email, sub: user.id, role: user.role };
+  async login(user: any, source?: string) {
+    const normalizedSource = this.normalizeSource(source);
+
+    await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
+
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      role: user.role,
+      source: normalizedSource,
+    };
+
     return {
       access_token: this.jwtService.sign(payload),
+      source: normalizedSource,
       user,
     };
+  }
+
+  private normalizeSource(source?: string) {
+    const normalized = source?.trim().toLowerCase() || this.defaultAuthSource;
+    return normalized.replace(/[^a-z0-9._-]/g, '-');
+  }
+
+  private getGoogleAudiences() {
+    const configured = [
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_CLIENT_IDS'),
+    ]
+      .filter(Boolean)
+      .flatMap((value) => value!.split(','))
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(configured));
   }
 }
