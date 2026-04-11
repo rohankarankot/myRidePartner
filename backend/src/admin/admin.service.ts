@@ -611,68 +611,116 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
-    const [recentTrips, recentJoinRequests, reportsAsReporter, reportsAsReported, recentNotifications] =
-      await Promise.all([
-        this.prisma.trip.findMany({
-          where: { creatorId: userId },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          select: {
-            id: true,
-            documentId: true,
-            startingPoint: true,
-            destination: true,
-            date: true,
-            time: true,
-            status: true,
-            createdAt: true,
-          },
-        }),
-        this.prisma.joinRequest.findMany({
-          where: { passengerId: userId },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          include: {
-            trip: {
-              select: {
-                documentId: true,
-                startingPoint: true,
-                destination: true,
-                status: true,
-              },
+    const [
+      recentTripsResult,
+      recentJoinRequestsResult,
+      reportsAsReporterResult,
+      reportsAsReportedResult,
+      recentNotificationsResult,
+    ] = await Promise.allSettled([
+      this.prisma.trip.findMany({
+        where: { creatorId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          documentId: true,
+          startingPoint: true,
+          destination: true,
+          date: true,
+          time: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.joinRequest.findMany({
+        where: { passengerId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          trip: {
+            select: {
+              documentId: true,
+              startingPoint: true,
+              destination: true,
+              status: true,
             },
           },
-        }),
-        this.prisma.userReport.findMany({
-          where: { reporterId: userId },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          include: {
-            reportedUser: { select: { id: true, email: true } },
-          },
-        }),
-        this.prisma.userReport.findMany({
-          where: { reportedUserId: userId },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-          include: {
-            reporter: { select: { id: true, email: true } },
-          },
-        }),
-        this.prisma.notification.findMany({
-          where: { userId },
-          orderBy: { createdAt: 'desc' },
-          take: 30,
-        }),
-      ]);
+        },
+      }),
+      this.prisma.userReport.findMany({
+        where: { reporterId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          documentId: true,
+          reason: true,
+          createdAt: true,
+          reportedUser: { select: { id: true, email: true } },
+        },
+      }),
+      this.prisma.userReport.findMany({
+        where: { reportedUserId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          documentId: true,
+          reason: true,
+          createdAt: true,
+          reporter: { select: { id: true, email: true } },
+        },
+      }),
+      this.prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+        select: {
+          id: true,
+          title: true,
+          message: true,
+          type: true,
+          read: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const withFallback = <T>(label: string, result: PromiseSettledResult<T>, fallback: T): T => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+
+      console.error(`Failed to load admin support snapshot ${label} for user ${userId}`, result.reason);
+      return fallback;
+    };
 
     return {
       user,
-      recentTrips,
-      recentJoinRequests,
-      reportsAsReporter,
-      reportsAsReported,
-      recentNotifications,
+      recentTrips: withFallback('recentTrips', recentTripsResult, []),
+      recentJoinRequests: withFallback(
+        'recentJoinRequests',
+        recentJoinRequestsResult,
+        [],
+      ),
+      reportsAsReporter: withFallback(
+        'reportsAsReporter',
+        reportsAsReporterResult,
+        [],
+      ),
+      reportsAsReported: withFallback(
+        'reportsAsReported',
+        reportsAsReportedResult,
+        [],
+      ),
+      recentNotifications: withFallback(
+        'recentNotifications',
+        recentNotificationsResult,
+        [],
+      ),
     };
   }
 
