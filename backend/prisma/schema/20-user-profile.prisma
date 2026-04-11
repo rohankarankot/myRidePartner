@@ -1,0 +1,34 @@
+model UserBlock {
+  id            Int      @id @default(autoincrement())
+  blockerId     Int
+  blockedUserId Int
+  createdAt     DateTime @default(now())
+  blocker       User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser   User     @relation("BlockedUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@index([blockerId])
+  @@index([blockedUserId])
+}
+
+model UserProfile {
+  id                   Int      @id @default(autoincrement())
+  fullName             String?
+  phoneNumber          String?
+  avatar               String?
+  governmentIdDocument String?
+  aadhaarNumber        String?
+  rating               Decimal? @db.Decimal(3, 2)
+  completedTripsCount  Int      @default(0)
+  ratingsCount         Int      @default(0)
+  isVerified           Boolean  @default(false)
+  governmentIdVerified Boolean  @default(false)
+  communityConsent     Boolean  @default(false)
+  gender               Gender?
+  city                 String?
+  pushToken            String?
+  userId               Int      @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}

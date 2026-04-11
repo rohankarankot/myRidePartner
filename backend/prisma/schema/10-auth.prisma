@@ -1,0 +1,60 @@
+model User {
+  id                     Int               @id @default(autoincrement())
+  username               String?
+  email                  String            @unique
+  provider               String?           @default("local")
+  password               String?
+  resetPasswordToken     String?
+  confirmationToken      String?
+  confirmed              Boolean           @default(false)
+  blocked                Boolean           @default(false)
+  role                   UserRole          @default(USER)
+  accountStatus          UserAccountStatus @default(ACTIVE)
+  pausedAt               DateTime?
+  userProfile            UserProfile?
+  createdTrips           Trip[]            @relation("TripCreator")
+  joinRequests           JoinRequest[]     @relation("PassengerRequests")
+  notifications          Notification[]
+  ratingsGiven           Rating[]          @relation("Rater")
+  ratingsReceived        Rating[]          @relation("Ratee")
+  sentChatMessages       TripChatMessage[]
+  sentPublicChatMessages PublicChatMessage[]
+  reportsGiven           UserReport[]      @relation("Reporter")
+  reportsReceived        UserReport[]      @relation("ReportedUser")
+  blockedUsers           UserBlock[]       @relation("Blocker")
+  blockedByUsers         UserBlock[]       @relation("BlockedUser")
+  appSources             UserAppSource[]
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  @@index([accountStatus])
+}
+
+model AppSource {
+  id             Int             @id @default(autoincrement())
+  slug           String          @unique
+  name           String
+  isActive       Boolean         @default(true)
+  userAppSources UserAppSource[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([isActive])
+}
+
+model UserAppSource {
+  id          Int        @id @default(autoincrement())
+  source      String
+  userId      Int
+  appSourceId Int?
+  lastLoginAt DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appSource   AppSource? @relation(fields: [appSourceId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, source])
+  @@index([source])
+  @@index([userId])
+  @@index([appSourceId])
+}

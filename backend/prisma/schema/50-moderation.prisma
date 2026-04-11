@@ -1,0 +1,21 @@
+model UserReport {
+  id                Int              @id @default(autoincrement())
+  documentId        String           @unique @default(uuid())
+  reason            ReportReason
+  details           String?
+  source            ReportSource
+  targetType        ReportTargetType @default(USER)
+  tripDocumentId    String?
+  messageDocumentId String?
+  messagePreview    String?
+  reportedUserId    Int
+  reportedUser      User             @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reporterId        Int
+  reporter          User             @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  createdAt         DateTime         @default(now())
+
+  @@index([reportedUserId])
+  @@index([reporterId])
+  @@index([source, targetType])
+  @@index([messageDocumentId])
+}

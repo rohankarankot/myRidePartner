@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Gender {
+  men
+  women
+}
+
+enum GenderPreference {
+  men
+  women
+  both
+}
+
+enum TripStatus {
+  PUBLISHED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum NotificationType {
+  JOIN_REQUEST
+  TRIP_UPDATE
+  SYSTEM
+  TRIP_COMPLETED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserAccountStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum ReportReason {
+  harassment
+  fake_profile
+  scam
+  inappropriate
+  reselling
+  safety
+  other
+}
+
+enum ReportSource {
+  profile
+  trip
+  community_chat
+  trip_chat
+}
+
+enum ReportTargetType {
+  USER
+  MESSAGE
+}

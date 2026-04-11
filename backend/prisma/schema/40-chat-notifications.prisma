@@ -1,0 +1,65 @@
+model Notification {
+  id         Int              @id @default(autoincrement())
+  documentId String           @unique @default(uuid())
+  title      String
+  message    String
+  type       NotificationType
+  read       Boolean          @default(false)
+  data       Json?
+  relatedId  String?
+  userId     Int
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([userId, read])
+}
+
+model TripChat {
+  id         Int               @id @default(autoincrement())
+  documentId String            @unique @default(uuid())
+  tripId     Int               @unique
+  trip       Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  messages   TripChatMessage[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+model TripChatMessage {
+  id         Int                @id @default(autoincrement())
+  documentId String             @unique @default(uuid())
+  message    String
+  chatId     Int
+  chat       TripChat           @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId   Int
+  sender     User               @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyToId  Int?
+  replyTo    TripChatMessage?   @relation("TripChatMessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies    TripChatMessage[]  @relation("TripChatMessageReplies")
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@index([chatId, createdAt])
+  @@index([senderId])
+  @@index([replyToId])
+}
+
+model PublicChatMessage {
+  id         Int                 @id @default(autoincrement())
+  documentId String              @unique @default(uuid())
+  message    String
+  city       String?
+  senderId   Int
+  sender     User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyToId  Int?
+  replyTo    PublicChatMessage?  @relation("PublicChatMessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies    PublicChatMessage[] @relation("PublicChatMessageReplies")
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@index([createdAt])
+  @@index([city, createdAt])
+  @@index([senderId])
+  @@index([replyToId])
+}
