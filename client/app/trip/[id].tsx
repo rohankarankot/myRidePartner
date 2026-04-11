@@ -21,6 +21,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { userService } from '@/services/user-service';
 import { joinRequestService } from '@/services/join-request-service';
+import { analyticsService } from '@/services/analytics-service';
 import { Trip, JoinRequest, TripStatus } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -254,6 +255,11 @@ export default function TripDetailsScreen() {
                 message: requestMessage.trim(),
                 sharePhoneNumber,
             });
+            void analyticsService.trackEvent('join_request_created', {
+                requested_seats: selectedSeats,
+                share_phone_number: sharePhoneNumber,
+                trip_destination: trip.destination,
+            });
             refetch();
             Toast.show({ type: 'success', text1: 'Request Sent', text2: `Requested ${selectedSeats} seats.` });
         } catch (error) {
@@ -266,6 +272,10 @@ export default function TripDetailsScreen() {
     const handleUpdateJoinStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
         try {
             await joinRequestService.updateJoinRequestStatus(requestId, status);
+            void analyticsService.trackEvent('join_request_status_updated', {
+                status: status.toLowerCase(),
+                trip_destination: trip?.destination,
+            });
             await queryClient.invalidateQueries({ queryKey: ['trip-details', documentId] });
             Toast.show({ type: 'success', text1: `Request ${status.toLowerCase()}` });
         } catch (error) {

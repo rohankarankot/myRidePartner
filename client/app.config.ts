@@ -67,6 +67,16 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    'expo-dev-client',
+    '@react-native-firebase/app',
+    [
+      'expo-build-properties',
+      {
+        ios: {
+          useFrameworks: 'static',
+        },
+      },
+    ],
     [
       'expo-splash-screen',
       {

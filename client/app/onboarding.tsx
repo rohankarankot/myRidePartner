@@ -15,6 +15,7 @@ import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
 import { Pressable } from '@/components/ui/pressable';
+import { analyticsService } from '@/services/analytics-service';
 
 const { width } = Dimensions.get('window');
 
@@ -124,9 +125,12 @@ export default function OnboardingScreen() {
     };
   }, [pulseAnim]);
 
-  const onDone = async () => {
+  const finishOnboarding = async (action: 'completed' | 'skipped') => {
     try {
       await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+      await analyticsService.trackEvent('onboarding_complete', {
+        action,
+      });
       router.replace('/login');
     } catch (error) {
       console.error('Error saving onboarding state:', error);
@@ -228,8 +232,12 @@ export default function OnboardingScreen() {
       <AppIntroSlider
         data={slides}
         renderItem={renderItem}
-        onDone={onDone}
-        onSkip={onDone}
+        onDone={() => {
+          void finishOnboarding('completed');
+        }}
+        onSkip={() => {
+          void finishOnboarding('skipped');
+        }}
         showSkipButton
         renderDoneButton={renderDoneButton}
         renderNextButton={renderNextButton}

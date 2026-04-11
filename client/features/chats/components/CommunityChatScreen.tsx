@@ -22,6 +22,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { publicChatService } from '@/services/public-chat-service';
+import { analyticsService } from '@/services/analytics-service';
 import { socketService } from '@/services/socket-service';
 import { PaginatedPublicChatMessages, PublicChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
@@ -482,6 +483,11 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
             const createdMessage = await publicChatService.sendMessage(trimmedMessage, {
                 city: selectedCity,
                 replyToDocumentId: currentReplyState ? String(currentReplyState._id) : undefined,
+            });
+            void analyticsService.trackEvent('message_sent', {
+                chat_type: 'community',
+                city: selectedCity,
+                has_reply_target: Boolean(currentReplyState),
             });
             queryClient.setQueryData(['public-chat-messages', selectedCity], (oldPages: InfiniteData<PaginatedPublicChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>

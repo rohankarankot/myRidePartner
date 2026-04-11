@@ -35,6 +35,7 @@ import { HStack } from '@/components/ui/hstack';
 import { Pressable } from '@/components/ui/pressable';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { analyticsService } from '@/services/analytics-service';
 
 const { width, height } = Dimensions.get('window');
 
@@ -91,6 +92,10 @@ export default function LoginScreen() {
 
             if (token) {
                 await signIn(token, data.user);
+                await analyticsService.trackEvent('login', {
+                    method: 'google',
+                    user_id: data.user.id,
+                });
                 router.replace('/(tabs)');
             } else {
                 console.error('Login failed', data);

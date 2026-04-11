@@ -23,6 +23,7 @@ import {
   getStartOfDay,
 } from '@/features/trips/utils/create-trip';
 import type { LocationCoordinate } from '@/features/trips/types/location';
+import { analyticsService } from '@/services/analytics-service';
 
 export function useCreateScreen() {
   const { editTripId } = useLocalSearchParams<{ editTripId?: string }>();
@@ -200,6 +201,14 @@ export function useCreateScreen() {
         ? tripService.updateTrip(editTripId as string, tripData)
         : tripService.createTrip(tripData),
     onSuccess: (savedTrip) => {
+      void analyticsService.trackEvent(isEditing ? 'ride_updated' : 'ride_created', {
+        destination: savedTrip.destination,
+        gender_preference: savedTrip.genderPreference,
+        has_description: Boolean(savedTrip.description),
+        is_price_calculated: savedTrip.isPriceCalculated,
+        seats: savedTrip.availableSeats,
+      });
+
       queryClient.invalidateQueries({ queryKey: ['trips', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['all-trips-paged'] });
       queryClient.invalidateQueries({ queryKey: ['trip-details', savedTrip.documentId] });

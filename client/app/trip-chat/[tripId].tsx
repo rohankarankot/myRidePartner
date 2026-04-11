@@ -19,6 +19,7 @@ import { useBottomSheetBackHandler } from '@/hooks/use-bottom-sheet-back-handler
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripChatService } from '@/services/trip-chat-service';
+import { analyticsService } from '@/services/analytics-service';
 import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
 import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
@@ -671,6 +672,11 @@ export default function TripChatScreen() {
         try {
             const createdMessage = await tripChatService.sendMessage(tripId, trimmedMessage, {
                 replyToDocumentId: currentReplyTo ? String(currentReplyTo._id) : undefined,
+            });
+            void analyticsService.trackEvent('message_sent', {
+                chat_type: 'trip',
+                has_reply_target: Boolean(currentReplyTo),
+                trip_id: tripId,
             });
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
