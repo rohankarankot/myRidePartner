@@ -485,4 +485,26 @@ export class CommunityGroupsService {
       throw new ForbiddenException('You must be a member of this group to view or send messages');
     }
   }
+
+  /**
+   * Permanently deletes all community-related data for a user.
+   * Called by the cleanup cron job after the 30-day grace period.
+   */
+  async cleanupUserCommunityData(userId: number) {
+    // 1. Delete all messages sent by the user in any community group
+    await this.prisma.communityGroupMessage.deleteMany({
+      where: { senderId: userId },
+    });
+
+    // 2. Delete all community groups created by the user
+    // Note: This will also delete members and messages within those groups due to Cascade onDelete
+    await this.prisma.communityGroup.deleteMany({
+      where: { creatorId: userId },
+    });
+
+    // 3. Delete all memberships of the user (in groups they didn't create)
+    await this.prisma.communityGroupMember.deleteMany({
+      where: { userId: userId },
+    });
+  }
 }

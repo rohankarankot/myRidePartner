@@ -51,9 +51,14 @@ export default function ProfileScreen() {
     setFullName,
     setGender,
     setPhoneNumber,
+    communityConsent,
+    setCommunityConsent,
     setShowCityPicker,
+    setShowConsentAlert,
     setShowSignOutModal,
     showCityPicker,
+    showConsentAlert,
+    handleConsentToggle,
     showSignOutModal,
     signOut,
     snapPoints,
@@ -192,6 +197,28 @@ export default function ProfileScreen() {
       </ScrollView>
 
       <CustomAlert
+        visible={showConsentAlert}
+        title="Community 30-Day Policy"
+        message="Opting out starts a 30-day grace period. After 30 days, all your messages and groups will be permanently deleted as per our community privacy policy. Opt back in anytime within 30 days to restore everything."
+        icon="person.2.slash.fill"
+        onClose={() => setShowConsentAlert(false)}
+        primaryButton={{
+          text: 'Restore Later',
+          onPress: () => {
+            setShowConsentAlert(false);
+            // We keep it true or just close
+          },
+        }}
+        secondaryButton={{
+          text: 'Opt Out',
+          onPress: () => {
+            setShowConsentAlert(false);
+            setCommunityConsent(false);
+          },
+        }}
+      />
+
+      <CustomAlert
         visible={showSignOutModal}
         title="Sign Out?"
         message="You'll need to log back in to access your account."
@@ -238,6 +265,8 @@ export default function ProfileScreen() {
         snapPoints={snapPoints}
         subtextColor={subtextColor}
         textColor={textColor}
+        communityConsent={communityConsent}
+        onConsentToggle={handleConsentToggle}
       />
     </SafeAreaView>
   );

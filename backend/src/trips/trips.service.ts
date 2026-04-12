@@ -265,7 +265,7 @@ export class TripsService {
         city: trip.city,
         availableSeats: trip.availableSeats,
         seatsBooked,
-        seatsRemaining: Math.max(trip.availableSeats - seatsBooked, 0),
+        seatsRemaining: trip.availableSeats,
         pricePerSeat: trip.pricePerSeat,
         isPriceCalculated: trip.isPriceCalculated,
         genderPreference: trip.genderPreference,

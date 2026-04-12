@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventsGateway } from '../events/events.gateway';
 import { PrismaService } from '../prisma.service';
 import { JoinRequestStatus, NotificationType } from '@prisma/client';
@@ -276,24 +276,57 @@ export class JoinRequestsService {
   async updateStatus(documentId: string, status: JoinRequestStatus) {
     const existing = await this.prisma.joinRequest.findUnique({
       where: { documentId },
-      select: { id: true, requestedSeats: true, tripId: true },
+      select: { id: true, requestedSeats: true, tripId: true, status: true },
     });
 
     if (!existing) {
       throw new NotFoundException('Join request not found');
     }
 
-    // If approving, decrement available seats
-    if (status === 'APPROVED') {
-      await this.prisma.trip.update({
-        where: { id: existing.tripId },
-        data: { availableSeats: { decrement: existing.requestedSeats } },
+    const oldStatus = existing.status;
+    const newStatus = status;
+
+    // Only update if status is different
+    if (oldStatus !== newStatus) {
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Handle seat transitions
+        if (newStatus === 'APPROVED' && oldStatus !== 'APPROVED') {
+          // Transition TO Approved: Decrement seats
+          const trip = await tx.trip.findUnique({
+            where: { id: existing.tripId },
+            select: { availableSeats: true },
+          });
+
+          if (!trip) throw new NotFoundException('Trip not found');
+          
+          if (trip.availableSeats < existing.requestedSeats) {
+            throw new BadRequestException(
+              `Not enough available seats. (Available: ${trip.availableSeats}, Requested: ${existing.requestedSeats})`,
+            );
+          }
+
+          await tx.trip.update({
+            where: { id: existing.tripId },
+            data: { availableSeats: { decrement: existing.requestedSeats } },
+          });
+        } else if (oldStatus === 'APPROVED' && newStatus !== 'APPROVED') {
+          // Transition FROM Approved: Increment seats (recovery)
+          await tx.trip.update({
+            where: { id: existing.tripId },
+            data: { availableSeats: { increment: existing.requestedSeats } },
+          });
+        }
+
+        // 2. Update the request status
+        await tx.joinRequest.update({
+          where: { documentId },
+          data: { status: newStatus },
+        });
       });
     }
 
-    const request = await this.prisma.joinRequest.update({
+    const request = await this.prisma.joinRequest.findUnique({
       where: { documentId },
-      data: { status },
       include: {
         passenger: {
           select: {
@@ -319,6 +352,10 @@ export class JoinRequestsService {
         },
       },
     });
+
+    if (!request) {
+      throw new NotFoundException('Updated join request not found');
+    }
 
     // Notify passenger (real-time + DB)
     this.eventsGateway.emitToUser(request.passengerId, 'join_request_updated', {

@@ -14,6 +14,7 @@ import { RatingsModule } from './ratings/ratings.module';
 import { EventsModule } from './events/events.module';
 import { PrismaModule } from './prisma.module';
 import { AdminModule } from './admin/admin.module';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TripChatsModule } from './trip-chats/trip-chats.module';
 import { ReportsModule } from './reports/reports.module';
 import { PublicChatModule } from './public-chat/public-chat.module';
@@ -22,6 +23,7 @@ import { CommunityGroupsModule } from './community-groups/community-groups.modul
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     UsersModule,
     AuthModule,
     UserProfilesModule,

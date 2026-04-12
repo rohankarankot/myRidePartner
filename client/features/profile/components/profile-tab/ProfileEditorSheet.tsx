@@ -42,6 +42,8 @@ type ProfileEditorSheetProps = {
   setShowCityPicker: (value: boolean) => void;
   showCityPicker: boolean;
   snapPoints: string[];
+  communityConsent: boolean;
+  onConsentToggle: () => void;
   subtextColor: string;
   textColor: string;
 };
@@ -74,6 +76,8 @@ export function ProfileEditorSheet({
   snapPoints,
   subtextColor,
   textColor,
+  communityConsent,
+  onConsentToggle,
 }: ProfileEditorSheetProps) {
   return (
     <BottomSheetModal
@@ -187,6 +191,44 @@ export function ProfileEditorSheet({
                 </ScrollView>
               </Box>
             ) : null}
+          </VStack>
+
+          <VStack space="xs" className="mt-2">
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Community Access</Text>
+            <Pressable 
+              onPress={onConsentToggle}
+              className="h-16 rounded-[24px] px-5 border-2 flex-row items-center justify-between shadow-sm"
+              style={{ 
+                borderColor: communityConsent ? primaryColor : borderColor,
+                backgroundColor: communityConsent ? `${primaryColor}05` : backgroundColor 
+              }}
+            >
+              <HStack space="md" className="items-center">
+                <Box 
+                  className="w-10 h-10 rounded-full items-center justify-center"
+                  style={{ backgroundColor: communityConsent ? `${primaryColor}10` : `${subtextColor}10` }}
+                >
+                  <IconSymbol 
+                    name={communityConsent ? 'person.2.fill' : 'person.2'} 
+                    size={20} 
+                    color={communityConsent ? primaryColor : subtextColor} 
+                  />
+                </Box>
+                <VStack>
+                  <Text className="text-sm font-extrabold" style={{ color: communityConsent ? primaryColor : textColor }}>
+                    {communityConsent ? 'Active Member' : 'Opt-In to Community'}
+                  </Text>
+                  <Text className="text-[10px] font-medium" style={{ color: subtextColor }}>
+                    {communityConsent ? 'You are visible in the community' : 'Join to find ride partners'}
+                  </Text>
+                </VStack>
+              </HStack>
+              <IconSymbol 
+                name={communityConsent ? 'checkmark.circle.fill' : 'circle'} 
+                size={22} 
+                color={communityConsent ? primaryColor : borderColor} 
+              />
+            </Pressable>
           </VStack>
 
           <Button

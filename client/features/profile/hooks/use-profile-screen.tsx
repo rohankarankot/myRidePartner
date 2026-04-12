@@ -42,6 +42,8 @@ export function useProfileScreen() {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [citySearch, setCitySearch] = useState('');
+  const [communityConsent, setCommunityConsent] = useState(false);
+  const [showConsentAlert, setShowConsentAlert] = useState(false);
   const [isEditorSheetOpen, setIsEditorSheetOpen] = useState(false);
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -65,6 +67,7 @@ export function useProfileScreen() {
       phoneNumber: string;
       gender: 'men' | 'women';
       city: string;
+      communityConsent: boolean;
       userId: number;
     }) => userService.createProfile(data),
     onSuccess: (data) => {
@@ -100,6 +103,7 @@ export function useProfileScreen() {
       aadhaarNumber?: string;
       governmentIdVerified?: boolean;
       isVerified?: boolean;
+      communityConsent?: boolean;
     }) =>
       userService.updateProfile(data.documentId, {
         fullName: data.fullName,
@@ -111,6 +115,7 @@ export function useProfileScreen() {
         aadhaarNumber: data.aadhaarNumber,
         governmentIdVerified: data.governmentIdVerified,
         isVerified: data.isVerified,
+        communityConsent: data.communityConsent,
       }),
     onSuccess: (data) => {
       setProfile(data);
@@ -139,11 +144,13 @@ export function useProfileScreen() {
       setPhoneNumber(profile.phoneNumber || '');
       setGender(profile.gender || 'men');
       setCity(profile.city || '');
+      setCommunityConsent(profile.communityConsent ?? false);
     } else {
       setFullName('');
       setPhoneNumber('');
       setGender('men');
       setCity('');
+      setCommunityConsent(false);
     }
     setIsEditorSheetOpen(true);
     bottomSheetModalRef.current?.present();
@@ -174,6 +181,7 @@ export function useProfileScreen() {
         phoneNumber: profile!.phoneNumber,
         gender: profile!.gender!,
         city: profile!.city!,
+        communityConsent: profile!.communityConsent!,
         avatar: fileId,
       });
     } catch (uploadError) {
@@ -217,6 +225,16 @@ export function useProfileScreen() {
     setCitySearch('');
   };
 
+  const handleConsentToggle = () => {
+    if (communityConsent) {
+      // User is trying to opt out: show alert
+      setShowConsentAlert(true);
+    } else {
+      // User is opting in: just do it
+      setCommunityConsent(true);
+    }
+  };
+
   const handleSubmit = () => {
     if (!fullName.trim() || !phoneNumber.trim() || !city.trim()) {
       Toast.show({
@@ -234,6 +252,7 @@ export function useProfileScreen() {
         phoneNumber: phoneNumber.trim(),
         gender,
         city,
+        communityConsent,
       });
     } else if (authUser) {
       createProfileMutation.mutate({
@@ -241,6 +260,7 @@ export function useProfileScreen() {
         phoneNumber: phoneNumber.trim(),
         gender,
         city,
+        communityConsent,
         userId: authUser.id,
       });
     }
@@ -291,6 +311,7 @@ export function useProfileScreen() {
         aadhaarNumber,
         governmentIdVerified: true,
         isVerified: true,
+        communityConsent,
       });
 
       Toast.show({
@@ -341,10 +362,15 @@ export function useProfileScreen() {
     setCitySearch,
     setFullName,
     setGender,
+    communityConsent,
+    setCommunityConsent,
     setPhoneNumber,
     setShowCityPicker,
+    setShowConsentAlert,
     setShowSignOutModal,
     showCityPicker,
+    showConsentAlert,
+    handleConsentToggle,
     showSignOutModal,
     signOut,
     snapPoints,

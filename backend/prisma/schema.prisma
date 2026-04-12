@@ -179,6 +179,7 @@ model UserProfile {
   isVerified           Boolean  @default(false)
   governmentIdVerified Boolean  @default(false)
   communityConsent     Boolean  @default(false)
+  communityConsentRevokedAt DateTime?
   gender               Gender?
   city                 String?
   pushToken            String?

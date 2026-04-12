@@ -255,10 +255,10 @@ export default function CommunitySettingsScreen() {
               </Box>
               <Box
                 className="rounded-full px-3 py-2 border"
-                style={{ backgroundColor: `${dangerColor}12`, borderColor: `${dangerColor}25` }}
+                style={{ backgroundColor: `${primaryColor}12`, borderColor: `${primaryColor}25` }}
               >
-                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: dangerColor }}>
-                  Irreversible
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                  30-Day Recovery Policy
                 </Text>
               </Box>
             </HStack>
@@ -269,7 +269,7 @@ export default function CommunitySettingsScreen() {
                 Leave Community?
               </Text>
               <Text className="text-sm leading-6 font-medium" style={{ color: subtextColor }}>
-                Turning this off will remove you from all communities you are a part of. Please read the following carefully.
+                Leaving the community will hide your profile and messages. We will keep your data for 30 days — if you opt back in during this time, everything will be restored exactly as it was.
               </Text>
             </VStack>
 
@@ -281,10 +281,10 @@ export default function CommunitySettingsScreen() {
                 </Box>
                 <VStack className="flex-1" space="xs">
                   <Text className="text-sm font-bold" style={{ color: textColor }}>
-                    Messages deleted permanently
+                    Scheduled for deletion
                   </Text>
                   <Text className="text-xs leading-5 font-medium" style={{ color: subtextColor }}>
-                    All messages you have sent in any community chat will be permanently deleted and cannot be recovered.
+                    After 30 days of inactivity, your messages will be permanently deleted. Joining back within the window stops this process.
                   </Text>
                 </VStack>
               </HStack>
@@ -322,7 +322,7 @@ export default function CommunitySettingsScreen() {
                   )}
                 </Box>
                 <Text className="flex-1 text-sm font-bold" style={{ color: textColor }}>
-                  I understand that my messages will be permanently deleted and I will be removed from all communities.
+                  I understand that my data will be permanently deleted only after 30 days of remaining opted out.
                 </Text>
               </HStack>
             </Pressable>
