@@ -13,6 +13,7 @@ import {
   CommunityGroupStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AdminListQueryDto } from './dto/admin-list-query.dto';
 import { AdminReportsQueryDto } from './dto/admin-reports-query.dto';
 import { UpdateReportReviewDto } from './dto/update-report-review.dto';
@@ -25,6 +26,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private async resolveScope(): Promise<AdminScope> {
@@ -857,6 +859,21 @@ export class AdminService {
       documentId,
       { status },
     );
+
+    // Send notification to the group creator
+    const isApproved = status === 'APPROVED';
+    await this.notificationsService.create({
+      title: isApproved
+        ? '🎉 Community Group Approved!'
+        : 'Community Group Rejected',
+      message: isApproved
+        ? `Your group "${updated.name}" has been approved. Members can now start chatting!`
+        : `Your group "${updated.name}" was not approved. Please contact support for details.`,
+      type: 'COMMUNITY_GROUP',
+      userId: updated.creator.id,
+      relatedId: documentId,
+      data: { groupName: updated.name, status },
+    });
 
     return {
       ...updated,

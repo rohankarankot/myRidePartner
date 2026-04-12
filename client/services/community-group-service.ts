@@ -4,6 +4,8 @@ import {
     CommunityGroupDetail,
     PaginatedCommunityGroups,
     PaginatedSearchableUsers,
+    CommunityGroupMessage,
+    PaginatedCommunityGroupMessages,
 } from '@/types/api';
 
 class CommunityGroupService {
@@ -61,6 +63,35 @@ class CommunityGroupService {
 
         const { data } = await apiClient.get<PaginatedSearchableUsers>(
             `/community-groups/search-users?${params.toString()}`
+        );
+        return data;
+    }
+
+    async getMessages(
+        documentId: string,
+        params?: { cursor?: string | null; limit?: number }
+    ): Promise<PaginatedCommunityGroupMessages> {
+        const queryParams = new URLSearchParams();
+        if (params?.limit) queryParams.set('limit', String(params.limit));
+        if (params?.cursor) queryParams.set('cursor', params.cursor);
+
+        const { data } = await apiClient.get<PaginatedCommunityGroupMessages>(
+            `/community-groups/${documentId}/messages?${queryParams.toString()}`
+        );
+        return data;
+    }
+
+    async sendMessage(
+        documentId: string,
+        message: string,
+        options?: { replyToDocumentId?: string }
+    ): Promise<CommunityGroupMessage> {
+        const { data } = await apiClient.post<CommunityGroupMessage>(
+            `/community-groups/${documentId}/messages`,
+            {
+                message,
+                replyToDocumentId: options?.replyToDocumentId,
+            }
         );
         return data;
     }

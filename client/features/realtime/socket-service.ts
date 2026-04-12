@@ -87,6 +87,18 @@ class SocketService {
     this.emit('leave_public_chat', { city });
   }
 
+  joinGroupChat(groupId: string) {
+    this.emit('join_group_chat', { groupId });
+  }
+
+  leaveGroupChat(groupId: string) {
+    this.emit('leave_group_chat', { groupId });
+  }
+
+  setGroupChatTyping(groupId: string, isTyping: boolean) {
+    this.emit('group_chat_typing', { groupId, isTyping });
+  }
+
   isConnected() {
     return this.socket?.connected || false;
   }

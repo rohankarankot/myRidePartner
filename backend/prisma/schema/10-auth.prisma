@@ -29,6 +29,7 @@ model User {
   createdGroups          CommunityGroup[]       @relation("GroupCreator")
   groupsReviewed         CommunityGroup[]       @relation("GroupReviewedBy")
   groupMemberships       CommunityGroupMember[]
+  sentGroupChatMessages  CommunityGroupMessage[]
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 

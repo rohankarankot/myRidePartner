@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, TextInput, Dimensions } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +27,7 @@ const STATUS_CONFIG: Record<CommunityGroupStatus, { label: string; color: string
 
 export default function CommunityGroupDetailScreen() {
   const { documentId } = useLocalSearchParams<{ documentId: string }>();
+  const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -274,6 +275,22 @@ export default function CommunityGroupDetailScreen() {
                 </VStack>
               </HStack>
             </Box>
+
+            {/* Enter Chat Button */}
+            {group.status === 'APPROVED' && (
+              <Pressable
+                className="mx-6 mb-4 h-14 rounded-[22px] items-center justify-center shadow-lg"
+                style={{ backgroundColor: primaryColor }}
+                onPress={() => router.push(`/community-group-chat/${documentId}`)}
+              >
+                <HStack className="items-center" space="sm">
+                  <IconSymbol name="bubble.left.and.bubble.right.fill" size={18} color="#FFFFFF" />
+                  <Text className="text-sm font-extrabold uppercase tracking-widest text-white">
+                    Enter Chat Room
+                  </Text>
+                </HStack>
+              </Pressable>
+            )}
 
             {/* Add Member Button */}
             {isAdmin && (

@@ -378,3 +378,33 @@ export interface PaginatedSearchableUsers {
         };
     };
 }
+
+export interface CommunityGroupMessage {
+    id: number;
+    documentId: string;
+    message: string;
+    sender: User & {
+        userProfile?: {
+            avatar?: string | { url: string; formats?: any };
+            fullName?: string;
+        } | null;
+    };
+    createdAt: string;
+    replyTo?: {
+        documentId: string;
+        message: string;
+        createdAt: string;
+        sender: User & {
+            userProfile?: {
+                avatar?: string | { url: string; formats?: any };
+                fullName?: string;
+            } | null;
+        };
+    } | null;
+}
+
+export interface PaginatedCommunityGroupMessages {
+    messages: CommunityGroupMessage[];
+    hasMore: boolean;
+    nextCursor: string | null;
+}

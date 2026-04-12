@@ -35,3 +35,25 @@ export class SearchUsersQueryDto {
   @IsOptional()
   pageSize?: number;
 }
+
+export class GetGroupMessagesQueryDto {
+  @ApiPropertyOptional({ description: 'Number of messages to retrieve', default: 40 })
+  @IsOptional()
+  limit?: number;
+
+  @ApiPropertyOptional({ description: 'Cursor for pagination (message documentId)' })
+  @IsOptional()
+  cursor?: string;
+}
+
+export class CreateGroupMessageDto {
+  @ApiProperty({ description: 'The message content' })
+  @IsString()
+  @IsNotEmpty()
+  message: string;
+
+  @ApiPropertyOptional({ description: 'Document ID of the message being replied to' })
+  @IsOptional()
+  @IsString()
+  replyToDocumentId?: string;
+}

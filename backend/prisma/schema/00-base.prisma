@@ -36,6 +36,7 @@ enum NotificationType {
   TRIP_UPDATE
   SYSTEM
   TRIP_COMPLETED
+  COMMUNITY_GROUP
 }
 
 enum UserRole {
@@ -64,6 +65,7 @@ enum ReportSource {
   trip
   community_chat
   trip_chat
+  community_group_chat
 }
 
 enum ReportTargetType {

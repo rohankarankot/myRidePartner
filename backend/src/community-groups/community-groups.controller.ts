@@ -17,6 +17,8 @@ import {
   CreateGroupDto,
   AddMemberDto,
   SearchUsersQueryDto,
+  CreateGroupMessageDto,
+  GetGroupMessagesQueryDto,
 } from './dto/community-groups.dto';
 
 @ApiTags('Community Groups')
@@ -87,5 +89,25 @@ export class CommunityGroupsController {
     @Param('userId', ParseIntPipe) userId: number,
   ) {
     return this.service.removeMember(documentId, req.user.id, userId);
+  }
+
+  @Get(':documentId/messages')
+  @ApiOperation({ summary: 'Get community group chat messages' })
+  async getMessages(
+    @Req() req: { user: { id: number } },
+    @Param('documentId') documentId: string,
+    @Query() query: GetGroupMessagesQueryDto,
+  ) {
+    return this.service.getGroupMessages(req.user.id, documentId, query);
+  }
+
+  @Post(':documentId/messages')
+  @ApiOperation({ summary: 'Send a message in community group chat' })
+  async createMessage(
+    @Req() req: { user: { id: number } },
+    @Param('documentId') documentId: string,
+    @Body() body: CreateGroupMessageDto,
+  ) {
+    return this.service.createGroupMessage(req.user.id, documentId, body);
   }
 }

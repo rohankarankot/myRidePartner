@@ -40,6 +40,7 @@ enum NotificationType {
   TRIP_UPDATE
   SYSTEM
   TRIP_COMPLETED
+  COMMUNITY_GROUP
 }
 
 enum UserRole {
@@ -68,6 +69,7 @@ enum ReportSource {
   trip
   community_chat
   trip_chat
+  community_group_chat
 }
 
 enum ReportTargetType {
@@ -114,6 +116,7 @@ model User {
   createdGroups          CommunityGroup[]       @relation("GroupCreator")
   groupsReviewed         CommunityGroup[]       @relation("GroupReviewedBy")
   groupMemberships       CommunityGroupMember[]
+  sentGroupChatMessages  CommunityGroupMessage[]
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 
@@ -377,19 +380,20 @@ enum CommunityGroupRole {
 }
 
 model CommunityGroup {
-  id           Int                    @id @default(autoincrement())
-  documentId   String                 @unique @default(uuid())
+  id           Int                      @id @default(autoincrement())
+  documentId   String                   @unique @default(uuid())
   name         String
   description  String?
-  status       CommunityGroupStatus   @default(PENDING)
+  status       CommunityGroupStatus     @default(PENDING)
   reviewedAt   DateTime?
   reviewedById Int?
-  reviewedBy   User?                  @relation("GroupReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedBy   User?                    @relation("GroupReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
   creatorId    Int
-  creator      User                   @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  creator      User                     @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   members      CommunityGroupMember[]
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+  messages     CommunityGroupMessage[]
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 
   @@index([status])
   @@index([creatorId])
@@ -407,4 +411,23 @@ model CommunityGroupMember {
   @@unique([groupId, userId])
   @@index([userId])
   @@index([groupId])
+}
+
+model CommunityGroupMessage {
+  id         Int                      @id @default(autoincrement())
+  documentId String                   @unique @default(uuid())
+  message    String
+  groupId    Int
+  group      CommunityGroup           @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId   Int
+  sender     User                     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyToId  Int?
+  replyTo    CommunityGroupMessage?   @relation("GroupMessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies    CommunityGroupMessage[]  @relation("GroupMessageReplies")
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+
+  @@index([groupId, createdAt])
+  @@index([senderId])
+  @@index([replyToId])
 }
