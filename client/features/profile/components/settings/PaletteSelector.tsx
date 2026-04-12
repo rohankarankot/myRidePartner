@@ -1,14 +1,14 @@
 import React from 'react';
-import { PaletteOptions } from '@/constants/theme';
+import { PaletteOptions, ThemePalette } from '@/constants/theme';
 import { Box } from '@/components/ui/box';
 import { HStack } from '@/components/ui/hstack';
 import { Pressable } from '@/components/ui/pressable';
 
 type PaletteSelectorProps = {
   borderColor: string;
-  palette: string;
+  palette: ThemePalette;
   subtextColor: string;
-  onChange: (paletteId: string) => void;
+  onChange: (paletteId: ThemePalette) => void;
 };
 
 export function PaletteSelector({

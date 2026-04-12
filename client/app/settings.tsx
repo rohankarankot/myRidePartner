@@ -115,6 +115,11 @@ export default function SettingsScreen() {
 
         <SettingItem icon="bell.fill" label="Notifications" onPress={() => router.push('/notifications')} />
         <SettingItem
+          icon="person.3.fill"
+          label="Community Settings"
+          onPress={() => router.push('/settings/community')}
+        />
+        <SettingItem
           icon="shield.fill"
           label="Privacy & Security"
           onPress={() => router.push('/settings/privacy')}

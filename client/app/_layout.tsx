@@ -33,6 +33,7 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ title: 'Settings', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="settings/community" options={{ title: 'Community Settings', headerBackTitle: 'Settings' }} />
         <Stack.Screen name="settings/blocked-users" options={{ title: 'Blocked Users', headerBackTitle: 'Settings' }} />
         <Stack.Screen name="profile-analytics" options={{ title: 'Your Analytics', headerBackTitle: 'Profile' }} />
         <Stack.Screen name="my-activity" options={{ title: 'My Activity', headerBackTitle: 'Profile' }} />

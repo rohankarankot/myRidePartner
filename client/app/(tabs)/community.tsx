@@ -87,6 +87,18 @@ export default function CommunityTabScreen() {
             borderColor={borderColor}
             onPress={() => router.push('/community-members')}
           />
+
+          <CommunityActionCard
+            icon="gearshape.fill"
+            title="Community settings"
+            subtitle="Manage your community preferences."
+            cardColor={cardColor}
+            primaryColor={primaryColor}
+            subtextColor={subtextColor}
+            textColor={textColor}
+            borderColor={borderColor}
+            onPress={() => router.push('/settings/community')}
+          />
         </VStack>
       </VStack>
 

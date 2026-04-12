@@ -24,6 +24,7 @@ import { Pressable } from '@/components/ui/pressable';
 import FindFilledIcon from '@/assets/tab-icons/find-filled.svg';
 import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
 import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -172,8 +173,8 @@ export default function TabLayout() {
           title: 'Explore',
           tabBarIcon: ({ color, focused }) =>
             focused
-              ? <FindFilledIcon width={28} height={28} color={color} />
-              : <IconSymbol name="magnifyingglass" size={26} color={color} />,
+              ? <MaterialIcons name="route" size={26} color={color} />
+              : <MaterialIcons name="route" size={26} color={color} />,
         }}
       />
       <Tabs.Screen

@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 
 import { useAuth } from '@/context/auth-context';
 import { authQueryKeys } from '@/features/auth/query-keys';
@@ -44,7 +45,13 @@ export function useCommunityTabScreen() {
         return;
       }
 
-      if (profile?.communityConsent) {
+      const latestProfile = profile ?? await userService.getUserProfile(user.id);
+
+      if (latestProfile) {
+        setProfile(latestProfile);
+      }
+
+      if (latestProfile?.communityConsent) {
         await persistCommunityConsent(user.id);
         setShowConsentPrompt(false);
         return;
@@ -57,7 +64,7 @@ export function useCommunityTabScreen() {
     } finally {
       setIsCheckingConsent(false);
     }
-  }, [profile?.communityConsent, user]);
+  }, [profile, setProfile, user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -85,13 +92,24 @@ export function useCommunityTabScreen() {
         communityConsent: true,
       });
 
+      queryClient.setQueryData(authQueryKeys.userProfile(user.id), updatedProfile);
       setProfile(updatedProfile);
       await persistCommunityConsent(user.id);
       await queryClient.invalidateQueries({ queryKey: authQueryKeys.userProfile(user.id) });
       await queryClient.invalidateQueries({ queryKey: ['community-members-count'] });
       setShowConsentPrompt(false);
+      Toast.show({
+        type: 'success',
+        text1: 'Community access enabled',
+        text2: 'Your consent has been saved.',
+      });
     } catch (error) {
       logger.error('Failed to save community consent', { error, userId: user.id });
+      Toast.show({
+        type: 'error',
+        text1: 'Could not save consent',
+        text2: 'Please check your connection and try again.',
+      });
     } finally {
       setIsSavingConsent(false);
       setIsCheckingConsent(false);
