@@ -46,7 +46,7 @@ class AnalyticsService {
     const screenName = this.normalizeRouteName(pathname);
 
     try {
-      await analytics().logScreenView({
+      await analytics().logEvent('screen_view', {
         screen_class: screenName,
         screen_name: screenName,
       });

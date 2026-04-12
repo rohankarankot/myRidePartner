@@ -1,9 +1,11 @@
 import React from 'react';
 import { Modal, ScrollView } from 'react-native';
+import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/app-loader';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { Box } from '@/components/ui/box';
+import { HeaderRight } from '@/components/ui/HeaderRight';
 import { HStack } from '@/components/ui/hstack';
 import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
@@ -52,6 +54,11 @@ export default function CommunityTabScreen() {
       style={{ flex: 1, backgroundColor }}
       edges={['left', 'right', 'bottom']}
     >
+      <Stack.Screen
+        options={{
+          headerRight: () => <HeaderRight type="chats" params={{ tab: 'groups' }} />,
+        }}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
       <VStack className="p-6" space="xl">
         <CommunityHeroCard

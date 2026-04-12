@@ -5,10 +5,6 @@ import Toast from 'react-native-toast-message';
 
 import { useAuth } from '@/context/auth-context';
 import { authQueryKeys } from '@/features/auth/query-keys';
-import {
-  getStoredCommunityConsent,
-  persistCommunityConsent,
-} from '@/features/chats/storage/community-consent';
 import { userService } from '@/services/user-service';
 import { logger } from '@/shared/lib/logger';
 import { useUserStore } from '@/store/user-store';
@@ -39,12 +35,6 @@ export function useCommunityTabScreen() {
         return;
       }
 
-      const storedConsent = await getStoredCommunityConsent(user.id);
-      if (storedConsent) {
-        setShowConsentPrompt(false);
-        return;
-      }
-
       const latestProfile = profile ?? await userService.getUserProfile(user.id);
 
       if (latestProfile) {
@@ -52,7 +42,6 @@ export function useCommunityTabScreen() {
       }
 
       if (latestProfile?.communityConsent) {
-        await persistCommunityConsent(user.id);
         setShowConsentPrompt(false);
         return;
       }
@@ -94,7 +83,6 @@ export function useCommunityTabScreen() {
 
       queryClient.setQueryData(authQueryKeys.userProfile(user.id), updatedProfile);
       setProfile(updatedProfile);
-      await persistCommunityConsent(user.id);
       await queryClient.invalidateQueries({ queryKey: authQueryKeys.userProfile(user.id) });
       await queryClient.invalidateQueries({ queryKey: ['community-members-count'] });
       setShowConsentPrompt(false);

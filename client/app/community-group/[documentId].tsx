@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, TextInput, Dimensions } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, TextInput, Dimensions, Alert } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
@@ -11,6 +11,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import { communityGroupService } from '@/services/community-group-service';
 import { CommunityGroupMember, CommunityGroupStatus, SearchableUser } from '@/types/api';
 import { CustomAlert } from '@/components/CustomAlert';
+import { Image } from 'expo-image';
 import { Box } from '@/components/ui/box';
 import { Divider } from '@/components/ui/divider';
 import { HStack } from '@/components/ui/hstack';
@@ -43,6 +44,7 @@ export default function CommunityGroupDetailScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [removeMemberTarget, setRemoveMemberTarget] = useState<CommunityGroupMember | null>(null);
+  const [consentError, setConsentError] = useState<{ show: boolean; userName?: string }>({ show: false });
 
   const groupQuery = useQuery({
     queryKey: ['community-group', documentId],
@@ -66,7 +68,13 @@ export default function CommunityGroupDetailScreen() {
     },
     onError: (error: any) => {
       const message = error?.response?.data?.message || 'Could not add member.';
-      Toast.show({ type: 'error', text1: 'Failed', text2: message });
+      const errorMessage = Array.isArray(message) ? message[0] : message;
+
+      if (errorMessage.includes('consent')) {
+        setConsentError({ show: true });
+      } else {
+        Toast.show({ type: 'error', text1: 'Failed', text2: errorMessage });
+      }
     },
   });
 
@@ -108,7 +116,7 @@ export default function CommunityGroupDetailScreen() {
         >
           {avatarUrl ? (
             <Box className="h-11 w-11 rounded-full overflow-hidden">
-              <Box className="h-11 w-11" style={{ backgroundColor: `${primaryColor}10` }} />
+              <Image source={{ uri: avatarUrl }} style={{ flex: 1 }} contentFit="cover" />
             </Box>
           ) : (
             <IconSymbol name="person.fill" size={20} color={primaryColor} />
@@ -153,6 +161,7 @@ export default function CommunityGroupDetailScreen() {
 
   const renderSearchResult = ({ item }: { item: SearchableUser }) => {
     const alreadyMember = existingMemberIds.has(item.id);
+    const searchAvatarUrl = resolveAvatar(item.userProfile?.avatar);
 
     return (
       <HStack className="items-center py-3 px-2" space="md">
@@ -160,7 +169,13 @@ export default function CommunityGroupDetailScreen() {
           className="h-10 w-10 rounded-full items-center justify-center"
           style={{ backgroundColor: `${primaryColor}10` }}
         >
-          <IconSymbol name="person.fill" size={18} color={primaryColor} />
+          {searchAvatarUrl ? (
+            <Box className="h-10 w-10 rounded-full overflow-hidden">
+              <Image source={{ uri: searchAvatarUrl }} style={{ flex: 1 }} contentFit="cover" />
+            </Box>
+          ) : (
+            <IconSymbol name="person.fill" size={18} color={primaryColor} />
+          )}
         </Box>
 
         <VStack className="flex-1" space="xs">
@@ -424,6 +439,19 @@ export default function CommunityGroupDetailScreen() {
         secondaryButton={{
           text: 'Cancel',
           onPress: () => setRemoveMemberTarget(null),
+        }}
+      />
+
+      {/* Community Consent Required Alert */}
+      <CustomAlert
+        visible={consentError.show}
+        title="Consent Needed"
+        message="This person hasn't enabled community features in their settings yet. To join groups, they need to opt-in to 'Community Visibility'. Please ask them to enable this in their profile settings and try adding them again!"
+        icon="hand.raised.fill"
+        onClose={() => setConsentError({ show: false })}
+        primaryButton={{
+          text: "I'll ask them",
+          onPress: () => setConsentError({ show: false }),
         }}
       />
     </Box>

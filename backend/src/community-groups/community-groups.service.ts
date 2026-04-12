@@ -8,6 +8,7 @@ import {
 import { CommunityGroupRole, CommunityGroupStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateGroupMessageDto, GetGroupMessagesQueryDto } from './dto/community-groups.dto';
 
 const groupMessageSenderSelect = {
@@ -27,6 +28,7 @@ export class CommunityGroupsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createGroup(creatorId: number, name: string, description?: string) {
@@ -192,14 +194,18 @@ export class CommunityGroupsService {
 
     await this.assertGroupAdmin(group.id, adminUserId);
 
-    // Verify target user exists
+    // Verify target user exists and has given community consent
     const targetUser = await this.prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { id: true },
+      select: { id: true, userProfile: { select: { communityConsent: true } } },
     });
 
     if (!targetUser) {
       throw new NotFoundException('User not found');
+    }
+
+    if (!targetUser.userProfile?.communityConsent) {
+      throw new BadRequestException('This person had not given consent to join the community. Please ask him for consent and try again.');
     }
 
     try {
@@ -376,7 +382,11 @@ export class CommunityGroupsService {
   async createGroupMessage(userId: number, documentId: string, body: CreateGroupMessageDto) {
     const group = await this.prisma.communityGroup.findUnique({
       where: { documentId },
-      select: { id: true },
+      select: { 
+        id: true,
+        name: true,
+        members: { select: { userId: true } },
+      },
     });
 
     if (!group) {
@@ -430,6 +440,28 @@ export class CommunityGroupsService {
     };
 
     this.eventsGateway.emitToGroupChatRoom(documentId, 'group_chat_message_created', payload);
+
+    const senderFullName = message.sender.userProfile?.fullName;
+    const notificationSenderName = senderFullName ? senderFullName.split(' ')[0] : (message.sender.username || 'A member');
+
+    const notificationMessage = message.message.length > 50 
+        ? message.message.substring(0, 47) + '...'
+        : message.message;
+
+    void Promise.all(
+      group.members
+        .filter((m) => m.userId !== userId)
+        .map((member) =>
+          this.notificationsService.sendPushOnly({
+            userId: member.userId,
+            title: `New message in ${group.name}`,
+            message: `${notificationSenderName}: ${notificationMessage}`,
+            data: {
+              url: `/community-group-chat/${documentId}`,
+            },
+          }),
+        ),
+    );
 
     return payload;
   }

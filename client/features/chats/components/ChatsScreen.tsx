@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { communityGroupService } from '@/services/community-group-service';
 import { CommunityGroup, CommunityGroupStatus } from '@/types/api';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -90,7 +90,8 @@ const STATUS_CONFIG: Record<CommunityGroupStatus, { label: string; color: string
 export function ChatsScreen() {
     const { user } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<ChatsTab>('rides');
+    const params = useLocalSearchParams<{ tab?: string }>();
+    const [activeTab, setActiveTab] = useState<ChatsTab>(params.tab === 'groups' ? 'groups' : 'rides');
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');

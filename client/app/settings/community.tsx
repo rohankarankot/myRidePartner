@@ -6,10 +6,6 @@ import Toast from 'react-native-toast-message';
 
 import { useAuth } from '@/context/auth-context';
 import { authQueryKeys } from '@/features/auth/query-keys';
-import {
-  clearStoredCommunityConsent,
-  persistCommunityConsent,
-} from '@/features/chats/storage/community-consent';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { userService } from '@/services/user-service';
 import { useUserStore } from '@/store/user-store';
@@ -81,12 +77,6 @@ export default function CommunitySettingsScreen() {
       const updatedProfile = await userService.updateProfile(latestProfile.documentId, {
         communityConsent: nextValue,
       });
-
-      if (nextValue) {
-        await persistCommunityConsent(user.id);
-      } else {
-        await clearStoredCommunityConsent(user.id);
-      }
 
       return updatedProfile;
     },
