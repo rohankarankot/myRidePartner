@@ -1,0 +1,301 @@
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CommunityGroupRole, CommunityGroupStatus, Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma.service';
+
+@Injectable()
+export class CommunityGroupsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createGroup(creatorId: number, name: string, description?: string) {
+    const group = await this.prisma.communityGroup.create({
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+        creatorId,
+        members: {
+          create: {
+            userId: creatorId,
+            role: CommunityGroupRole.ADMIN,
+          },
+        },
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { fullName: true, avatar: true },
+            },
+          },
+        },
+        _count: { select: { members: true } },
+      },
+    });
+
+    return {
+      ...group,
+      memberCount: group._count.members,
+      _count: undefined,
+    };
+  }
+
+  async getApprovedGroups(page = 1, pageSize = 20) {
+    const take = Math.min(Math.max(pageSize, 1), 50);
+    const skip = (Math.max(page, 1) - 1) * take;
+
+    const [groups, total] = await Promise.all([
+      this.prisma.communityGroup.findMany({
+        where: { status: CommunityGroupStatus.APPROVED },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              userProfile: {
+                select: { fullName: true, avatar: true },
+              },
+            },
+          },
+          _count: { select: { members: true } },
+        },
+      }),
+      this.prisma.communityGroup.count({
+        where: { status: CommunityGroupStatus.APPROVED },
+      }),
+    ]);
+
+    return {
+      data: groups.map((group) => ({
+        ...group,
+        memberCount: group._count.members,
+        _count: undefined,
+      })),
+      meta: {
+        pagination: {
+          page: Math.max(page, 1),
+          pageSize: take,
+          pageCount: Math.ceil(total / take),
+          total,
+        },
+      },
+    };
+  }
+
+  async getMyGroups(userId: number) {
+    const groups = await this.prisma.communityGroup.findMany({
+      where: {
+        OR: [
+          { creatorId: userId },
+          { members: { some: { userId } } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { fullName: true, avatar: true },
+            },
+          },
+        },
+        _count: { select: { members: true } },
+      },
+    });
+
+    return groups.map((group) => ({
+      ...group,
+      memberCount: group._count.members,
+      _count: undefined,
+    }));
+  }
+
+  async getGroupDetail(documentId: string) {
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { fullName: true, avatar: true },
+            },
+          },
+        },
+        members: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: {
+                  select: { fullName: true, avatar: true, city: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!group) {
+      throw new NotFoundException('Community group not found');
+    }
+
+    return group;
+  }
+
+  async addMember(documentId: string, adminUserId: number, targetUserId: number) {
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId },
+      select: { id: true, status: true },
+    });
+
+    if (!group) {
+      throw new NotFoundException('Community group not found');
+    }
+
+    await this.assertGroupAdmin(group.id, adminUserId);
+
+    // Verify target user exists
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    try {
+      await this.prisma.communityGroupMember.create({
+        data: {
+          groupId: group.id,
+          userId: targetUserId,
+          role: CommunityGroupRole.MEMBER,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('User is already a member of this group');
+      }
+      throw error;
+    }
+
+    return { message: 'Member added successfully' };
+  }
+
+  async removeMember(documentId: string, adminUserId: number, targetUserId: number) {
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId },
+      select: { id: true, creatorId: true },
+    });
+
+    if (!group) {
+      throw new NotFoundException('Community group not found');
+    }
+
+    await this.assertGroupAdmin(group.id, adminUserId);
+
+    if (targetUserId === group.creatorId) {
+      throw new BadRequestException('Cannot remove the group creator');
+    }
+
+    const membership = await this.prisma.communityGroupMember.findUnique({
+      where: { groupId_userId: { groupId: group.id, userId: targetUserId } },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('User is not a member of this group');
+    }
+
+    await this.prisma.communityGroupMember.delete({
+      where: { id: membership.id },
+    });
+
+    return { message: 'Member removed successfully' };
+  }
+
+  async searchUsers(query: string, page = 1, pageSize = 20) {
+    const take = Math.min(Math.max(pageSize, 1), 50);
+    const skip = (Math.max(page, 1) - 1) * take;
+    const search = query.trim();
+
+    if (!search) {
+      return { data: [], meta: { pagination: { page: 1, pageSize: take, pageCount: 0, total: 0 } } };
+    }
+
+    const where: Prisma.UserWhereInput = {
+      OR: [
+        { email: { contains: search, mode: 'insensitive' } },
+        { username: { contains: search, mode: 'insensitive' } },
+        {
+          userProfile: {
+            fullName: { contains: search, mode: 'insensitive' },
+          },
+        },
+      ],
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take,
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          userProfile: {
+            select: { fullName: true, avatar: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: users,
+      meta: {
+        pagination: {
+          page: Math.max(page, 1),
+          pageSize: take,
+          pageCount: Math.ceil(total / take),
+          total,
+        },
+      },
+    };
+  }
+
+  private async assertGroupAdmin(groupId: number, userId: number) {
+    const membership = await this.prisma.communityGroupMember.findUnique({
+      where: { groupId_userId: { groupId, userId } },
+    });
+
+    if (!membership || membership.role !== CommunityGroupRole.ADMIN) {
+      throw new ForbiddenException('Only the group admin can perform this action');
+    }
+  }
+}

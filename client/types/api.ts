@@ -318,3 +318,63 @@ export interface PaginatedCommunityMembers {
 export interface CommunityMemberCitiesResponse {
     data: string[];
 }
+
+export type CommunityGroupStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type CommunityGroupRole = 'ADMIN' | 'MEMBER';
+
+export interface CommunityGroup {
+    id: number;
+    documentId: string;
+    name: string;
+    description?: string;
+    status: CommunityGroupStatus;
+    memberCount?: number;
+    creator?: User;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CommunityGroupMember {
+    id: number;
+    role: CommunityGroupRole;
+    user: CommunityMember;
+    createdAt: string;
+}
+
+export interface CommunityGroupDetail extends CommunityGroup {
+    members: CommunityGroupMember[];
+}
+
+export interface SearchableUser {
+    id: number;
+    username?: string;
+    email: string;
+    userProfile?: {
+        fullName?: string;
+        avatar?: string | { url: string; formats?: any };
+    } | null;
+}
+
+export interface PaginatedCommunityGroups {
+    data: CommunityGroup[];
+    meta: {
+        pagination: {
+            page: number;
+            pageSize: number;
+            pageCount: number;
+            total: number;
+        };
+    };
+}
+
+export interface PaginatedSearchableUsers {
+    data: SearchableUser[];
+    meta: {
+        pagination: {
+            page: number;
+            pageSize: number;
+            pageCount: number;
+            total: number;
+        };
+    };
+}

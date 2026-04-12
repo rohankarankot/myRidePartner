@@ -47,6 +47,9 @@ export default function RootLayout() {
         <Stack.Screen name="requests/index" options={{ title: 'Join Requests', headerBackTitle: 'Back' }} />
         <Stack.Screen name="requests/[documentId]" options={{ title: 'Request Details', headerBackTitle: 'Back' }} />
         <Stack.Screen name="ratings" options={{ title: 'My Ratings', headerBackTitle: 'Profile' }} />
+        <Stack.Screen name="create-community-group" options={{ title: 'Create Group', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="my-community-groups" options={{ title: 'My Groups', headerBackTitle: 'Back' }} />
+        <Stack.Screen name="community-group/[documentId]" options={{ title: 'Group', headerBackTitle: 'Back' }} />
       </Stack>
     </AppProviders>
   );

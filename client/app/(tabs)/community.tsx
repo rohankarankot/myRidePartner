@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal } from 'react-native';
+import { Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppLoader } from '@/components/app-loader';
 import { useThemeColor } from '@/hooks/use-theme-color';
@@ -52,6 +52,7 @@ export default function CommunityTabScreen() {
       style={{ flex: 1, backgroundColor }}
       edges={['left', 'right', 'bottom']}
     >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
       <VStack className="p-6" space="xl">
         <CommunityHeroCard
           borderColor={borderColor}
@@ -89,6 +90,30 @@ export default function CommunityTabScreen() {
           />
 
           <CommunityActionCard
+            icon="person.3.fill"
+            title="My Groups"
+            subtitle="View and manage community groups you belong to."
+            cardColor={cardColor}
+            primaryColor={primaryColor}
+            subtextColor={subtextColor}
+            textColor={textColor}
+            borderColor={borderColor}
+            onPress={() => router.push('/my-community-groups')}
+          />
+
+          <CommunityActionCard
+            icon="plus.circle.fill"
+            title="Create a Group"
+            subtitle="Start a new community group and invite members."
+            cardColor={cardColor}
+            primaryColor={primaryColor}
+            subtextColor={subtextColor}
+            textColor={textColor}
+            borderColor={borderColor}
+            onPress={() => router.push('/create-community-group')}
+          />
+
+          <CommunityActionCard
             icon="gearshape.fill"
             title="Community settings"
             subtitle="Manage your community preferences."
@@ -101,6 +126,7 @@ export default function CommunityTabScreen() {
           />
         </VStack>
       </VStack>
+      </ScrollView>
 
       <Modal visible={showConsentPrompt} transparent animationType="fade">
         <Box className="flex-1 justify-end px-5 pb-6" style={{ backgroundColor: overlayColor }}>

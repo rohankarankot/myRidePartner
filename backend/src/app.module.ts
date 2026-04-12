@@ -17,6 +17,7 @@ import { AdminModule } from './admin/admin.module';
 import { TripChatsModule } from './trip-chats/trip-chats.module';
 import { ReportsModule } from './reports/reports.module';
 import { PublicChatModule } from './public-chat/public-chat.module';
+import { CommunityGroupsModule } from './community-groups/community-groups.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PublicChatModule } from './public-chat/public-chat.module';
     TripChatsModule,
     PublicChatModule,
     ReportsModule,
+    CommunityGroupsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

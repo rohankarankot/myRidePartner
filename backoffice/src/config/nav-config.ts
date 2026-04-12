@@ -74,6 +74,14 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: 'Community Groups',
+    url: '/dashboard/community-groups',
+    icon: 'teams',
+    isActive: false,
+    shortcut: ['g', 'g'],
+    items: []
+  },
+  {
     title: 'Notifications',
     url: '/dashboard/notifications',
     icon: 'notifications',

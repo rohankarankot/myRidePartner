@@ -10,6 +10,7 @@ import {
   TripStatus,
   UserAccountStatus,
   UserRole,
+  CommunityGroupStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma.service';
 import { AdminListQueryDto } from './dto/admin-list-query.dto';
@@ -759,5 +760,108 @@ export class AdminService {
     ]);
 
     return { items, total, page, limit };
+  }
+
+  async getCommunityGroups(query: AdminListQueryDto) {
+    const { page, limit, skip } = this.normalizePagination(query);
+    const search = query.search?.trim();
+
+    const where: Prisma.CommunityGroupWhereInput = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { documentId: { contains: search, mode: 'insensitive' } },
+            {
+              creator: {
+                email: { contains: search, mode: 'insensitive' },
+              },
+            },
+          ],
+        }
+      : {};
+
+    const [items, total] = await Promise.all([
+      this.prisma.communityGroup.findMany({
+        where,
+        include: {
+          creator: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              userProfile: {
+                select: { fullName: true, avatar: true },
+              },
+            },
+          },
+          _count: { select: { members: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.communityGroup.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => ({
+        ...item,
+        memberCount: item._count.members,
+        _count: undefined,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async setCommunityGroupStatus(
+    actorId: number,
+    documentId: string,
+    status: 'APPROVED' | 'REJECTED',
+  ) {
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId },
+    });
+
+    if (!group) {
+      throw new NotFoundException('Community group not found');
+    }
+
+    const updated = await this.prisma.communityGroup.update({
+      where: { documentId },
+      data: {
+        status: status as CommunityGroupStatus,
+        reviewedAt: new Date(),
+        reviewedById: actorId,
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { fullName: true, avatar: true },
+            },
+          },
+        },
+        _count: { select: { members: true } },
+      },
+    });
+
+    await this.appendAudit(
+      actorId,
+      'communityGroup.status',
+      'CommunityGroup',
+      documentId,
+      { status },
+    );
+
+    return {
+      ...updated,
+      memberCount: updated._count.members,
+      _count: undefined,
+    };
   }
 }

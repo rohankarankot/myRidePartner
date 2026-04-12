@@ -27,6 +27,7 @@ import { AdminTripStatusDto } from './dto/admin-trip-status.dto';
 import { AdminUserBlockDto } from './dto/admin-user-block.dto';
 import { AdminUserAccountDto } from './dto/admin-user-account.dto';
 import { AdminNotificationsQueryDto } from './dto/admin-notifications-query.dto';
+import { AdminGroupStatusDto } from './dto/admin-group-status.dto';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -137,5 +138,28 @@ export class AdminController {
   @ApiOperation({ summary: 'Notification log (paginated)' })
   async getNotifications(@Query() query: AdminNotificationsQueryDto) {
     return this.adminService.getNotificationsLog(query);
+  }
+
+  @Get('community-groups')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'List community groups (paginated)' })
+  async getCommunityGroups(@Query() query: AdminListQueryDto) {
+    return this.adminService.getCommunityGroups(query);
+  }
+
+  @Patch('community-groups/:documentId/status')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiBody({ type: AdminGroupStatusDto })
+  @ApiOperation({ summary: 'Approve or reject a community group' })
+  async setCommunityGroupStatus(
+    @Req() req: { user: { id: number } },
+    @Param('documentId') documentId: string,
+    @Body() body: AdminGroupStatusDto,
+  ) {
+    return this.adminService.setCommunityGroupStatus(
+      req.user.id,
+      documentId,
+      body.status,
+    );
   }
 }
