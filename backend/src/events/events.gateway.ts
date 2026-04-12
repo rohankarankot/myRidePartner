@@ -249,6 +249,84 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: 'left' };
   }
 
+  @SubscribeMessage('join_group_chat')
+  async handleJoinGroupChat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { groupId: string } | string,
+  ) {
+    const userId = client.data.userId as number | undefined;
+    const groupId = typeof data === 'string' ? data : data?.groupId;
+
+    if (!userId || !groupId) {
+      return { status: 'error', message: 'Missing user or group context' };
+    }
+
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId: groupId },
+      select: { id: true, status: true },
+    });
+
+    if (!group || group.status !== 'APPROVED') {
+      return { status: 'error', message: 'Group chat is unavailable' };
+    }
+
+    const membership = await this.prisma.communityGroupMember.findUnique({
+      where: { groupId_userId: { groupId: group.id, userId } },
+    });
+
+    if (!membership) {
+      return { status: 'error', message: 'You are not a member of this group' };
+    }
+
+    const room = `group_chat_${groupId}`;
+    client.join(room);
+    
+    const joinedGroupChatRooms =
+      (client.data.joinedGroupChatRooms as Set<string> | undefined) ?? new Set<string>();
+    joinedGroupChatRooms.add(groupId);
+    client.data.joinedGroupChatRooms = joinedGroupChatRooms;
+    
+    this.logger.log(`Client ${client.id} joined group chat room ${room}`);
+    return { status: 'joined', room };
+  }
+
+  @SubscribeMessage('leave_group_chat')
+  handleLeaveGroupChat(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { groupId: string } | string,
+  ) {
+    const userId = client.data.userId as number | undefined;
+    const groupId = typeof data === 'string' ? data : data?.groupId;
+    
+    if (groupId) {
+      this.setGroupTypingState(groupId, userId, client.data.userName as string | undefined, false);
+      const joinedGroupChatRooms = client.data.joinedGroupChatRooms as Set<string> | undefined;
+      joinedGroupChatRooms?.delete(groupId);
+      
+      const room = `group_chat_${groupId}`;
+      client.leave(room);
+      this.logger.log(`Client ${client.id} left group chat room ${room}`);
+      return { status: 'left', room };
+    }
+  }
+
+  @SubscribeMessage('group_chat_typing')
+  async handleGroupChatTyping(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { groupId: string; isTyping: boolean },
+  ) {
+    const userId = client.data.userId as number | undefined;
+    const userName = client.data.userName as string | undefined;
+    const groupId = data?.groupId;
+
+    if (!userId || !groupId) {
+      return { status: 'error', message: 'Missing typing context' };
+    }
+
+    this.setGroupTypingState(groupId, userId, userName, Boolean(data?.isTyping));
+    return { status: 'ok' };
+  }
+
   @SubscribeMessage('chat_typing')
   async handleChatTyping(
     @ConnectedSocket() client: Socket,
@@ -364,6 +442,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Emitting ${event} to chat room ${room}`);
   }
 
+  emitToGroupChatRoom(groupId: string, event: string, data: any) {
+    const room = `group_chat_${groupId}`;
+    this.server.to(room).emit(event, data);
+    this.logger.log(`Emitting ${event} to group chat room ${room}`);
+  }
+
   emitToPublicChatRoom(city: string, event: string, data: any) {
     const room = buildPublicChatRoomName(city);
     this.server.to(room).emit(event, data);
@@ -421,6 +505,55 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     return trip;
+  }
+
+  private setGroupTypingState(
+    groupId: string,
+    userId: number | undefined,
+    userName: string | undefined,
+    isTyping: boolean,
+  ) {
+    if (!userId) {
+      return;
+    }
+
+    const timeoutKey = `group_${groupId}:${userId}`;
+    const existingTimeout = this.typingTimeouts.get(timeoutKey);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      this.typingTimeouts.delete(timeoutKey);
+    }
+
+    if (isTyping) {
+      const roomTypers = this.activeTypers.get(`group_${groupId}`) ?? new Map();
+      roomTypers.set(userId, {
+        userId,
+        userName: userName || `User ${userId}`,
+      });
+      this.activeTypers.set(`group_${groupId}`, roomTypers);
+
+      const timeout = setTimeout(() => {
+        this.setGroupTypingState(groupId, userId, userName, false);
+      }, 2500);
+      this.typingTimeouts.set(timeoutKey, timeout);
+    } else {
+      const roomTypers = this.activeTypers.get(`group_${groupId}`);
+      roomTypers?.delete(userId);
+
+      if (roomTypers && roomTypers.size === 0) {
+        this.activeTypers.delete(`group_${groupId}`);
+      }
+    }
+
+    this.emitGroupTypingSnapshot(groupId);
+  }
+
+  private emitGroupTypingSnapshot(groupId: string) {
+    const typingUsers = Array.from(this.activeTypers.get(`group_${groupId}`)?.values() ?? []);
+    this.emitToGroupChatRoom(groupId, 'group_chat_typing_updated', {
+      groupId,
+      typingUsers,
+    });
   }
 
   private setTypingState(
@@ -482,14 +615,20 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       clearTimeout(this.typingTimeouts.get(key)!);
       this.typingTimeouts.delete(key);
 
-      const [tripDocumentId] = key.split(':');
-      const roomTypers = this.activeTypers.get(tripDocumentId);
+      const [entityId] = key.split(':');
+      const isGroup = key.startsWith('group_');
+      const roomTypers = this.activeTypers.get(entityId);
       roomTypers?.delete(userId);
 
       if (roomTypers && roomTypers.size === 0) {
-        this.activeTypers.delete(tripDocumentId);
+        this.activeTypers.delete(entityId);
       } else {
-        this.emitTypingSnapshot(tripDocumentId);
+        if (isGroup) {
+          const groupId = entityId.replace('group_', '');
+          this.emitGroupTypingSnapshot(groupId);
+        } else {
+          this.emitTypingSnapshot(entityId);
+        }
       }
     }
   }

@@ -66,6 +66,30 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: 'Reports',
+    url: '/dashboard/reports',
+    icon: 'report',
+    isActive: false,
+    shortcut: ['e', 'e'],
+    items: []
+  },
+  {
+    title: 'Community Groups',
+    url: '/dashboard/community-groups',
+    icon: 'teams',
+    isActive: false,
+    shortcut: ['g', 'g'],
+    items: []
+  },
+  {
+    title: 'Notifications',
+    url: '/dashboard/notifications',
+    icon: 'notifications',
+    isActive: false,
+    shortcut: ['n', 'n'],
+    items: []
+  },
+  {
     title: 'Account',
     url: '#',
     icon: 'account',

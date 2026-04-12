@@ -7,12 +7,14 @@ import { Badge } from '@/components/ui/badge';
 
 export interface Trip {
   id: number;
-  from: string;
-  to: string;
-  departureTime: string;
-  status: 'PUBLISHED' | 'COMPLETED' | 'CANCELLED';
-  seats: number;
-  price: number;
+  documentId: string;
+  startingPoint: string;
+  destination: string;
+  date: string;
+  time: string;
+  availableSeats: number;
+  pricePerSeat: string | number | null;
+  status: 'PUBLISHED' | 'STARTED' | 'COMPLETED' | 'CANCELLED';
   creator: {
     email: string;
     username: string | null;
@@ -27,9 +29,20 @@ export interface Trip {
   createdAt: string;
 }
 
+function formatPrice(v: string | number | null | undefined) {
+  if (v === null || v === undefined) {
+    return '—';
+  }
+  const n = typeof v === 'string' ? parseFloat(v) : v;
+  if (Number.isNaN(n)) {
+    return String(v);
+  }
+  return n.toFixed(2);
+}
+
 export const columns: ColumnDef<Trip>[] = [
   {
-    accessorKey: 'creator.userProfile.avatar',
+    id: 'creator',
     header: 'CREATOR',
     cell: ({ row }) => {
       const trip = row.original;
@@ -37,7 +50,10 @@ export const columns: ColumnDef<Trip>[] = [
         <UserAvatarProfile
           user={{
             image: trip.creator.userProfile?.avatar,
-            name: trip.creator.userProfile?.fullName || trip.creator.username || trip.creator.email,
+            name:
+              trip.creator.userProfile?.fullName ||
+              trip.creator.username ||
+              trip.creator.email,
             email: trip.creator.email,
           }}
           showInfo
@@ -46,18 +62,23 @@ export const columns: ColumnDef<Trip>[] = [
     },
   },
   {
-    accessorKey: 'from',
+    accessorKey: 'startingPoint',
     header: 'FROM',
   },
   {
-    accessorKey: 'to',
+    accessorKey: 'destination',
     header: 'TO',
   },
   {
-    accessorKey: 'departureTime',
-    header: 'DEPARTURE',
+    id: 'when',
+    header: 'WHEN',
     cell: ({ row }) => {
-      return new Date(row.getValue('departureTime')).toLocaleString();
+      const t = row.original;
+      return (
+        <span className='text-sm'>
+          {t.date} {t.time}
+        </span>
+      );
     },
   },
   {
@@ -65,16 +86,22 @@ export const columns: ColumnDef<Trip>[] = [
     header: 'STATUS',
     cell: ({ row }) => {
       const status = row.getValue('status') as string;
-      return (
-        <Badge variant={status === 'PUBLISHED' ? 'default' : status === 'COMPLETED' ? 'secondary' : 'destructive'}>
-          {status}
-        </Badge>
-      );
+      return <Badge variant='outline'>{status}</Badge>;
     },
   },
   {
     accessorKey: '_count.joinRequests',
-    header: 'PASSENGERS',
+    header: 'APPROVED',
+    cell: ({ row }) => row.original._count?.joinRequests ?? 0,
+  },
+  {
+    accessorKey: 'availableSeats',
+    header: 'SEATS',
+  },
+  {
+    id: 'price',
+    header: 'PRICE/SEAT',
+    cell: ({ row }) => formatPrice(row.original.pricePerSeat),
   },
   {
     id: 'actions',

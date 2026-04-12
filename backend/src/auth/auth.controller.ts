@@ -2,7 +2,7 @@ import { Controller, Post, Body, Get, UseGuards, Request, UnauthorizedException 
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { GoogleLoginDto } from './dto/auth.dto';
+import { GoogleLoginDto, LoginDto } from './dto/auth.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -12,18 +12,22 @@ export class AuthController {
   @Post('google')
   @ApiOperation({ summary: 'Google login', description: 'Verify a Google ID token and return a JWT access token' })
   @ApiBody({ type: GoogleLoginDto })
-  async googleLogin(@Body('token') token: string) {
-    return this.authService.verifyGoogleToken(token);
+  async googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
+    return this.authService.verifyGoogleToken(
+      googleLoginDto.token,
+      googleLoginDto.source,
+    );
   }
 
   @Post('login')
   @ApiOperation({ summary: 'Password login', description: 'Login with email and password' })
-  async login(@Body() loginDto: any) {
+  @ApiBody({ type: LoginDto })
+  async login(@Body() loginDto: LoginDto) {
     const user = await this.authService.validateUser(loginDto.email, loginDto.password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    return this.authService.login(user);
+    return this.authService.login(user, loginDto.source);
   }
 
   @UseGuards(JwtAuthGuard)

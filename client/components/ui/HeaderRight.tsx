@@ -13,9 +13,10 @@ import { Pressable } from '@/components/ui/pressable';
 
 type HeaderRightProps = {
     type?: 'notifications' | 'settings' | 'chats';
+    params?: Record<string, string>;
 };
 
-export function HeaderRight({ type = 'notifications' }: HeaderRightProps) {
+export function HeaderRight({ type = 'notifications', params }: HeaderRightProps) {
     const router = useRouter();
     const { user } = useAuth();
     const colorScheme = useColorScheme();
@@ -35,7 +36,7 @@ export function HeaderRight({ type = 'notifications' }: HeaderRightProps) {
         } else if (type === 'settings') {
             router.push('/settings');
         } else if (type === 'chats') {
-            router.push('/chats');
+            router.push({ pathname: '/chats', params });
         }
     };
 

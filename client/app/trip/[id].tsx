@@ -21,6 +21,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripService } from '@/services/trip-service';
 import { userService } from '@/services/user-service';
 import { joinRequestService } from '@/services/join-request-service';
+import { analyticsService } from '@/services/analytics-service';
 import { Trip, JoinRequest, TripStatus } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -165,6 +166,7 @@ export default function TripDetailsScreen() {
     });
 
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const lastTrackedViewedTripRef = useRef<string | null>(null);
     const handleRefresh = useCallback(async () => {
         setIsRefreshing(true);
         await refetch();
@@ -173,6 +175,21 @@ export default function TripDetailsScreen() {
 
     const approvedJoinRequest = user ? tripDetails?.requests?.find(r => r.passenger.id === user.id && r.status === 'APPROVED') : null;
     const isPassenger = Boolean(approvedJoinRequest);
+
+    useEffect(() => {
+        const viewedTrip = tripDetails?.trip;
+        if (!viewedTrip?.documentId || lastTrackedViewedTripRef.current === viewedTrip.documentId) {
+            return;
+        }
+
+        lastTrackedViewedTripRef.current = viewedTrip.documentId;
+        void analyticsService.trackEvent('ride_viewed', {
+            destination: viewedTrip.destination,
+            has_price: viewedTrip.pricePerSeat !== undefined,
+            is_creator: user?.id === viewedTrip.creator?.id,
+            status: viewedTrip.status.toLowerCase(),
+        });
+    }, [tripDetails?.trip, user?.id]);
 
     useEffect(() => {
         if (
@@ -254,6 +271,11 @@ export default function TripDetailsScreen() {
                 message: requestMessage.trim(),
                 sharePhoneNumber,
             });
+            void analyticsService.trackEvent('join_request_created', {
+                requested_seats: selectedSeats,
+                share_phone_number: sharePhoneNumber,
+                trip_destination: trip.destination,
+            });
             refetch();
             Toast.show({ type: 'success', text1: 'Request Sent', text2: `Requested ${selectedSeats} seats.` });
         } catch (error) {
@@ -266,6 +288,10 @@ export default function TripDetailsScreen() {
     const handleUpdateJoinStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
         try {
             await joinRequestService.updateJoinRequestStatus(requestId, status);
+            void analyticsService.trackEvent('join_request_status_updated', {
+                status: status.toLowerCase(),
+                trip_destination: trip?.destination,
+            });
             await queryClient.invalidateQueries({ queryKey: ['trip-details', documentId] });
             Toast.show({ type: 'success', text1: `Request ${status.toLowerCase()}` });
         } catch (error) {
@@ -278,6 +304,10 @@ export default function TripDetailsScreen() {
         setIsCancelling(true);
         try {
             await tripService.updateTripStatus(documentId as string, { status: 'CANCELLED' });
+            void analyticsService.trackEvent('ride_cancelled', {
+                destination: trip?.destination,
+                was_creator: true,
+            });
             Toast.show({ type: 'success', text1: 'Trip Cancelled' });
             setShowCancelModal(false);
             router.push('/(tabs)/activity');
@@ -300,6 +330,15 @@ export default function TripDetailsScreen() {
             });
         },
         successMessage: { title: 'Status Updated' },
+        onSuccess: (_data, variables) => {
+            if (variables.status === 'COMPLETED') {
+                void analyticsService.trackEvent('ride_completed', {
+                    destination: trip?.destination,
+                    has_final_price: typeof variables.pricePerSeat === 'number' || Boolean(trip?.pricePerSeat),
+                    was_creator: user?.id === trip?.creator?.id,
+                });
+            }
+        },
     });
 
     const handleUpdateTripStatus = (status: TripStatus) => {
@@ -368,8 +407,70 @@ export default function TripDetailsScreen() {
         if (!trip) return;
         try {
             await Share.share({ message: buildTripShareMessage(trip) });
+            void analyticsService.trackEvent('ride_shared', {
+                channel: 'system_share',
+                destination: trip.destination,
+                trip_status: trip.status.toLowerCase(),
+            });
         } catch (error) {
             console.error('Share failed', error);
+        }
+    };
+
+    const handleShareViaWhatsApp = async () => {
+        if (!trip) return;
+
+        const message = buildTripShareMessage(trip);
+        const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+
+        try {
+            const canOpen = await Linking.canOpenURL(whatsappUrl);
+            if (canOpen) {
+                await Linking.openURL(whatsappUrl);
+            } else {
+                await Share.share({ message });
+                Toast.show({
+                    type: 'info',
+                    text1: 'WhatsApp not available',
+                    text2: 'Opened the regular share sheet instead.',
+                });
+            }
+            void analyticsService.trackEvent('ride_shared', {
+                channel: canOpen ? 'whatsapp' : 'system_share',
+                destination: trip.destination,
+                trip_status: trip.status.toLowerCase(),
+            });
+        } catch (error) {
+            console.error('WhatsApp share failed', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Share failed',
+                text2: 'Unable to open WhatsApp right now.',
+            });
+        }
+    };
+
+    const handleShareViaText = async () => {
+        if (!trip) return;
+
+        const message = buildTripShareMessage(trip);
+        const smsSeparator = Platform.OS === 'ios' ? '&' : '?';
+        const smsUrl = `sms:${smsSeparator}body=${encodeURIComponent(message)}`;
+
+        try {
+            await Linking.openURL(smsUrl);
+            void analyticsService.trackEvent('ride_shared', {
+                channel: 'sms',
+                destination: trip.destination,
+                trip_status: trip.status.toLowerCase(),
+            });
+        } catch (error) {
+            console.error('Text share failed', error);
+            Toast.show({
+                type: 'error',
+                text1: 'Share failed',
+                text2: 'Unable to open your messaging app right now.',
+            });
         }
     };
 
@@ -386,7 +487,7 @@ export default function TripDetailsScreen() {
         <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
             <Stack.Screen 
               options={{ 
-                title: 'Trip Details', 
+                title: loading ? 'Trip loading...' : 'Trip Details', 
                 headerStyle: { backgroundColor }, 
                 headerTintColor: textColor,
                 headerRight: () => isCreator ? (
@@ -419,6 +520,34 @@ export default function TripDetailsScreen() {
                             <Text className="text-lg font-bold" style={{ color: textColor }}>{trip.destination}</Text>
                         </VStack>
                     </HStack>
+                </Box>
+
+                <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
+                    <VStack space="sm">
+                        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+                            Share Ride
+                        </Text>
+                        <HStack space="sm">
+                            <Pressable
+                                className="flex-1 h-12 rounded-2xl items-center justify-center border"
+                                style={{ borderColor }}
+                                onPress={handleShareViaWhatsApp}
+                            >
+                                <Text className="text-[11px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                    WhatsApp
+                                </Text>
+                            </Pressable>
+                            <Pressable
+                                className="flex-1 h-12 rounded-2xl items-center justify-center border"
+                                style={{ borderColor }}
+                                onPress={handleShareViaText}
+                            >
+                                <Text className="text-[11px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                    Text
+                                </Text>
+                            </Pressable>
+                        </HStack>
+                    </VStack>
                 </Box>
 
                 {/* Info Grid */}
@@ -816,6 +945,11 @@ export default function TripDetailsScreen() {
                 snapPoints={['90%']}
                 backdropComponent={renderBackdrop}
                 onChange={handleSheetChanges}
+                backgroundStyle={{ backgroundColor: cardColor, borderRadius: 32 }}
+                handleIndicatorStyle={{ backgroundColor: borderColor, width: 40 }}
+                enablePanDownToClose
+                keyboardBehavior="fillParent"
+                keyboardBlurBehavior="restore"
             >
                 <BottomSheetView style={{ padding: 24 }}>
                     <Text className="text-xl font-bold mb-4" style={{ color: textColor }}>Join Ride</Text>
@@ -823,12 +957,22 @@ export default function TripDetailsScreen() {
                         <HStack className="justify-between items-center">
                             <Text style={{ color: textColor }}>Seats</Text>
                             <HStack space="md" className="items-center">
-                                <Pressable onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
-                                    <Text>-</Text>
+                                <Pressable
+                                    onPress={() => setSelectedSeats(Math.max(1, selectedSeats - 1))}
+                                    className="w-10 h-10 rounded-full items-center justify-center"
+                                    style={{ backgroundColor }}
+                                >
+                                    <Text style={{ color: textColor }}>-</Text>
                                 </Pressable>
-                                <Text className="font-bold">{selectedSeats}</Text>
-                                <Pressable onPress={() => setSelectedSeats(Math.min(trip.availableSeats, selectedSeats + 1))} className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center">
-                                    <Text>+</Text>
+                                <Text className="text-xl font-extrabold" style={{ color: textColor }}>
+                                    {selectedSeats}
+                                </Text>
+                                <Pressable
+                                    onPress={() => setSelectedSeats(Math.min(trip.availableSeats, selectedSeats + 1))}
+                                    className="w-10 h-10 rounded-full items-center justify-center"
+                                    style={{ backgroundColor }}
+                                >
+                                    <Text style={{ color: textColor }}>+</Text>
                                 </Pressable>
                             </HStack>
                         </HStack>
@@ -883,9 +1027,14 @@ export default function TripDetailsScreen() {
                                     multiline
                                     textAlignVertical="top"
                                     style={{
+                                        backgroundColor,
+                                        borderColor,
+                                        borderRadius: 16,
+                                        borderWidth: 1,
                                         color: textColor,
                                         minHeight: 84,
                                         fontSize: 15,
+                                        paddingHorizontal: 14,
                                         paddingVertical: 12,
                                     }}
                                 />

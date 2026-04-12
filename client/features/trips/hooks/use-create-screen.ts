@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Linking, Platform, ScrollView, Share } from 'react-native';
+import { Linking, Platform, Share } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import Toast from 'react-native-toast-message';
@@ -22,6 +22,8 @@ import {
   formatTripTime,
   getStartOfDay,
 } from '@/features/trips/utils/create-trip';
+import type { LocationCoordinate } from '@/features/trips/types/location';
+import { analyticsService } from '@/services/analytics-service';
 
 export function useCreateScreen() {
   const { editTripId } = useLocalSearchParams<{ editTripId?: string }>();
@@ -31,6 +33,8 @@ export function useCreateScreen() {
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [fromCoordinate, setFromCoordinate] = useState<LocationCoordinate | null>(null);
+  const [toCoordinate, setToCoordinate] = useState<LocationCoordinate | null>(null);
   const [date, setDate] = useState(today);
   const [time, setTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -47,7 +51,7 @@ export function useCreateScreen() {
   const [publishedTrip, setPublishedTrip] = useState<Trip | null>(null);
   const [errors, setErrors] = useState<CreateTripFormErrors>({});
   const [hasLoadedEditTrip, setHasLoadedEditTrip] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<any>(null);
 
   const { user } = useAuth();
   const router = useRouter();
@@ -103,6 +107,8 @@ export function useCreateScreen() {
 
     setFrom(trip.startingPoint);
     setTo(trip.destination);
+    setFromCoordinate(null);
+    setToCoordinate(null);
     setDate(getStartOfDay(new Date(`${trip.date}T00:00:00`)));
     setTime(buildTripStartDateTime(trip.date, trip.time));
     setSeats(String(trip.availableSeats));
@@ -117,6 +123,8 @@ export function useCreateScreen() {
   const resetForm = () => {
     setFrom('');
     setTo('');
+    setFromCoordinate(null);
+    setToCoordinate(null);
     setDate(today);
     setTime(new Date());
     setSeats('');
@@ -193,6 +201,14 @@ export function useCreateScreen() {
         ? tripService.updateTrip(editTripId as string, tripData)
         : tripService.createTrip(tripData),
     onSuccess: (savedTrip) => {
+      void analyticsService.trackEvent(isEditing ? 'ride_updated' : 'ride_created', {
+        destination: savedTrip.destination,
+        gender_preference: savedTrip.genderPreference,
+        has_description: Boolean(savedTrip.description),
+        is_price_calculated: savedTrip.isPriceCalculated,
+        seats: savedTrip.availableSeats,
+      });
+
       queryClient.invalidateQueries({ queryKey: ['trips', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['all-trips-paged'] });
       queryClient.invalidateQueries({ queryKey: ['trip-details', savedTrip.documentId] });
@@ -309,6 +325,11 @@ export function useCreateScreen() {
           text2: 'Opened the regular share sheet instead.',
         });
       }
+      void analyticsService.trackEvent('ride_shared', {
+        channel: canOpen ? 'whatsapp' : 'system_share',
+        destination: publishedTrip.destination,
+        trip_status: publishedTrip.status.toLowerCase(),
+      });
     } catch (error) {
       console.error('WhatsApp share failed:', error);
       Toast.show({
@@ -330,6 +351,11 @@ export function useCreateScreen() {
 
     try {
       await Linking.openURL(smsUrl);
+      void analyticsService.trackEvent('ride_shared', {
+        channel: 'sms',
+        destination: publishedTrip.destination,
+        trip_status: publishedTrip.status.toLowerCase(),
+      });
     } catch (error) {
       console.error('SMS share failed:', error);
       Toast.show({
@@ -350,7 +376,7 @@ export function useCreateScreen() {
         } else {
           scrollViewRef.current?.scrollTo({ y: offset, animated: true });
         }
-      }, Platform.OS === 'ios' ? 250 : 150);
+      }, Platform.OS === 'ios' ? 250 : 100);
     });
   };
 
@@ -382,6 +408,7 @@ export function useCreateScreen() {
     formatDate: formatTripDate,
     formatTime: formatTripTime,
     from,
+    fromCoordinate,
     genderPreference,
     handleDescriptionFocus,
     handleInputFocus,
@@ -407,6 +434,7 @@ export function useCreateScreen() {
     setDescription,
     setErrorForField,
     setFrom,
+    setFromCoordinate,
     setGenderPreference,
     setIsPriceCalculated,
     setPrice,
@@ -419,6 +447,7 @@ export function useCreateScreen() {
     setShowToPicker,
     setTime,
     setTo,
+    setToCoordinate,
     shareViaText,
     shareViaWhatsApp,
     showDatePicker,
@@ -429,6 +458,7 @@ export function useCreateScreen() {
     showToPicker,
     time,
     to,
+    toCoordinate,
     today,
   };
 }

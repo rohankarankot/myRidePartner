@@ -43,6 +43,8 @@ export default function FindRidesScreen() {
     loadMoreTrips,
     openCitySheet,
     openFilters,
+    onCitySheetDismiss,
+    onFilterSheetDismiss,
     refreshTrips,
     renderBackdrop,
     resetFilters,
@@ -84,6 +86,7 @@ export default function FindRidesScreen() {
           date={date}
           fromSearch={fromSearch}
           hasActiveRouteSearch={hasActiveRouteSearch}
+          showRouteInputs={trips.length > 0 || hasActiveRouteSearch}
           onFromSearchChange={setFromSearch}
           onToSearchChange={setToSearch}
           primaryColor={primaryColor}
@@ -164,6 +167,7 @@ export default function FindRidesScreen() {
         date={date}
         setDate={setDate}
         onApply={applyFilters}
+        onDismiss={onFilterSheetDismiss}
         onReset={resetFilters}
       />
 
@@ -176,6 +180,7 @@ export default function FindRidesScreen() {
         enablePanDownToClose
         keyboardBehavior="fillParent"
         keyboardBlurBehavior="restore"
+        onDismiss={onCitySheetDismiss}
       >
         <BottomSheetFlatList
           data={filteredCities}

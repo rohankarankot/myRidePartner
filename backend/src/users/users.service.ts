@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma.service';
@@ -221,6 +222,7 @@ export class UsersService {
       accountStatus: UserAccountStatus.ACTIVE,
       userProfile: {
         is: {
+          communityConsent: true,
           city: options?.city
             ? options.city
             : {
@@ -280,6 +282,7 @@ export class UsersService {
     const blockedUserIds = await this.getBlockedUserIds(userId);
     const profiles = await this.prisma.userProfile.findMany({
       where: {
+        communityConsent: true,
         city: {
           not: null,
         },
@@ -463,6 +466,74 @@ export class UsersService {
     }
   }
 
+  async ensureAppSourceAccess(userId: number, source: string) {
+    try {
+      const appSource = await this.resolveAppSource(source);
+
+      return await this.prisma.userAppSource.upsert({
+        where: {
+          userId_source: {
+            userId,
+            source,
+          },
+        },
+        create: {
+          userId,
+          source,
+          appSourceId: appSource.id,
+        },
+        update: {
+          appSourceId: appSource.id,
+          lastLoginAt: new Date(),
+        },
+      });
+    } catch (error) {
+      if (this.isMissingUserAppSourceTableError(error)) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  async getOrCreateAppSource(slug: string, name?: string) {
+    return this.prisma.appSource.upsert({
+      where: { slug },
+      create: {
+        slug,
+        name: name ?? this.formatAppSourceName(slug),
+      },
+      update: {
+        name: name ?? this.formatAppSourceName(slug),
+      },
+    });
+  }
+
+  private async resolveAppSource(source: string) {
+    try {
+      const appSource = await this.prisma.appSource.findUnique({
+        where: { slug: source },
+      });
+
+      if (!appSource || !appSource.isActive) {
+        throw new UnauthorizedException('Unsupported app source');
+      }
+
+      return appSource;
+    } catch (error) {
+      if (this.isMissingAppSourceTableError(error)) {
+        return {
+          id: null,
+          slug: source,
+          name: this.formatAppSourceName(source),
+          isActive: true,
+        };
+      }
+
+      throw error;
+    }
+  }
+
   private async findByEmailLegacy(email: string) {
     const rows = await this.prisma.$queryRaw<any[]>`
       SELECT
@@ -594,5 +665,31 @@ export class UsersService {
       typeof error.message === 'string' &&
       (error.message.includes('User.accountStatus') || error.message.includes('User.pausedAt'))
     );
+  }
+
+  private isMissingUserAppSourceTableError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2021' &&
+      typeof error.meta?.table === 'string' &&
+      error.meta.table.includes('UserAppSource')
+    );
+  }
+
+  private isMissingAppSourceTableError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2021' &&
+      typeof error.meta?.table === 'string' &&
+      error.meta.table.includes('AppSource')
+    );
+  }
+
+  private formatAppSourceName(slug: string) {
+    return slug
+      .split(/[-_.]+/)
+      .filter(Boolean)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
   }
 }

@@ -209,25 +209,7 @@ class FeatureCleanup {
     });
   }
 
-  cleanNextConfig(feature) {
-    const configPath = path.join(ROOT, 'next.config.ts');
-    if (!fs.existsSync(configPath)) return;
-
-    let content = fs.readFileSync(configPath, 'utf8');
-    const before = content;
-    content = content.replace(
-      /,\s*\{\s*protocol:\s*['"]https['"],\s*hostname:\s*['"]img\.clerk\.com['"][^}]*\}/g,
-      ''
-    );
-    content = content.replace(
-      /,\s*\{\s*protocol:\s*['"]https['"],\s*hostname:\s*['"]clerk\.com['"][^}]*\}/g,
-      ''
-    );
-    if (content !== before) {
-      fs.writeFileSync(configPath, content, 'utf8');
-      console.log('  ✅ Cleaned next.config.ts (Clerk image hostnames)');
-    }
-  }
+  cleanNextConfig(_feature) {}
 
   cleanNavConfig(feature) {
     if (
@@ -287,40 +269,10 @@ export const navItems: NavItem[] = [
 `;
 
     fs.writeFileSync(navPath, replacement, 'utf8');
-    console.log('  ✅ Cleaned nav-config.ts (removed Clerk nav items)');
+    console.log('  ✅ Cleaned nav-config.ts');
   }
 
-  cleanDocReferences(feature) {
-    if (feature.name.toLowerCase().indexOf('clerk') === -1) return;
-
-    const docFiles = [
-      path.join(ROOT, 'README.md'),
-      path.join(ROOT, 'docs/nav-rbac.md'),
-      path.join(ROOT, 'src/config/infoconfig.ts')
-    ];
-
-    docFiles.forEach((filePath) => {
-      if (!fs.existsSync(filePath)) return;
-      let content = fs.readFileSync(filePath, 'utf8');
-      const before = content;
-      content = content.replace(
-        /\n*# Clerk Setup Guide[\s\S]*?(?=\n#|\n##|\Z)/gi,
-        '\n'
-      );
-      content = content.replace(/Clerk['\s]/gi, 'Auth ');
-      content = content.replace(/clerk\.com[^\s]*/gi, '');
-      if (content !== before) {
-        fs.writeFileSync(
-          filePath,
-          content.replace(/\n\s*\n\s*\n/g, '\n\n'),
-          'utf8'
-        );
-        console.log(
-          `  ✅ Cleaned doc references: ${path.relative(ROOT, filePath)}`
-        );
-      }
-    });
-  }
+  cleanDocReferences(_feature) {}
 
   showNextSteps() {
     console.log('📋 Next steps:');
@@ -344,10 +296,9 @@ Usage:
   node __CLEANUP__/scripts/cleanup.js [features...]
 
 Examples:
-  node __CLEANUP__/scripts/cleanup.js clerk
   node __CLEANUP__/scripts/cleanup.js --list
   node __CLEANUP__/scripts/cleanup.js --help
-  node __CLEANUP__/scripts/cleanup.js clerk --force   # skip git safety check
+  node __CLEANUP__/scripts/cleanup.js sentry --force   # skip git safety check
 
 Safety:
   Before running, the script checks for a git repo with at least one commit

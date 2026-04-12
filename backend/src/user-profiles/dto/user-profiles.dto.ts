@@ -42,4 +42,7 @@ export class UpdateUserProfileDto {
 
   @ApiPropertyOptional({ description: 'Whether the overall profile is verified' })
   isVerified?: boolean;
+
+  @ApiPropertyOptional({ description: 'Whether the user consented to join the community' })
+  communityConsent?: boolean;
 }

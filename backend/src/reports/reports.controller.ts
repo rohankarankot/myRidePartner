@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Get, Request } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,11 +16,5 @@ export class ReportsController {
   @ApiBody({ type: CreateReportDto })
   create(@Request() req: any, @Body() dto: CreateReportDto) {
     return this.reportsService.create(req.user.id, dto);
-  }
-
-  @Get()
-  @ApiOperation({ summary: 'Get all reports', description: 'Returns all submitted reports (Admin view simulation)' })
-  findAll() {
-    return this.reportsService.getAllReports();
   }
 }

@@ -47,7 +47,7 @@ export interface ReportPayload {
     reportedUserName?: string | null;
     reporterUserId?: number | null;
     tripDocumentId?: string | null;
-    source: 'trip' | 'profile' | 'community_chat' | 'trip_chat';
+    source: 'trip' | 'profile' | 'community_chat' | 'trip_chat' | 'community_group_chat';
     targetType?: 'USER' | 'MESSAGE';
     messageDocumentId?: string | null;
     messagePreview?: string | null;
@@ -61,7 +61,7 @@ interface ReportModalProps {
     reportedUserName?: string | null;
     reporterUserId?: number | null;
     tripDocumentId?: string | null;
-    source: 'trip' | 'profile' | 'community_chat' | 'trip_chat';
+    source: 'trip' | 'profile' | 'community_chat' | 'trip_chat' | 'community_group_chat';
     context?: ReportContext;
     targetType?: 'USER' | 'MESSAGE';
     messageDocumentId?: string | null;

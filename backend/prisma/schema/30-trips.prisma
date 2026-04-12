@@ -1,0 +1,65 @@
+model Trip {
+  id                Int              @id @default(autoincrement())
+  documentId        String           @unique @default(uuid())
+  description       String?
+  startingPoint     String
+  destination       String
+  date              String
+  time              String
+  availableSeats    Int
+  city              String?
+  pricePerSeat      Decimal?         @db.Decimal(10, 2)
+  isPriceCalculated Boolean          @default(false)
+  genderPreference  GenderPreference @default(both)
+  status            TripStatus       @default(PUBLISHED)
+  creatorId         Int
+  creator           User             @relation("TripCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  joinRequests      JoinRequest[]
+  ratings           Rating[]
+  chat              TripChat?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([status])
+  @@index([date])
+  @@index([creatorId])
+  @@index([city])
+  @@index([createdAt])
+  @@index([city, status, date, createdAt])
+}
+
+model JoinRequest {
+  id               Int               @id @default(autoincrement())
+  documentId       String            @unique @default(uuid())
+  status           JoinRequestStatus @default(PENDING)
+  requestedSeats   Int               @default(1)
+  message          String?
+  sharePhoneNumber Boolean           @default(false)
+  tripId           Int
+  trip             Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  passengerId      Int
+  passenger        User              @relation("PassengerRequests", fields: [passengerId], references: [id], onDelete: Cascade)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([tripId])
+  @@index([passengerId])
+}
+
+model Rating {
+  id         Int      @id @default(autoincrement())
+  documentId String   @unique @default(uuid())
+  stars      Int
+  comment    String?
+  tripId     Int
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  raterId    Int
+  rater      User     @relation("Rater", fields: [raterId], references: [id], onDelete: Cascade)
+  rateeId    Int
+  ratee      User     @relation("Ratee", fields: [rateeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tripId, raterId])
+  @@index([rateeId])
+}

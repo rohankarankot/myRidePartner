@@ -11,6 +11,7 @@ import { queryClient } from '@/shared/lib/query-client';
 import { AuthProvider } from '@/features/auth/auth-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
+import { AnalyticsHandler } from '@/components/analytics-handler';
 import { PushNotificationHandler } from '@/components/push-notification-handler';
 import { SocketHandler } from '@/components/socket-handler';
 import { useThemeStore } from '@/store/theme-store';
@@ -26,6 +27,7 @@ export function AppProviders({ children }: PropsWithChildren) {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <KeyboardProvider>
+              <AnalyticsHandler />
               <PushNotificationHandler />
               <SocketHandler />
               <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

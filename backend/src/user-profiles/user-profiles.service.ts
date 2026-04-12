@@ -34,7 +34,24 @@ export class UserProfilesService {
   }
 
   async update(documentId: number, data: any) {
-    // If the client sends avatar as a URL string or an ID, handle appropriately
+    // Handle community consent revocation logic
+    if (data.communityConsent !== undefined) {
+      const currentProfile = await this.prisma.userProfile.findUnique({
+        where: { id: documentId },
+        select: { communityConsent: true },
+      });
+
+      if (currentProfile) {
+        if (data.communityConsent === false && currentProfile.communityConsent === true) {
+          // Transition from true to false: START the timer
+          data.communityConsentRevokedAt = new Date();
+        } else if (data.communityConsent === true) {
+          // Setting to true: STOP the timer
+          data.communityConsentRevokedAt = null;
+        }
+      }
+    }
+
     return this.prisma.userProfile.update({
       where: { id: documentId },
       data,

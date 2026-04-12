@@ -5,6 +5,7 @@ import { CellAction } from './cell-action';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export interface User {
   id: number;
@@ -13,6 +14,7 @@ export interface User {
   role: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
   confirmed: boolean;
   blocked: boolean;
+  accountStatus?: 'ACTIVE' | 'PAUSED';
   createdAt: string;
   userProfile: {
     fullName: string | null;
@@ -60,14 +62,28 @@ export const columns: ColumnDef<User>[] = [
     },
   },
   {
+    id: 'account',
+    header: 'STATUS',
+    cell: ({ row }) => {
+      const u = row.original;
+      if (u.blocked) {
+        return <Badge variant='destructive'>Blocked</Badge>;
+      }
+      if (u.accountStatus === 'PAUSED') {
+        return <Badge variant='secondary'>Paused</Badge>;
+      }
+      return <Badge variant='outline'>Active</Badge>;
+    },
+  },
+  {
     accessorKey: 'confirmed',
     header: 'CONFIRMED',
     cell: ({ row }) => {
       const confirmed = row.getValue('confirmed') as boolean;
       return confirmed ? (
-        <CheckCircle2 className="h-4 w-4 text-green-500" />
+        <CheckCircle2 className='h-4 w-4 text-green-500' />
       ) : (
-        <XCircle className="h-4 w-4 text-red-500" />
+        <XCircle className='h-4 w-4 text-red-500' />
       );
     },
   },
@@ -82,6 +98,18 @@ export const columns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       return new Date(row.getValue('createdAt')).toLocaleDateString();
     },
+  },
+  {
+    id: 'support',
+    header: '',
+    cell: ({ row }) => (
+      <Link
+        href={`/dashboard/users/${row.original.id}`}
+        className='text-primary text-sm underline-offset-4 hover:underline'
+      >
+        360 view
+      </Link>
+    ),
   },
   {
     id: 'actions',

@@ -12,9 +12,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const source =
+          process.env.NEXT_PUBLIC_LOGIN_SOURCE?.trim() || 'myridepartner';
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
           method: 'POST',
-          body: JSON.stringify(credentials),
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password,
+            source,
+          }),
           headers: { 'Content-Type': 'application/json' },
         });
 

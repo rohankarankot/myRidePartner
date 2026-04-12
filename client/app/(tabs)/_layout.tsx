@@ -24,6 +24,7 @@ import { Pressable } from '@/components/ui/pressable';
 import FindFilledIcon from '@/assets/tab-icons/find-filled.svg';
 import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
 import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -35,8 +36,8 @@ export default function TabLayout() {
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
   const currentColors = getThemeColors(palette)[colorScheme ?? 'light'];
-  const tabBarBaseHeight = Platform.OS === 'ios' ? 60 : 58;
-  const tabBarBottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 10);
+  const tabBarBaseHeight = Platform.OS === 'ios' ? 60 : 60;
+  const tabBarBottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 16);
   const tabBarHeight = tabBarBaseHeight + tabBarBottomPadding;
 
   const profileAvatarUrl =
@@ -81,36 +82,36 @@ export default function TabLayout() {
     return (
       <Box className="flex-1 justify-center items-center px-10" style={{ backgroundColor: currentColors.background }}>
         <Box className="w-20 h-20 rounded-[32px] bg-gray-50 items-center justify-center rotate-3 shadow-xl mb-8">
-            <IconSymbol name="location.slash.fill" size={34} color={currentColors.tint} />
+          <IconSymbol name="location.slash.fill" size={34} color={currentColors.tint} />
         </Box>
         <VStack className="items-center" space="xs">
-            <Text className="text-2xl font-extrabold text-center uppercase tracking-widest" style={{ color: currentColors.text }}>
-                Navigation Locked
-            </Text>
-            <Text className="text-sm font-medium leading-6 text-center" style={{ color: currentColors.subtext }}>
-                My Ride Partner needs your location to find nearby rides and set your pickup points safely.
-            </Text>
+          <Text className="text-2xl font-extrabold text-center uppercase tracking-widest" style={{ color: currentColors.text }}>
+            Navigation Locked
+          </Text>
+          <Text className="text-sm font-medium leading-6 text-center" style={{ color: currentColors.subtext }}>
+            My Ride Partner needs your location to find nearby rides and set your pickup points safely.
+          </Text>
         </VStack>
 
         <VStack className="w-full mt-10" space="md">
-            <Button 
-                className="h-14 rounded-2xl shadow-lg"
-                style={{ backgroundColor: currentColors.tint }}
-                onPress={() => Linking.openSettings()}
-            >
-                <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Open Settings</ButtonText>
-            </Button>
-            <Button 
-                variant="outline"
-                className="h-14 rounded-2xl border-2"
-                style={{ borderColor: currentColors.border }}
-                onPress={async () => {
-                    const { status } = await Location.requestForegroundPermissionsAsync();
-                    setLocationPermission(status);
-                }}
-            >
-                <ButtonText className="text-xs font-extrabold uppercase tracking-widest" style={{ color: currentColors.subtext }}>Check Again</ButtonText>
-            </Button>
+          <Button
+            className="h-14 rounded-2xl shadow-lg"
+            style={{ backgroundColor: currentColors.tint }}
+            onPress={() => Linking.openSettings()}
+          >
+            <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Open Settings</ButtonText>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-14 rounded-2xl border-2"
+            style={{ borderColor: currentColors.border }}
+            onPress={async () => {
+              const { status } = await Location.requestForegroundPermissionsAsync();
+              setLocationPermission(status);
+            }}
+          >
+            <ButtonText className="text-xs font-extrabold uppercase tracking-widest" style={{ color: currentColors.subtext }}>Check Again</ButtonText>
+          </Button>
         </VStack>
       </Box>
     );
@@ -124,7 +125,16 @@ export default function TabLayout() {
       screenOptions={() => ({
         tabBarActiveTintColor: currentColors.tint,
         tabBarInactiveTintColor: currentColors.subtext,
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: 4,
+          marginBottom: Platform.OS === 'ios' ? 0 : 4,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
+        },
         tabBarHideOnKeyboard: true,
         headerShown: true,
         headerStyle: {
@@ -148,23 +158,23 @@ export default function TabLayout() {
         headerBackTitleVisible: false,
         headerLeft: () => null,
         tabBarStyle: {
-            backgroundColor: currentColors.card,
-            borderTopWidth: 1,
-            borderTopColor: currentColors.border,
-            height: tabBarHeight,
-            paddingTop: 10,
-            paddingBottom: tabBarBottomPadding,
+          backgroundColor: currentColors.card,
+          borderTopWidth: 1,
+          borderTopColor: currentColors.border,
+          height: tabBarHeight,
+          paddingTop: Platform.OS === 'ios' ? 10 : 2,
+          paddingBottom: tabBarBottomPadding,
         }
       })}>
       <Tabs.Screen
         name="index"
         options={{
           headerTitle: 'FIND RIDES',
-          title: 'Find',
+          title: 'Explore',
           tabBarIcon: ({ color, focused }) =>
             focused
-              ? <FindFilledIcon width={28} height={28} color={color} />
-              : <IconSymbol name="magnifyingglass" size={26} color={color} />,
+              ? <MaterialIcons name="route" size={26} color={color} />
+              : <MaterialIcons name="route" size={26} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -209,27 +219,27 @@ export default function TabLayout() {
           headerRight: () => <HeaderRight type="settings" />,
           tabBarIcon: ({ focused, color }) => (
             profileAvatarUrl ? (
-                <Box 
-                    className="w-8 h-8 rounded-full border-2 overflow-hidden shadow-sm"
-                    style={{ borderColor: focused ? currentColors.tint : `${currentColors.border}` }}
-                >
-                    <Image
-                        source={{ uri: profileAvatarUrl }}
-                        className="w-full h-full"
-                    />
-                </Box>
+              <Box
+                className="w-8 h-8 rounded-full border-2 overflow-hidden shadow-sm"
+                style={{ borderColor: focused ? currentColors.tint : `${currentColors.border}` }}
+              >
+                <Image
+                  source={{ uri: profileAvatarUrl }}
+                  className="w-full h-full"
+                />
+              </Box>
             ) : (
               <Box
                 className="w-8 h-8 rounded-full items-center justify-center border shadow-sm"
                 style={{
-                    backgroundColor: focused ? currentColors.tint : currentColors.background,
-                    borderColor: focused ? currentColors.tint : `${currentColors.border}`,
+                  backgroundColor: focused ? currentColors.tint : currentColors.background,
+                  borderColor: focused ? currentColors.tint : `${currentColors.border}`,
                 }}>
-                <Text 
-                    className="text-[10px] font-extrabold uppercase"
-                    style={{ color: focused ? '#fff' : color }}
+                <Text
+                  className="text-[10px] font-extrabold uppercase"
+                  style={{ color: focused ? '#fff' : color }}
                 >
-                    {profileInitial}
+                  {profileInitial}
                 </Text>
               </Box>
             )

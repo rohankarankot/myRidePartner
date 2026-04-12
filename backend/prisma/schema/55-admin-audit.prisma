@@ -1,0 +1,14 @@
+model AdminAuditLog {
+  id         Int      @id @default(autoincrement())
+  documentId String   @unique @default(uuid())
+  actorId    Int
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, createdAt])
+}

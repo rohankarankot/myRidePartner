@@ -6,62 +6,19 @@ import Toast from 'react-native-toast-message';
 import Constants from 'expo-constants';
 
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useThemeStore, ThemeMode } from '@/store/theme-store';
+import { useThemeStore } from '@/store/theme-store';
 import { useAuth } from '@/context/auth-context';
 import { userService } from '@/services/user-service';
 import { CustomAlert } from '@/components/CustomAlert';
-import { PaletteOptions } from '@/constants/theme';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
-import { Pressable } from '@/components/ui/pressable';
-import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Divider } from '@/components/ui/divider';
-
-type SettingItemProps = {
-  icon: string;
-  label: string;
-  onPress?: () => void;
-  rightElement?: React.ReactNode;
-  danger?: boolean;
-  showDivider?: boolean;
-};
-
-function SettingItem({
-  icon,
-  label,
-  onPress,
-  rightElement,
-  danger = false,
-  showDivider = true,
-}: SettingItemProps) {
-  const textColor = useThemeColor({}, 'text');
-  const subtextColor = useThemeColor({}, 'subtext');
-  const borderColor = useThemeColor({}, 'border');
-  const dangerColor = useThemeColor({}, 'danger');
-  const iconColor = danger ? dangerColor : textColor;
-  const labelColor = danger ? dangerColor : textColor;
-
-  return (
-    <VStack >
-      <Pressable className="py-4 px-2" onPress={onPress}>
-        <HStack className="items-center justify-between">
-          <HStack space="md" className="items-center">
-            <Box className="w-8 h-8 items-center justify-center rounded-full" style={{ backgroundColor: `${iconColor}10` }}>
-              <IconSymbol name={icon as any} size={18} color={iconColor} />
-            </Box>
-            <Text className="text-base font-bold" style={{ color: labelColor }}>
-              {label}
-            </Text>
-          </HStack>
-          {rightElement || <IconSymbol name="chevron.right" size={16} color={subtextColor} />}
-        </HStack>
-      </Pressable>
-      {showDivider ? <Divider style={{ backgroundColor: borderColor }} className="mx-2" /> : null}
-    </VStack>
-  );
-}
+import {
+  PaletteSelector,
+  SettingItem,
+  ThemeModeSelector,
+} from '@/features/profile/components/settings';
 
 export default function SettingsScreen() {
   const appVersion = Constants.expoConfig?.version ?? '2.0.0';
@@ -136,58 +93,32 @@ export default function SettingsScreen() {
           Appearance
         </Text>
 
-        <HStack space="xs" className="mb-6 mx-2">
-          {(['light', 'dark', 'system'] as ThemeMode[]).map((mode) => {
-            const active = theme === mode;
-            return (
-              <Pressable
-                key={mode}
-                className="flex-1 h-12 rounded-2xl items-center justify-center border"
-                style={{
-                  borderColor: active ? primaryColor : borderColor,
-                  backgroundColor: active ? primaryColor : `${subtextColor}05`,
-                }}
-                onPress={() => setTheme(mode)}
-              >
-                <Text
-                  className="text-xs font-bold uppercase tracking-widest"
-                  style={{ color: active ? '#fff' : textColor }}
-                >
-                  {mode}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </HStack>
+        <ThemeModeSelector
+          borderColor={borderColor}
+          primaryColor={primaryColor}
+          subtextColor={subtextColor}
+          textColor={textColor}
+          theme={theme}
+          onChange={setTheme}
+        />
 
         <Text className="mx-2 mb-3 text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
           Theme Palette
         </Text>
 
-        <HStack space="xs" className="mb-6 mx-2">
-          {PaletteOptions.map((option) => {
-            const active = palette === option.id;
-            return (
-              <Pressable
-                key={option.id}
-                accessibilityLabel={option.label}
-                className="h-14 flex-1 items-center justify-center rounded-2xl border"
-                style={{
-                  backgroundColor: active ? `${option.swatch}15` : `${subtextColor}05`,
-                  borderColor: active ? option.swatch : borderColor,
-                }}
-                onPress={() => setPalette(option.id)}
-              >
-                <Box
-                  className="h-5 w-5 rounded-full border shadow-inner"
-                  style={{ backgroundColor: option.swatch, borderColor: 'white' }}
-                />
-              </Pressable>
-            );
-          })}
-        </HStack>
+        <PaletteSelector
+          borderColor={borderColor}
+          palette={palette}
+          subtextColor={subtextColor}
+          onChange={setPalette}
+        />
 
         <SettingItem icon="bell.fill" label="Notifications" onPress={() => router.push('/notifications')} />
+        <SettingItem
+          icon="person.3.fill"
+          label="Community Settings"
+          onPress={() => router.push('/settings/community')}
+        />
         <SettingItem
           icon="shield.fill"
           label="Privacy & Security"
