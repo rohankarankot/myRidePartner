@@ -1,10 +1,12 @@
-import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, TextInput } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, TextInput, Dimensions } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/auth-context';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { communityGroupService } from '@/services/community-group-service';
 import { CommunityGroupMember, CommunityGroupStatus, SearchableUser } from '@/types/api';
@@ -36,8 +38,9 @@ export default function CommunityGroupDetailScreen() {
   const borderColor = useThemeColor({}, 'border');
   const dangerColor = '#DC2626';
 
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showAddMemberSheet, setShowAddMemberSheet] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [removeMemberTarget, setRemoveMemberTarget] = useState<CommunityGroupMember | null>(null);
 
   const groupQuery = useQuery({
@@ -47,9 +50,9 @@ export default function CommunityGroupDetailScreen() {
   });
 
   const searchUsersQuery = useQuery({
-    queryKey: ['search-users', searchQuery],
-    queryFn: () => communityGroupService.searchUsers(searchQuery),
-    enabled: searchQuery.trim().length >= 2,
+    queryKey: ['search-users', debouncedSearchQuery],
+    queryFn: () => communityGroupService.searchUsers(debouncedSearchQuery),
+    enabled: debouncedSearchQuery.trim().length >= 2,
   });
 
   const addMemberMutation = useMutation({
@@ -57,7 +60,7 @@ export default function CommunityGroupDetailScreen() {
     onSuccess: () => {
       Toast.show({ type: 'success', text1: 'Member Added', text2: 'User has been added to the group.' });
       void queryClient.invalidateQueries({ queryKey: ['community-group', documentId] });
-      setShowAddMemberModal(false);
+      setShowAddMemberSheet(false);
       setSearchQuery('');
     },
     onError: (error: any) => {
@@ -278,8 +281,8 @@ export default function CommunityGroupDetailScreen() {
                 className="mx-6 mb-6 h-14 rounded-[22px] items-center justify-center border"
                 style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}08` }}
                 onPress={() => {
-                  setShowAddMemberModal(true);
                   setSearchQuery('');
+                  setShowAddMemberSheet(true);
                 }}
               >
                 <HStack className="items-center" space="sm">
@@ -310,27 +313,31 @@ export default function CommunityGroupDetailScreen() {
         }
       />
 
-      {/* Add Member Modal */}
-      <Modal visible={showAddMemberModal} transparent animationType="slide">
-        <Box className="flex-1 justify-end" style={{ backgroundColor: 'rgba(7,10,18,0.56)' }}>
-          <Box
-            className="rounded-t-[34px] border-t px-6 pb-8 pt-5"
-            style={{ backgroundColor: cardColor, borderColor: `${primaryColor}25`, maxHeight: '75%' }}
-          >
-            <HStack className="items-center justify-between mb-5">
-              <Text className="text-xl font-extrabold" style={{ color: textColor }}>Add Member</Text>
-              <Pressable
-                className="h-9 w-9 rounded-full items-center justify-center"
-                style={{ backgroundColor: `${subtextColor}10` }}
-                onPress={() => {
-                  setShowAddMemberModal(false);
-                  setSearchQuery('');
-                }}
-              >
-                <IconSymbol name="xmark" size={16} color={subtextColor} />
-              </Pressable>
-            </HStack>
+      {/* Add Member Full-Screen Modal (Bottom Sheet style) */}
+      <Modal visible={showAddMemberSheet} animationType="slide" presentationStyle="pageSheet">
+        <SafeAreaView style={{ flex: 1, backgroundColor: cardColor }} edges={['top', 'left', 'right', 'bottom']}>
+          {/* Handle Indicator */}
+          <Box className="items-center pt-2 pb-1">
+            <Box className="h-1 w-10 rounded-full" style={{ backgroundColor: borderColor }} />
+          </Box>
 
+          {/* Header */}
+          <HStack className="items-center justify-between px-6 py-4">
+            <Text className="text-xl font-extrabold" style={{ color: textColor }}>Add Member</Text>
+            <Pressable
+              className="h-9 w-9 rounded-full items-center justify-center"
+              style={{ backgroundColor: `${subtextColor}10` }}
+              onPress={() => {
+                setShowAddMemberSheet(false);
+                setSearchQuery('');
+              }}
+            >
+              <IconSymbol name="xmark" size={16} color={subtextColor} />
+            </Pressable>
+          </HStack>
+
+          {/* Search Input */}
+          <Box className="px-6 pb-4">
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -347,39 +354,39 @@ export default function CommunityGroupDetailScreen() {
                 paddingVertical: 14,
                 fontSize: 15,
                 fontWeight: '600',
-                marginBottom: 16,
               }}
             />
-
-            {searchQuery.trim().length < 2 ? (
-              <VStack className="items-center py-8" space="sm">
-                <IconSymbol name="magnifyingglass" size={28} color={subtextColor} />
-                <Text className="text-sm font-medium text-center" style={{ color: subtextColor }}>
-                  Type at least 2 characters to search
-                </Text>
-              </VStack>
-            ) : searchUsersQuery.isLoading ? (
-              <Box className="py-8 items-center">
-                <ActivityIndicator size="small" color={primaryColor} />
-              </Box>
-            ) : !searchUsersQuery.data?.data?.length ? (
-              <VStack className="items-center py-8" space="sm">
-                <Text className="text-sm font-medium text-center" style={{ color: subtextColor }}>
-                  No users found
-                </Text>
-              </VStack>
-            ) : (
-              <FlatList
-                data={searchUsersQuery.data.data}
-                keyExtractor={(item) => String(item.id)}
-                renderItem={renderSearchResult}
-                style={{ maxHeight: 300 }}
-                showsVerticalScrollIndicator={false}
-                ItemSeparatorComponent={() => <Divider style={{ backgroundColor: borderColor }} />}
-              />
-            )}
           </Box>
-        </Box>
+
+          {/* Results */}
+          {searchQuery.trim().length < 2 ? (
+            <VStack className="items-center py-8" space="sm">
+              <IconSymbol name="magnifyingglass" size={28} color={subtextColor} />
+              <Text className="text-sm font-medium text-center" style={{ color: subtextColor }}>
+                Type at least 2 characters to search
+              </Text>
+            </VStack>
+          ) : searchUsersQuery.isLoading ? (
+            <Box className="py-8 items-center">
+              <ActivityIndicator size="small" color={primaryColor} />
+            </Box>
+          ) : !searchUsersQuery.data?.data?.length ? (
+            <VStack className="items-center py-8" space="sm">
+              <Text className="text-sm font-medium text-center" style={{ color: subtextColor }}>
+                No users found
+              </Text>
+            </VStack>
+          ) : (
+            <FlatList
+              data={searchUsersQuery.data.data}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={renderSearchResult}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+              ItemSeparatorComponent={() => <Divider style={{ backgroundColor: borderColor }} />}
+            />
+          )}
+        </SafeAreaView>
       </Modal>
 
       {/* Remove Member Confirmation */}
