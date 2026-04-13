@@ -87,6 +87,7 @@ const MAPPING = {
   'arrowshape.turn.up.left.fill': 'reply',
   'wallet.pass.fill': 'account-balance-wallet',
   'questionmark.circle.fill': 'help',
+  'person.text.rectangle': 'assignment-ind',
 } as IconMapping;
 
 /**

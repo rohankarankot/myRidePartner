@@ -120,7 +120,8 @@ export function ProfileEditorSheet({
               style={{ height: FormFieldTokens.height, borderWidth: 2, borderRadius: FormFieldTokens.radius, paddingHorizontal: FormFieldTokens.horizontalPadding, fontSize: FormFieldTokens.fontSize, color: textColor, borderColor, backgroundColor }}
               placeholder="+91 XXXXX XXXXX"
               placeholderTextColor={subtextColor}
-              keyboardType="phone-pad"
+              keyboardType="number-pad"
+              maxLength={10}
               value={phoneNumber}
               onChangeText={setPhoneNumber}
             />
@@ -195,23 +196,23 @@ export function ProfileEditorSheet({
 
           <VStack space="xs" className="mt-2">
             <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Community Access</Text>
-            <Pressable 
+            <Pressable
               onPress={onConsentToggle}
               className="h-16 rounded-[24px] px-5 border-2 flex-row items-center justify-between shadow-sm"
-              style={{ 
+              style={{
                 borderColor: communityConsent ? primaryColor : borderColor,
-                backgroundColor: communityConsent ? `${primaryColor}05` : backgroundColor 
+                backgroundColor: communityConsent ? `${primaryColor}05` : backgroundColor
               }}
             >
               <HStack space="md" className="items-center">
-                <Box 
+                <Box
                   className="w-10 h-10 rounded-full items-center justify-center"
                   style={{ backgroundColor: communityConsent ? `${primaryColor}10` : `${subtextColor}10` }}
                 >
-                  <IconSymbol 
-                    name={communityConsent ? 'person.2.fill' : 'person.2'} 
-                    size={20} 
-                    color={communityConsent ? primaryColor : subtextColor} 
+                  <IconSymbol
+                    name={communityConsent ? 'person.2.fill' : 'person.2'}
+                    size={20}
+                    color={communityConsent ? primaryColor : subtextColor}
                   />
                 </Box>
                 <VStack>
@@ -223,10 +224,10 @@ export function ProfileEditorSheet({
                   </Text>
                 </VStack>
               </HStack>
-              <IconSymbol 
-                name={communityConsent ? 'checkmark.circle.fill' : 'circle'} 
-                size={22} 
-                color={communityConsent ? primaryColor : borderColor} 
+              <IconSymbol
+                name={communityConsent ? 'checkmark.circle.fill' : 'circle'}
+                size={22}
+                color={communityConsent ? primaryColor : borderColor}
               />
             </Pressable>
           </VStack>
@@ -240,7 +241,7 @@ export function ProfileEditorSheet({
             {isPending ? (
               <Spinner color="#fff" size="small" />
             ) : (
-              <ButtonText className="text-base font-extrabold uppercase tracking-widest">
+              <ButtonText className="text-white font-extrabold uppercase tracking-widest">
                 {profileExists ? 'Update Profile' : 'Save & Continue'}
               </ButtonText>
             )}
