@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControl, ScrollView } from 'react-native';
+import { RefreshControl, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { ProfileSkeleton } from '@/features/profile/components/ProfileSkeleton';
@@ -36,7 +36,9 @@ export default function ProfileScreen() {
     handlePresentModalPress,
     handleRefresh,
     handleSubmit,
-    handleVerifyNow,
+    handleVerifyNowClick,
+    handlePickAadhaarImage,
+    handleUploadAadhaar,
     isLoading,
     isPending,
     isRefreshing,
@@ -56,6 +58,10 @@ export default function ProfileScreen() {
     setShowCityPicker,
     setShowConsentAlert,
     setShowSignOutModal,
+    showVerificationAlert,
+    setShowVerificationAlert,
+    selectedAadhaarImageUri,
+    setSelectedAadhaarImageUri,
     showCityPicker,
     showConsentAlert,
     handleConsentToggle,
@@ -142,7 +148,7 @@ export default function ProfileScreen() {
           name={name}
           onCompleteProfile={handlePresentModalPress}
           onPickImage={handlePickImage}
-          onVerifyNow={handleVerifyNow}
+          onVerifyNow={handleVerifyNowClick}
           primaryColor={primaryColor}
           profileCity={profile?.city}
           successBgColor={successBgColor}
@@ -236,6 +242,58 @@ export default function ProfileScreen() {
           onPress: () => setShowSignOutModal(false),
         }}
       />
+
+      <CustomAlert
+        visible={showVerificationAlert}
+        title="Verify Identity"
+        message={
+          selectedAadhaarImageUri 
+            ? "Review the image below. Make sure your name and Aadhaar number are clearly visible before submitting."
+            : "Please choose a clear Aadhaar image from your files. Ensure your name and the 12-digit Aadhaar number are clearly visible so that we can match your profile information."
+        }
+        icon="person.text.rectangle"
+        onClose={() => {
+          setShowVerificationAlert(false);
+          setSelectedAadhaarImageUri(null);
+        }}
+        loading={isVerifyingGovernmentId}
+        disabled={isVerifyingGovernmentId}
+        primaryButton={
+          selectedAadhaarImageUri
+            ? {
+                text: 'Verify Now',
+                onPress: () => handleUploadAadhaar(selectedAadhaarImageUri),
+              }
+            : {
+                text: 'Choose Image',
+                onPress: handlePickAadhaarImage,
+              }
+        }
+        secondaryButton={
+          selectedAadhaarImageUri
+            ? {
+                text: 'Retake',
+                onPress: handlePickAadhaarImage,
+              }
+            : {
+                text: 'Cancel',
+                onPress: () => {
+                  setShowVerificationAlert(false);
+                  setSelectedAadhaarImageUri(null);
+                },
+              }
+        }
+      >
+        {selectedAadhaarImageUri ? (
+          <Box className="w-full items-center">
+            <Image
+              source={{ uri: selectedAadhaarImageUri }}
+              style={{ width: 320, height: 200, borderRadius: 16 }}
+              resizeMode="contain"
+            />
+          </Box>
+        ) : null}
+      </CustomAlert>
 
       <ProfileEditorSheet
         backgroundColor={backgroundColor}

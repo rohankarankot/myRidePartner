@@ -2,6 +2,7 @@ import React from 'react';
 import {
     Modal,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from './ui/icon-symbol';
@@ -31,6 +32,9 @@ interface CustomAlertProps {
     onClose: () => void;
     icon?: any;
     dismissible?: boolean;
+    loading?: boolean;
+    disabled?: boolean;
+    children?: React.ReactNode;
 }
 
 const { width } = Dimensions.get('window');
@@ -44,7 +48,10 @@ export function CustomAlert({
     tertiaryButton,
     onClose,
     icon = 'info.circle.fill',
-    dismissible = true
+    dismissible = true,
+    loading = false,
+    disabled = false,
+    children
 }: CustomAlertProps) {
     const backgroundColor = useThemeColor({}, 'card');
     const textColor = useThemeColor({}, 'text');
@@ -86,6 +93,8 @@ export function CustomAlert({
                         </Text>
                     </VStack>
 
+                    {children && <Box className="w-full mb-6 relative">{children}</Box>}
+
                     <HStack className="w-full" space="md">
                         {tertiaryButton && (
                             <Pressable
@@ -101,10 +110,11 @@ export function CustomAlert({
                         {secondaryButton && (
                             <Pressable
                                 className="flex-1 h-12 rounded-2xl border-2 items-center justify-center"
-                                style={{ borderColor }}
+                                style={{ borderColor: loading ? `${borderColor}50` : borderColor }}
                                 onPress={secondaryButton.onPress}
+                                disabled={loading}
                             >
-                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: loading ? `${subtextColor}50` : subtextColor }}>
                                     {secondaryButton.text}
                                 </Text>
                             </Pressable>
@@ -113,16 +123,21 @@ export function CustomAlert({
                             className="flex-1 h-12 rounded-2xl items-center justify-center border"
                             style={[
                                 { 
-                                    backgroundColor: primaryColor, 
+                                    backgroundColor: (disabled || loading) ? `${primaryColor}50` : primaryColor, 
                                     borderColor: `${primaryColor}20` 
                                 },
                                 primaryButton.style
                             ]}
                             onPress={primaryButton.onPress}
+                            disabled={disabled || loading}
                         >
-                            <Text className="text-[10px] font-extrabold uppercase tracking-widest text-white text-center">
-                                {primaryButton.text}
-                            </Text>
+                            {loading ? (
+                                <ActivityIndicator size="small" color="white" />
+                            ) : (
+                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-white text-center">
+                                    {primaryButton.text}
+                                </Text>
+                            )}
                         </Pressable>
                     </HStack>
                 </Box>

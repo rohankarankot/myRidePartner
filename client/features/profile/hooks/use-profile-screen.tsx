@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import TextRecognition from 'react-native-text-recognition';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -14,6 +15,21 @@ import { useAuth } from '@/context/auth-context';
 import { useUserStore } from '@/store/user-store';
 import { userService } from '@/services/user-service';
 import { extractAadhaarNumber } from '@/features/profile/utils/profile-screen';
+
+function getAadhaarVerificationErrorMessage(error: unknown) {
+  const rawMessage = error instanceof Error ? error.message : String(error ?? '');
+  const normalizedMessage = rawMessage.toLowerCase();
+
+  if (
+    normalizedMessage.includes('com/google/mlkit') ||
+    normalizedMessage.includes('failed resolution') ||
+    normalizedMessage.includes('hostfunction')
+  ) {
+    return 'We could not scan this Aadhaar image right now. Please try again with a clearer photo or update the app and try once more.';
+  }
+
+  return 'We could not verify this Aadhaar image right now. Please try again in a moment.';
+}
 
 export function useProfileScreen() {
   const { openEditor } = useLocalSearchParams<{ openEditor?: string }>();
@@ -44,6 +60,8 @@ export function useProfileScreen() {
   const [citySearch, setCitySearch] = useState('');
   const [communityConsent, setCommunityConsent] = useState(false);
   const [showConsentAlert, setShowConsentAlert] = useState(false);
+  const [showVerificationAlert, setShowVerificationAlert] = useState(false);
+  const [selectedAadhaarImageUri, setSelectedAadhaarImageUri] = useState<string | null>(null);
   const [isEditorSheetOpen, setIsEditorSheetOpen] = useState(false);
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -245,6 +263,16 @@ export function useProfileScreen() {
       return;
     }
 
+    const cleanedPhone = phoneNumber.trim();
+    if (cleanedPhone.length !== 10) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid Phone Number',
+        text2: 'Phone number must be exactly 10 digits.',
+      });
+      return;
+    }
+
     if (profile) {
       updateProfileMutation.mutate({
         documentId: profile.documentId,
@@ -266,7 +294,7 @@ export function useProfileScreen() {
     }
   };
 
-  const handleVerifyNow = async () => {
+  const handleVerifyNowClick = () => {
     if (!profile) {
       Toast.show({
         type: 'info',
@@ -276,19 +304,28 @@ export function useProfileScreen() {
       handlePresentModalPress();
       return;
     }
+    setSelectedAadhaarImageUri(null);
+    setShowVerificationAlert(true);
+  };
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.9,
+  const handlePickAadhaarImage = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['image/*'],
+      copyToCacheDirectory: true,
     });
 
-    if (result.canceled) return;
+    if (!result.canceled && result.assets[0]?.uri) {
+      setSelectedAadhaarImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleUploadAadhaar = async (imageUri?: string) => {
+    const verificationImageUri = imageUri ?? selectedAadhaarImageUri;
+    if (!profile || !verificationImageUri) return;
 
     try {
       setIsVerifyingGovernmentId(true);
-      const imageUri = result.assets[0].uri;
-      const recognizedText = await TextRecognition.recognize(imageUri);
+      const recognizedText = await TextRecognition.recognize(verificationImageUri);
       const aadhaarNumber = extractAadhaarNumber(recognizedText);
 
       if (!aadhaarNumber) {
@@ -297,10 +334,35 @@ export function useProfileScreen() {
           text1: 'Aadhaar not detected',
           text2: 'We could not find a valid 12-digit Aadhaar number in that image.',
         });
+        setShowVerificationAlert(false);
+        setSelectedAadhaarImageUri(null);
+        setIsVerifyingGovernmentId(false);
         return;
       }
 
-      const governmentIdDocument = await userService.uploadFile(imageUri);
+      const fullText = recognizedText.join(' ').toLowerCase();
+      const userNameParts = profile.fullName.toLowerCase().split(' ').filter(p => p.length > 2);
+      
+      let isNameMatched = false;
+      if (userNameParts.length > 0) {
+        isNameMatched = userNameParts.some(part => fullText.includes(part));
+      } else {
+        isNameMatched = profile.fullName.toLowerCase().split(' ').some((part: string) => fullText.includes(part));
+      }
+
+      if (!isNameMatched) {
+        Toast.show({
+          type: 'error',
+          text1: 'Name mismatch',
+          text2: 'The name on the Aadhaar card does not match your profile name.',
+        });
+        setShowVerificationAlert(false);
+        setSelectedAadhaarImageUri(null);
+        setIsVerifyingGovernmentId(false);
+        return;
+      }
+
+      const governmentIdDocument = await userService.uploadFile(verificationImageUri);
       await updateProfileMutation.mutateAsync({
         documentId: profile.documentId,
         fullName: profile.fullName,
@@ -319,16 +381,25 @@ export function useProfileScreen() {
         text1: 'Verification submitted',
         text2: `Aadhaar ending ${aadhaarNumber.slice(-4)} verified successfully.`,
       });
+      setShowVerificationAlert(false);
+      setSelectedAadhaarImageUri(null);
     } catch (verificationError) {
       console.error('Aadhaar verification error:', verificationError);
       Toast.show({
         type: 'error',
-        text1: 'Verification failed',
-        text2: 'We could not process that Aadhaar image. Please try again.',
+        text1: 'Verification Failed',
+        text2: getAadhaarVerificationErrorMessage(verificationError),
       });
+      setShowVerificationAlert(false);
+      setSelectedAadhaarImageUri(null);
     } finally {
       setIsVerifyingGovernmentId(false);
     }
+  };
+
+  const handleSetPhoneNumber = (value: string) => {
+    const digitsOnly = value.replace(/[^\d]/g, '');
+    setPhoneNumber(digitsOnly.slice(0, 10));
   };
 
   return {
@@ -348,7 +419,9 @@ export function useProfileScreen() {
     handlePresentModalPress,
     handleRefresh,
     handleSubmit,
-    handleVerifyNow,
+    handleVerifyNowClick,
+    handlePickAadhaarImage,
+    handleUploadAadhaar,
     isLoading,
     isPending: createProfileMutation.isPending || updateProfileMutation.isPending,
     isRefreshing,
@@ -364,9 +437,13 @@ export function useProfileScreen() {
     setGender,
     communityConsent,
     setCommunityConsent,
-    setPhoneNumber,
+    setPhoneNumber: handleSetPhoneNumber,
     setShowCityPicker,
     setShowConsentAlert,
+    showVerificationAlert,
+    setShowVerificationAlert,
+    selectedAadhaarImageUri,
+    setSelectedAadhaarImageUri,
     setShowSignOutModal,
     showCityPicker,
     showConsentAlert,
