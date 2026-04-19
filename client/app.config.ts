@@ -41,6 +41,7 @@ const config: ExpoConfig = {
     softwareKeyboardLayoutMode: 'resize',
     predictiveBackGestureEnabled: false,
     package: 'com.rohankarankot.myridepartner',
+    versionCode: 1,
     googleServicesFile: './google-services.json',
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',

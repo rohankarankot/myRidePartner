@@ -269,7 +269,10 @@ const SwipeableMessageBubble = ({
 };
 
 export default function TripChatScreen() {
-    const { tripId } = useLocalSearchParams<{ tripId: string }>();
+    const { tripId, initialMessageId } = useLocalSearchParams<{ 
+        tripId: string;
+        initialMessageId?: string;
+    }>();
     const { user } = useAuth();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -299,6 +302,7 @@ export default function TripChatScreen() {
     const flatListRef = useRef<FlatList<any>>(null);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const mediaSheetRef = useRef<BottomSheetModal>(null);
+    const initialScrollHandledRef = useRef(false);
     const keyboardHeight = useRef(new Animated.Value(0)).current;
 
     useBottomSheetBackHandler([{ isOpen: isMediaSheetOpen, ref: mediaSheetRef }]);
@@ -331,6 +335,7 @@ export default function TripChatScreen() {
             hideSub.remove();
         };
     }, [keyboardHeight]);
+
 
     const flashMessageHighlight = (messageId: string) => {
         if (highlightTimeoutRef.current) {
@@ -441,10 +446,23 @@ export default function TripChatScreen() {
                     }
 
                     const optimisticIndex = oldMessages.findIndex(
-                        (item) =>
-                            item.documentId.startsWith('optimistic-') &&
-                            item.sender.id === message.sender.id &&
-                            item.message === message.message
+                        (item) => {
+                            if (!item.documentId.startsWith('optimistic-') || item.sender.id !== message.sender.id) {
+                                return false;
+                            }
+
+                            // Exact match for text or full message content
+                            if (item.message === message.message) return true;
+
+                            // Intelligent match for media messages: compare captions
+                            const itemMedia = parseMediaMessage(item.message);
+                            const msgMedia = parseMediaMessage(message.message);
+                            if (itemMedia && msgMedia) {
+                                return itemMedia.caption === msgMedia.caption;
+                            }
+
+                            return false;
+                        }
                     );
 
                     if (optimisticIndex >= 0) {
@@ -539,6 +557,24 @@ export default function TripChatScreen() {
                 .map(toGiftedMessage),
         [messages]
     );
+
+    // Auto-scroll to message from deep link
+    useEffect(() => {
+        if (initialMessageId && giftedMessages.length > 0 && !initialScrollHandledRef.current) {
+            // Find the message in the current list
+            const index = giftedMessages.findIndex((m) => String(m._id) === String(initialMessageId));
+
+            if (index !== -1) {
+                initialScrollHandledRef.current = true;
+
+                // Small delay to ensure GiftedChat is ready
+                setTimeout(() => {
+                    scrollToMessage(initialMessageId);
+                    flashMessageHighlight(initialMessageId);
+                }, 500);
+            }
+        }
+    }, [initialMessageId, giftedMessages.length]);
 
     const openSharedLocation = async (payload: ParsedLocationMessage) => {
         const latLng = `${payload.latitude},${payload.longitude}`;
@@ -866,6 +902,7 @@ export default function TripChatScreen() {
             return;
         }
 
+        Keyboard.dismiss();
         setIsMediaSheetOpen(true);
         mediaSheetRef.current?.present();
     };
@@ -877,33 +914,30 @@ export default function TripChatScreen() {
 
         const currentReplyTo = pendingMediaDraft.replyTo;
         const mediaCaption = pendingMediaDraft.caption.trim();
+        const localUri = pendingMediaDraft.localUri;
         let optimisticDocumentId: string | null = null;
 
         setIsSendingMedia(true);
 
         try {
-            const uploadedUrl = await userService.uploadFile(pendingMediaDraft.localUri);
-            const mediaMessage = buildMediaMessage({
-                url: uploadedUrl,
+            // 1. Build optimistic message using local URI
+            const localMediaMessage = buildMediaMessage({
+                url: localUri,
                 caption: mediaCaption,
             });
-
-            setReplyingTo(null);
-            setActiveMessageMenuId(null);
-            setPendingMediaDraft(null);
 
             optimisticDocumentId = `optimistic-media-${Date.now()}`;
             const optimisticMessage = fromGiftedMessage(
                 {
                     _id: optimisticDocumentId,
-                    text: mediaMessage,
+                    text: localMediaMessage,
                     createdAt: new Date(),
                     user: {
                         _id: String(user.id),
                         name: user.username || 'You',
                     },
                     media: {
-                        url: uploadedUrl,
+                        url: localUri,
                         caption: mediaCaption,
                     },
                 },
@@ -911,6 +945,7 @@ export default function TripChatScreen() {
                 currentReplyTo || undefined
             );
 
+            // 2. Update UI cache immediately
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) => [
                     optimisticMessage,
@@ -919,10 +954,23 @@ export default function TripChatScreen() {
             );
             scrollToBottom();
 
-            const createdMessage = await tripChatService.sendMessage(tripId, mediaMessage, {
+            // 3. Clear draft and modal immediately
+            setReplyingTo(null);
+            setActiveMessageMenuId(null);
+            setPendingMediaDraft(null);
+
+            // 4. Perform background upload and server sync
+            const uploadedUrl = await userService.uploadFile(localUri);
+            const serverMediaMessage = buildMediaMessage({
+                url: uploadedUrl,
+                caption: mediaCaption,
+            });
+
+            const createdMessage = await tripChatService.sendMessage(tripId, serverMediaMessage, {
                 replyToDocumentId: currentReplyTo ? String(currentReplyTo._id) : undefined,
             });
 
+            // 5. Replace optimistic message with server message
             queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
                 updatePaginatedMessages(oldPages, (oldMessages) =>
                     oldMessages.map((item) =>
@@ -930,7 +978,8 @@ export default function TripChatScreen() {
                     )
                 )
             );
-        } catch {
+        } catch (error) {
+            console.error('Failed to send media:', error);
             if (optimisticDocumentId) {
                 queryClient.setQueryData(['trip-chat-messages', tripId], (oldPages: InfiniteData<PaginatedTripChatMessages, string | null> | undefined) =>
                     updatePaginatedMessages(oldPages, (oldMessages) =>
@@ -1545,7 +1594,7 @@ export default function TripChatScreen() {
                                                 {replyingTo.user.name}
                                             </Text>
                                             <Text className="text-[13px] font-medium" style={{ color: subtextColor }} numberOfLines={1}>
-                                                {replyingTo.text}
+                                                {summarizeMessageContent(replyingTo.text)}
                                             </Text>
                                         </VStack>
                                         <Pressable
