@@ -32,7 +32,7 @@ const SECTIONS = [
   {
     title: '5. Contact Us',
     body:
-      'If you have questions regarding this Privacy Policy, please contact us at privacy@myridepartner.com.',
+      'If you have questions regarding this Privacy Policy, please contact us at rohan.alwayscodes@gmail.com.',
   },
 ];
 
@@ -48,8 +48,8 @@ export default function PrivacySettingsScreen() {
       <Stack.Screen options={{ title: 'Privacy & Policy', headerTitleStyle: { fontWeight: '800' } }} />
 
       <VStack className="px-6 py-8" space="xs">
-          <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Privacy Policy</Text>
-          <Text className="text-sm font-medium" style={{ color: subtextColor }}>How we handle your data and protect your privacy.</Text>
+        <Text className="text-3xl font-extrabold" style={{ color: textColor }}>Privacy Policy</Text>
+        <Text className="text-sm font-medium" style={{ color: subtextColor }}>How we handle your data and protect your privacy.</Text>
       </VStack>
 
       <Box className="mx-6 rounded-[32px] p-6 mb-6 shadow-sm border" style={{ backgroundColor: cardColor, borderColor }}>
@@ -69,9 +69,9 @@ export default function PrivacySettingsScreen() {
       </Box>
 
       <VStack className="items-center py-6" space="xs">
-          <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
-            Last Updated: March 2026
-          </Text>
+        <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+          Last Updated: March 2026
+        </Text>
       </VStack>
     </ScrollView>
   );

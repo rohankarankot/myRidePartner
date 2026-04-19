@@ -32,6 +32,9 @@
         }
     },
     "submit": {
-        "production": {}
+        "production": {
+            "releaseStatus": "draft",
+            "track": "internal"
+        }
     }
 }

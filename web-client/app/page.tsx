@@ -42,7 +42,7 @@ export default function Home() {
               </a>
               <a
                 className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white/80 px-7 py-4 text-base font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700"
-                href="mailto:hello@myridepartner.in"
+                href="mailto:rohan.alwayscodes@gmail.com"
               >
                 Contact Us
               </a>
@@ -122,21 +122,25 @@ export default function Home() {
           </div>
         </div>
 
-        <section className="grid gap-4 border-t border-slate-200/80 py-8 text-sm text-slate-600 sm:grid-cols-3">
+        <section className="grid gap-4 border-t border-slate-200/80 py-8 text-sm text-slate-600 sm:grid-cols-4">
           <div>
             <p className="font-semibold text-slate-900">Built for commuters</p>
-            <p className="mt-2">Designed for short-distance shared travel in Indian cities.</p>
+            <p className="mt-2 text-balance">Designed for short-distance shared travel in Indian cities.</p>
           </div>
           <a
             className="text-left transition hover:text-sky-700"
-            href="mailto:hello@myridepartner.in"
+            href="mailto:rohan.alwayscodes@gmail.com"
           >
             <p className="font-semibold text-slate-900">Early access</p>
             <p className="mt-2">Want test builds? Reach out and we can share the app manually.</p>
           </a>
           <div>
+            <p className="font-semibold text-slate-900">Privacy & Policy</p>
+            <p className="mt-2 text-balance">Read how we protect your data in our <a href="/privacy" className="font-medium text-sky-700 underline underline-offset-4 transition-colors hover:text-sky-900">Privacy Policy</a>.</p>
+          </div>
+          <div className="sm:text-right">
             <p className="font-semibold text-slate-900">Next up</p>
-            <p className="mt-2">This site will also host shared trip pages for deep linking.</p>
+            <p className="mt-2 text-balance">This site will also host shared trip pages for deep linking.</p>
           </div>
         </section>
       </section>
