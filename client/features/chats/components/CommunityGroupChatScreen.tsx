@@ -27,6 +27,75 @@ import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
 import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 
+const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
+const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
+
+type ParsedLocationMessage = {
+    latitude: number;
+    longitude: number;
+    label: string;
+};
+
+type ParsedMediaMessage = {
+    url: string;
+    caption: string;
+};
+
+const parseLocationMessage = (value: string): ParsedLocationMessage | null => {
+    if (!value.startsWith(LOCATION_MESSAGE_PREFIX)) {
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(value.slice(LOCATION_MESSAGE_PREFIX.length));
+        if (typeof parsed.latitude !== 'number' || typeof parsed.longitude !== 'number') {
+            return null;
+        }
+
+        return {
+            latitude: parsed.latitude,
+            longitude: parsed.longitude,
+            label: typeof parsed.label === 'string' ? parsed.label : 'Shared current location',
+        };
+    } catch {
+        return null;
+    }
+};
+
+const parseMediaMessage = (value: string): ParsedMediaMessage | null => {
+    if (!value.startsWith(MEDIA_MESSAGE_PREFIX)) {
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(value.slice(MEDIA_MESSAGE_PREFIX.length));
+        if (typeof parsed.url !== 'string' || !parsed.url.trim()) {
+            return null;
+        }
+
+        return {
+            url: parsed.url,
+            caption: typeof parsed.caption === 'string' ? parsed.caption : '',
+        };
+    } catch {
+        return null;
+    }
+};
+
+const summarizeMessageContent = (value: string) => {
+    const mediaPayload = parseMediaMessage(value);
+    if (mediaPayload) {
+        return mediaPayload.caption.trim() || 'Photo';
+    }
+
+    const locationPayload = parseLocationMessage(value);
+    if (locationPayload) {
+        return locationPayload.label || 'Shared location';
+    }
+
+    return value;
+};
+
 const MESSAGE_PAGE_SIZE = 40;
 
 interface ExtendedMessage extends IMessage {
@@ -738,7 +807,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
                                                     {currentMessage.replyTo.sender.username || currentMessage.replyTo.sender.name}
                                                 </GSText>
                                                 <GSText className="text-xs font-medium mt-0.5" style={{ color: messageColor }} numberOfLines={2}>
-                                                    {currentMessage.replyTo.message}
+                                                    {summarizeMessageContent(currentMessage.replyTo.message)}
                                                 </GSText>
                                             </VStack>
                                         </Pressable>
@@ -759,7 +828,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
                                                     Replying to {replyingTo.user.name || (replyingTo.user as any).username || 'Member'}
                                                 </GSText>
                                                 <GSText className="text-xs font-semibold opacity-70" style={{ color: subtextColor }} numberOfLines={1}>
-                                                    {replyingTo.text}
+                                                    {summarizeMessageContent(replyingTo.text)}
                                                 </GSText>
                                             </VStack>
                                             <Pressable

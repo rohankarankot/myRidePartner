@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import {
 import { UploadService } from '../upload/upload.service';
 
 const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
+const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
 
 type TripWithRelations = {
   id: number;
@@ -57,6 +59,8 @@ type MediaMessagePayload = {
 
 @Injectable()
 export class TripChatsService {
+  private readonly logger = new Logger(TripChatsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
@@ -387,6 +391,7 @@ export class TripChatsService {
         username: string | null;
         userProfile?: {
           fullName?: string | null;
+          avatar?: string | null;
         } | null;
       };
     },
@@ -418,6 +423,10 @@ export class TripChatsService {
       'Someone';
     const messagePreview = this.buildChatNotificationPreview(message.message);
 
+    this.logger.log(
+      `Notifying ${recipientIds.length} recipients. Sender: ${senderName}, Avatar: ${message.sender.userProfile?.avatar}`,
+    );
+
     await Promise.all(
       recipientIds.map(async (recipientId) => {
         if (
@@ -438,14 +447,20 @@ export class TripChatsService {
             screen: 'trip-chat',
             messageDocumentId: message.documentId,
           },
+          threadId: trip.documentId,
+          image: message.sender.userProfile?.avatar || undefined,
         });
       }),
     );
   }
 
   private buildChatNotificationPreview(message: string) {
-    if (message.startsWith('__ride_location__::')) {
+    if (message.startsWith(LOCATION_MESSAGE_PREFIX)) {
       return 'Shared a location in your ride chat.';
+    }
+
+    if (message.startsWith(MEDIA_MESSAGE_PREFIX)) {
+      return 'Shared a photo in your ride chat.';
     }
 
     return message.length > 120 ? `${message.slice(0, 117)}...` : message;

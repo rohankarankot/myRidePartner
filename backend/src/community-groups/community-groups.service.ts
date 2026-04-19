@@ -458,7 +458,12 @@ export class CommunityGroupsService {
             message: `${notificationSenderName}: ${notificationMessage}`,
             data: {
               url: `/community-group-chat/${documentId}`,
+              groupId: documentId,
+              screen: 'community-group-chat',
+              messageDocumentId: message.documentId,
             },
+            threadId: documentId,
+            image: message.sender.userProfile?.avatar || undefined,
           }),
         ),
     );

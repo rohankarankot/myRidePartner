@@ -13,19 +13,35 @@ export class ExpoPushService {
   /**
    * Send a push notification to a specific Expo push token.
    */
-  async sendNotification(pushToken: string, title: string, body: string, data?: any) {
+  async sendNotification(
+    pushToken: string,
+    title: string,
+    body: string,
+    data?: any,
+    options?: {
+      threadId?: string;
+      priority?: 'default' | 'normal' | 'high';
+      mutableContent?: boolean;
+      image?: string;
+    },
+  ) {
     if (!Expo.isExpoPushToken(pushToken)) {
       this.logger.error(`Push token ${pushToken} is not a valid Expo push token`);
       return;
     }
 
-    const messages: ExpoPushMessage[] = [
+    const messages: any[] = [
       {
         to: pushToken,
         sound: 'default',
         title,
         body,
         data,
+        threadId: options?.threadId,
+        priority: options?.priority || 'high',
+        mutableContent: options?.mutableContent ?? true,
+        image: options?.image,
+        icon: options?.image, // Some Android handlers use 'icon' for the large icon
       },
     ];
 

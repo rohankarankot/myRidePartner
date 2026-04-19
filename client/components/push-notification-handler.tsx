@@ -38,7 +38,10 @@ export const PushNotificationHandler = () => {
             if (data?.screen === 'trip-chat' && data?.tripId) {
                 router.push({
                     pathname: '/trip-chat/[tripId]',
-                    params: { tripId: data.tripId }
+                    params: { 
+                        tripId: data.tripId,
+                        initialMessageId: data.messageDocumentId 
+                    }
                 } as any);
             } else if (data?.tripId) {
                 router.push({

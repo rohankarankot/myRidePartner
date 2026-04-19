@@ -101,6 +101,7 @@ export class NotificationsService {
       });
 
       if (userProfile?.pushToken) {
+        const optimizedImage = this.optimizeImageUrl(data.data?.image);
         await this.expoPushService.sendNotification(
           userProfile.pushToken,
           data.title,
@@ -109,6 +110,12 @@ export class NotificationsService {
             type: data.type,
             relatedId: data.relatedId,
             ...data.data,
+            image: optimizedImage, // Also include in data for client-side handling
+            icon: optimizedImage, // Redundancy for Android handlers
+          },
+          {
+            threadId: data.data?.threadId,
+            image: optimizedImage,
           },
         );
       }
@@ -125,6 +132,8 @@ export class NotificationsService {
     message: string;
     userId: number;
     data?: any;
+    threadId?: string;
+    image?: string;
   }) {
     try {
       const userProfile = await this.prisma.userProfile.findUnique({
@@ -133,11 +142,20 @@ export class NotificationsService {
       });
 
       if (userProfile?.pushToken) {
+        const optimizedImage = this.optimizeImageUrl(data.image);
         await this.expoPushService.sendNotification(
           userProfile.pushToken,
           data.title,
           data.message,
-          data.data,
+          {
+            ...data.data,
+            image: optimizedImage, // Also include in data
+            icon: optimizedImage, // Redundancy for Android handlers
+          },
+          {
+            threadId: data.threadId,
+            image: optimizedImage,
+          },
         );
       }
     } catch (error) {
@@ -193,5 +211,29 @@ export class NotificationsService {
     });
 
     return { message: 'All notifications deleted' };
+  }
+
+  private optimizeImageUrl(url?: string | null): string | undefined {
+    if (!url) return undefined;
+
+    // 1. Trim whitespace
+    let optimized = url.trim();
+
+    // 2. Ensure HTTPS
+    if (optimized.startsWith('http://')) {
+      optimized = optimized.replace('http://', 'https://');
+    }
+
+    // 3. Cloudinary optimization (resize for notifications)
+    if (optimized.includes('res.cloudinary.com') && !optimized.includes('/w_')) {
+      // Use high-compatibility transformations, avoiding f_auto to ensure standard formats
+      optimized = optimized.replace(
+        '/upload/',
+        '/upload/c_fill,g_face,w_200,h_200,q_auto/',
+      );
+    }
+
+    // 4. Trim trailing slashes at the end to ensure we don't return a malformed URL
+    return optimized.replace(/\/+$/, '');
   }
 }
