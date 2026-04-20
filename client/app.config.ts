@@ -1,4 +1,5 @@
 import type { ExpoConfig } from 'expo/config';
+import withVerificationToken from './plugins/withVerificationToken';
 
 const androidAppId =
   process.env.ADMOB_ANDROID_APP_ID || 'ca-app-pub-3940256099942544~3347511713';
@@ -21,7 +22,7 @@ const config: ExpoConfig = {
     policy: 'appVersion',
   },
   updates: {
-    url: 'https://u.expo.dev/1d2748c6-b89b-46e8-bc81-798e8807cb48',
+    url: 'https://u.expo.dev/227dc62a-7e36-4a43-8bae-723aa73b7805',
   },
   ios: {
     supportsTablet: true,
@@ -41,7 +42,6 @@ const config: ExpoConfig = {
     softwareKeyboardLayoutMode: 'resize',
     predictiveBackGestureEnabled: false,
     package: 'com.rohankarankot.myridepartner',
-    versionCode: 1,
     googleServicesFile: './google-services.json',
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',
@@ -116,18 +116,19 @@ const config: ExpoConfig = {
         iosAppId,
       },
     ],
+    withVerificationToken as any,
   ],
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
   },
   extra: {
-    router: {},
     eas: {
-      projectId: '1d2748c6-b89b-46e8-bc81-798e8807cb48',
+      projectId: '227dc62a-7e36-4a43-8bae-723aa73b7805',
     },
+    router: {},
   },
-  owner: 'rohankarankot',
+  owner: 'rohanalwayscodes',
 };
 
 export default {
