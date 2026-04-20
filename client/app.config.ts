@@ -26,7 +26,7 @@ const config: ExpoConfig = {
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.rohankarankot.myridepartner',
+    bundleIdentifier: 'com.rohanalwayscodes.myridepartner',
     googleServicesFile: './GoogleService-Info.plist',
     associatedDomains: [`applinks:${shareHost}`],
     infoPlist: {
@@ -41,7 +41,7 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     softwareKeyboardLayoutMode: 'resize',
     predictiveBackGestureEnabled: false,
-    package: 'com.rohankarankot.myridepartner',
+    package: 'com.rohanalwayscodes.myridepartner',
     googleServicesFile: './google-services.json',
     permissions: [
       'android.permission.ACCESS_COARSE_LOCATION',
