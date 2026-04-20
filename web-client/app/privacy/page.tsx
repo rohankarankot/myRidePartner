@@ -7,19 +7,23 @@ export default function PrivacyPage() {
       body: 'We collect information you provide directly to us, such as your name, email, phone number, and profile picture. As a carpooling app, we also collect trip-related details and location data to match you with rides and track trips securely.',
     },
     {
-      title: '2. How We Use Your Information',
-      body: 'Your information is used to facilitate carpooling, ensure user safety, communicate ride updates, and improve our services. Location data is shared with other users only when you actively participate in a trip.',
+      title: '2. Location Data & Permissions',
+      body: 'My Ride Partner requires access to your location to provide core carpooling features. We use this information to: (a) match you with nearby riders or drivers, (b) help you select accurate pickup and drop-off points, and (c) provide real-time trip tracking for safety. This data is only active and shared with your trip partners when you are participating in a live ride.',
     },
     {
-      title: '3. Data Sharing and Security',
+      title: '3. How We Use Your Information',
+      body: 'Your information is used to facilitate carpooling, ensure user safety, communicate ride updates, and improve our services. For your privacy, your precise location is only visible to others while a trip is in progress.',
+    },
+    {
+      title: '4. Data Sharing and Security',
       body: 'We do not sell your personal data. Your profile information such as name, avatar, and ratings is visible to other users to build trust and safety in the community. We implement standard security measures to protect your data from unauthorized access.',
     },
     {
-      title: '4. Your Rights',
+      title: '5. Your Rights',
       body: 'You have the right to access, update, or delete your account information at any time through the app\'s account settings. You can also withdraw consent for location tracking via your device settings, though this may limit app functionality.',
     },
     {
-      title: '5. Contact Us',
+      title: '6. Contact Us',
       body: 'If you have questions regarding this Privacy Policy, please contact us at rohan.alwayscodes@gmail.com.',
     },
   ];
