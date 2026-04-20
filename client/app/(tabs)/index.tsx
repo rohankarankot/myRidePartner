@@ -16,6 +16,7 @@ import {
   TripCard,
 } from '@/features/trips/components/find-rides';
 import { useFindRidesScreen } from '@/features/trips/hooks/use-find-rides-screen';
+import { useInterstitialAd } from '@/features/ads/hooks/use-interstitial-ad';
 
 export default function FindRidesScreen() {
   const router = useRouter();
@@ -60,6 +61,8 @@ export default function FindRidesScreen() {
     toSearch,
     trips,
   } = useFindRidesScreen();
+
+  const { showAdWithCallback } = useInterstitialAd(2);
 
   return (
     <Box className="flex-1" style={{ backgroundColor }}>
@@ -118,7 +121,7 @@ export default function FindRidesScreen() {
               from={item.startingPoint}
               genderPreference={item.genderPreference}
               isCalculated={item.isPriceCalculated}
-              onPress={(id) => router.push(`/trip/${id}`)}
+              onPress={(id) => showAdWithCallback(() => router.push(`/trip/${id}`))}
               price={item.pricePerSeat?.toString()}
               status={item.status}
               time={item.time}
