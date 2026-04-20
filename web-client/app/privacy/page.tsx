@@ -4,27 +4,27 @@ export default function PrivacyPage() {
   const sections = [
     {
       title: '1. Information We Collect',
-      body: 'We collect information you provide directly to us, such as your name, email, phone number, and profile picture. As a carpooling app, we also collect trip-related details, location data, and push notification tokens to match you with rides, track trips securely, and provide real-time updates.',
+      body: 'We collect information you provide directly to us, such as your name and email through Google Sign-In. To facilitate ride-sharing, we collect your precise geographical location (GPS) while the app is in use. This data is essential for matching you with nearby partners and calculating trip distances.',
     },
     {
       title: '2. Location Data & Permissions',
-      body: 'My Ride Partner requires access to your location to provide core carpooling features. We use this information to: (a) match you with nearby riders or drivers, (b) help you select accurate pickup and drop-off points, and (c) provide real-time trip tracking for safety. This data is only active and shared with your trip partners when you are participating in a live ride.',
+      body: 'My Ride Partner requires access to your location to provide core carpooling features. We use this information to: (a) match you with nearby riders or drivers, (b) help you select accurate pickup and drop-off points, and (c) provide real-time trip tracking for safety. This data is only visible to your trip partners during a live ride.',
     },
     {
-      title: '3. How We Use Your Information',
-      body: 'Your information is used to facilitate carpooling, ensure user safety, communicate ride updates, and improve our services. For your privacy, your precise location is only visible to others while a trip is in progress.',
+      title: '3. Data Usage & Advertising',
+      body: 'Your data is used to facilitate communication between members and improve our services. We use Google AdMob to show ads. AdMob may use your device identifiers and location to serve relevant ads. You can manage your ad preferences in your device settings.',
     },
     {
-      title: '4. Data Sharing and Security',
-      body: 'We do not sell your personal data. Your profile information such as name, avatar, and ratings is visible to other users to build trust and safety in the community. We implement standard security measures to protect your data from unauthorized access.',
+      title: '4. Third-Party Services',
+      body: 'We use Google Firebase for authentication and analytics. These services help us secure your account and understand app stability. By using My Ride Partner, you also agree to the 3rd-party privacy policies of Google and AdMob.',
     },
     {
-      title: '5. Your Rights',
-      body: 'You have the right to access, update, or delete your account information at any time through the app\'s account settings. You can also withdraw consent for location tracking via your device settings, though this may limit app functionality.',
+      title: '5. Account Deletion',
+      body: 'You have the right to access, update, or delete your account information at any time. To request full deletion of your account and associated data, please contact us at rohan.alwayscodes@gmail.com. We will process your request within 48 hours.',
     },
     {
       title: '6. Contact Us',
-      body: 'If you have questions regarding this Privacy Policy, please contact us at rohan.alwayscodes@gmail.com.',
+      body: 'If you have questions regarding this Privacy Policy or any technical issues, please contact us at rohan.alwayscodes@gmail.com.',
     },
   ];
 
