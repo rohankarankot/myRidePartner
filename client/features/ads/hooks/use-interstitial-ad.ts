@@ -14,11 +14,12 @@ export function useInterstitialAd(frequency = DEFAULT_FREQUENCY, customAdUnitId?
   const [loaded, setLoaded] = useState(false);
   const clickCount = useRef(0);
 
-  const adUnitIdToUse = customAdUnitId || DEFAULT_AD_UNIT_ID;
+  const adUnitIdToUse = __DEV__
+    ? TestIds.INTERSTITIAL
+    : (customAdUnitId || DEFAULT_AD_UNIT_ID);
 
   const loadAd = useCallback(() => {
-    // Cast to any to bypass problematic TypeScript definitions in v16+
-    const newAd = (InterstitialAd as any).createForAdUnit(adUnitIdToUse, {
+    const newAd = InterstitialAd.createForAdRequest(adUnitIdToUse, {
       requestNonPersonalizedAdsOnly: true,
     });
 
@@ -44,7 +45,7 @@ export function useInterstitialAd(frequency = DEFAULT_FREQUENCY, customAdUnitId?
       unsubscribeClosed();
       unsubscribeError();
     };
-  }, []);
+  }, [adUnitIdToUse]);
 
   useEffect(() => {
     const cleanup = loadAd();

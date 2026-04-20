@@ -8,12 +8,14 @@ const AD_UNIT_ID = Platform.select({
 }) || TestIds.BANNER;
 
 export function DiscoveryBannerAd() {
-  if (!AD_UNIT_ID) return null;
+  const unitId = __DEV__ ? TestIds.BANNER : AD_UNIT_ID;
+
+  if (!unitId) return null;
 
   return (
     <View style={{ alignItems: 'center', marginVertical: 10 }}>
       <BannerAd
-        unitId={AD_UNIT_ID}
+        unitId={unitId}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: true,

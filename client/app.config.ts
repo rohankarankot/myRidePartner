@@ -2,9 +2,9 @@ import type { ExpoConfig } from 'expo/config';
 import withVerificationToken from './plugins/withVerificationToken';
 
 const androidAppId =
-  process.env.ADMOB_ANDROID_APP_ID || 'ca-app-pub-3940256099942544~3347511713';
+  process.env.EXPO_PUBLIC_ADMOB_APP_ID_ANDROID || 'ca-app-pub-4316956546209623~6592915428';
 const iosAppId =
-  process.env.ADMOB_IOS_APP_ID || 'ca-app-pub-3940256099942544~1458002511';
+  process.env.EXPO_PUBLIC_ADMOB_APP_ID_IOS || 'ca-app-pub-3940256099942544~1458002511';
 const shareBaseUrl =
   process.env.EXPO_PUBLIC_SHARE_BASE_URL || 'https://my-ride-partner.vercel.app';
 const shareHost = new URL(shareBaseUrl).host;

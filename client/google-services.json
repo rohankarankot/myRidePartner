@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "583727129759-2278d66tj9vn7dvj5g3s8pd4mjckfou2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rohanalwayscodes.myridepartner",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
           "client_id": "583727129759-p7hk0ro521nfttnit9gudo252h7hts3n.apps.googleusercontent.com",
           "client_type": 3
         }
