@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "557967168672",
-    "project_id": "my-ride-partner-488012",
-    "storage_bucket": "my-ride-partner-488012.firebasestorage.app"
+    "project_number": "583727129759",
+    "project_id": "my-ride-partner-94461",
+    "storage_bucket": "my-ride-partner-94461.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:557967168672:android:acb9f27a80ad4dab15a5c5",
+        "mobilesdk_app_id": "1:583727129759:android:087aaa16cc6b82eb11eeaa",
         "android_client_info": {
-          "package_name": "com.rohankarankot.myridepartner"
+          "package_name": "com.rohanalwayscodes.myridepartner"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "557967168672-022fv2m3v69ueruq5rp0857ctm1vlek9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD_i4WHYiDz7pKUxDkqhFQrXk9vEp94p9o"
+          "current_key": "AIzaSyBsBXvoDZYZP4qkcUmmhXG1ToU-ihQE3w4"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "557967168672-022fv2m3v69ueruq5rp0857ctm1vlek9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

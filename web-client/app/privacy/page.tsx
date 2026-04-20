@@ -4,7 +4,7 @@ export default function PrivacyPage() {
   const sections = [
     {
       title: '1. Information We Collect',
-      body: 'We collect information you provide directly to us, such as your name, email, phone number, and profile picture. As a carpooling app, we also collect trip-related details and location data to match you with rides and track trips securely.',
+      body: 'We collect information you provide directly to us, such as your name, email, phone number, and profile picture. As a carpooling app, we also collect trip-related details, location data, and push notification tokens to match you with rides, track trips securely, and provide real-time updates.',
     },
     {
       title: '2. Location Data & Permissions',
