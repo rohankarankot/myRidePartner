@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "583727129759-tr13i5iucpvm3q46kj2dhhcd1ncguq4b.apps.googleusercontent.com",
+          "client_id": "583727129759-1pu39p6n50fgja3715qmsqbhplr531e9.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.rohanalwayscodes.myridepartner",
-            "certificate_hash": "0a9f685593292177c8cfbe3f0b8cc5f240147f9d"
+            "certificate_hash": "f00eb31f896892f4db10244b6b78615bc5cdf868"
           }
         },
         {
@@ -27,6 +27,14 @@
           "android_info": {
             "package_name": "com.rohanalwayscodes.myridepartner",
             "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "583727129759-tr13i5iucpvm3q46kj2dhhcd1ncguq4b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.rohanalwayscodes.myridepartner",
+            "certificate_hash": "0a9f685593292177c8cfbe3f0b8cc5f240147f9d"
           }
         },
         {
