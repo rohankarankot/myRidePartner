@@ -19,6 +19,7 @@ import {
 import { useProfileScreen } from '@/features/profile/hooks/use-profile-screen';
 import { getProfileAvatarUrl, maskAadhaarNumber } from '@/features/profile/utils/profile-screen';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { FullScreenImageViewer } from '@/components/FullScreenImageViewer';
 
 export default function ProfileScreen() {
   const {
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
     city,
     citySearch,
     error,
+    fieldErrors,
     fullName,
     gender,
     handleEditorSheetChange,
@@ -69,6 +71,8 @@ export default function ProfileScreen() {
     signOut,
     snapPoints,
   } = useProfileScreen();
+
+  const [showFullImage, setShowFullImage] = React.useState(false);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -148,6 +152,7 @@ export default function ProfileScreen() {
           name={name}
           onCompleteProfile={handlePresentModalPress}
           onPickImage={handlePickImage}
+          onViewImage={() => setShowFullImage(true)}
           onVerifyNow={handleVerifyNowClick}
           primaryColor={primaryColor}
           profileCity={profile?.city}
@@ -302,6 +307,8 @@ export default function ProfileScreen() {
         cardColor={cardColor}
         city={city}
         citySearch={citySearch}
+        dangerColor={dangerColor}
+        fieldErrors={fieldErrors}
         fullName={fullName}
         gender={gender}
         isPending={isPending}
@@ -325,6 +332,12 @@ export default function ProfileScreen() {
         textColor={textColor}
         communityConsent={communityConsent}
         onConsentToggle={handleConsentToggle}
+      />
+
+      <FullScreenImageViewer
+        isVisible={showFullImage}
+        imageUrl={avatarUrl}
+        onClose={() => setShowFullImage(false)}
       />
     </SafeAreaView>
   );

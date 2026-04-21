@@ -21,6 +21,7 @@ import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Divider } from '@/components/ui/divider';
 import { ProfileSkeleton } from '@/features/profile/components/ProfileSkeleton';
+import { FullScreenImageViewer } from '@/components/FullScreenImageViewer';
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams();
@@ -38,6 +39,7 @@ export default function UserProfileScreen() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showBlockAlert, setShowBlockAlert] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const { isBlocked, blockUser, unblockUser, isBlocking, isUnblocking } = useBlockedUsers();
 
@@ -167,10 +169,12 @@ export default function UserProfileScreen() {
       >
         <VStack className="px-6 py-8 items-center" space="xl">
           <Box className="relative">
-            <Avatar size="2xl" className="border-4" style={{ borderColor: cardColor }}>
-              <AvatarFallbackText>{profile.fullName || '?'}</AvatarFallbackText>
-              {avatarUrl ? <AvatarImage source={{ uri: avatarUrl }} alt={profile.fullName || 'User'} /> : null}
-            </Avatar>
+            <Pressable onPress={() => setShowFullImage(true)} disabled={!avatarUrl}>
+              <Avatar size="2xl" className="border-4" style={{ borderColor: cardColor }}>
+                <AvatarFallbackText>{profile.fullName || '?'}</AvatarFallbackText>
+                {avatarUrl ? <AvatarImage source={{ uri: avatarUrl }} alt={profile.fullName || 'User'} /> : null}
+              </Avatar>
+            </Pressable>
             {profile.isVerified && (
               <Box className="absolute bottom-1 right-1 w-8 h-8 rounded-full items-center justify-center border-4" style={{ backgroundColor: '#10B981', borderColor: cardColor }}>
                 <IconSymbol name="checkmark" size={14} color="#fff" />
@@ -293,6 +297,12 @@ export default function UserProfileScreen() {
           </VStack>
         </VStack>
       </ScrollView>
+
+      <FullScreenImageViewer
+        isVisible={showFullImage}
+        imageUrl={avatarUrl || undefined}
+        onClose={() => setShowFullImage(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -485,22 +485,22 @@ export default function TripDetailsScreen() {
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor }} edges={['bottom']}>
-            <Stack.Screen 
-              options={{ 
-                title: loading ? 'Trip loading...' : 'Trip Details', 
-                headerStyle: { backgroundColor }, 
-                headerTintColor: textColor,
-                headerRight: () => isCreator ? (
-                  <Pressable onPress={handleShareTrip} className="p-2">
-                    <IconSymbol name="square.and.arrow.up" size={20} color={primaryColor} />
-                  </Pressable>
-                ) : null
-              }} 
+            <Stack.Screen
+                options={{
+                    title: loading ? 'Trip loading...' : 'Trip Details',
+                    headerStyle: { backgroundColor },
+                    headerTintColor: textColor,
+                    headerRight: () => isCreator ? (
+                        <Pressable onPress={handleShareTrip} className="p-2">
+                            <IconSymbol name="square.and.arrow.up" size={20} color={primaryColor} />
+                        </Pressable>
+                    ) : null
+                }}
             />
 
-            <ScrollView 
-              contentContainerStyle={{ padding: 16 }}
-              refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={primaryColor} />}
+            <ScrollView
+                contentContainerStyle={{ padding: 16 }}
+                refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={primaryColor} />}
             >
                 {/* Route Header */}
                 <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
@@ -559,22 +559,22 @@ export default function TripDetailsScreen() {
                     <Divider className="my-4" style={{ backgroundColor: borderColor }} />
                     <HStack className="justify-between">
                         <InfoItem icon="users" label="Seats" value={`${trip.availableSeats}`} textColor={textColor} subtextColor={subtextColor} />
-                        <InfoItem 
-                          icon="credit-card" 
-                          label="Price" 
-                          value={trip.pricePerSeat ? `₹${trip.pricePerSeat}` : trip.isPriceCalculated ? 'Later' : 'Free'} 
-                          textColor={textColor} 
-                          subtextColor={subtextColor} 
+                        <InfoItem
+                            icon="credit-card"
+                            label="Price"
+                            value={trip.pricePerSeat ? `₹${trip.pricePerSeat}` : trip.isPriceCalculated ? 'Later' : 'Free'}
+                            textColor={textColor}
+                            subtextColor={subtextColor}
                         />
                     </HStack>
                     <Divider className="my-4" style={{ backgroundColor: borderColor }} />
                     <HStack className="justify-between">
-                        <InfoItem 
-                          icon="person.2.fill" 
-                          label="Gender" 
-                          value={trip.genderPreference === 'both' ? 'Everyone' : trip.genderPreference === 'men' ? 'Men only' : 'Women only'} 
-                          textColor={textColor} 
-                          subtextColor={subtextColor} 
+                        <InfoItem
+                            icon="person.2.fill"
+                            label="Gender"
+                            value={trip.genderPreference === 'both' ? 'Everyone' : trip.genderPreference === 'men' ? 'Men only' : 'Women only'}
+                            textColor={textColor}
+                            subtextColor={subtextColor}
                         />
                         <Box className="flex-1" />
                     </HStack>
@@ -584,8 +584,8 @@ export default function TripDetailsScreen() {
                 {canOpenChat && (
                     <Button onPress={handleOpenChat} className="rounded-2xl h-14 mb-4" style={{ backgroundColor: primaryColor }}>
                         <HStack space="sm" className="items-center">
-                          <IconSymbol name="bubble.left.fill" size={20} color="#fff" />
-                          <ButtonText className="font-bold text-white">Open Ride Chat</ButtonText>
+                            <IconSymbol name="bubble.left.fill" size={20} color="#fff" />
+                            <ButtonText className="font-bold text-white">Open Ride Chat</ButtonText>
                         </HStack>
                     </Button>
                 )}
@@ -640,10 +640,10 @@ export default function TripDetailsScreen() {
                 )}
 
                 {/* Captain Card */}
-                <Pressable 
-                  onPress={() => router.push(`/user/${trip.creator?.id}`)}
-                  className="rounded-3xl p-5 mb-4 shadow-sm" 
-                  style={{ backgroundColor: cardColor }}
+                <Pressable
+                    onPress={() => router.push(`/user/${trip.creator?.id}`)}
+                    className="rounded-3xl p-5 mb-4 shadow-sm"
+                    style={{ backgroundColor: cardColor }}
                 >
                     <Text className="text-lg font-bold mb-4" style={{ color: textColor }}>Captain</Text>
                     <HStack className="items-center" space="md">
@@ -664,9 +664,9 @@ export default function TripDetailsScreen() {
                         <Text className="text-lg font-bold" style={{ color: textColor }}>Manage Ride</Text>
                         <HStack space="md">
                             {trip.status === 'PUBLISHED' && (
-                                <Button 
-                                    className="flex-1 h-12 rounded-xl" 
-                                    style={{ backgroundColor: primaryColor, opacity: canEditTrip ? 1 : 0.5 }} 
+                                <Button
+                                    className="flex-1 h-12 rounded-xl"
+                                    style={{ backgroundColor: primaryColor, opacity: canEditTrip ? 1 : 0.5 }}
                                     onPress={handleEditTrip}
                                 >
                                     <HStack space="xs" className="items-center">
@@ -675,11 +675,11 @@ export default function TripDetailsScreen() {
                                     </HStack>
                                 </Button>
                             )}
-                            
+
                             {trip.status === 'PUBLISHED' && (
-                                <Button 
-                                    className="flex-1 h-12 rounded-xl" 
-                                    style={{ backgroundColor: successColor }} 
+                                <Button
+                                    className="flex-1 h-12 rounded-xl"
+                                    style={{ backgroundColor: successColor }}
                                     onPress={() => setShowStartAlert(true)}
                                 >
                                     <HStack space="xs" className="items-center">
@@ -690,9 +690,9 @@ export default function TripDetailsScreen() {
                             )}
 
                             {trip.status === 'STARTED' && (
-                                <Button 
-                                    className="flex-1 h-12 rounded-xl" 
-                                    style={{ backgroundColor: successColor }} 
+                                <Button
+                                    className="flex-1 h-12 rounded-xl"
+                                    style={{ backgroundColor: successColor }}
                                     onPress={handleCompleteTrip}
                                 >
                                     <HStack space="xs" className="items-center">
@@ -703,9 +703,9 @@ export default function TripDetailsScreen() {
                             )}
 
                             {(trip.status === 'PUBLISHED' || trip.status === 'STARTED') && (
-                                <Button 
-                                    className="flex-1 h-12 rounded-xl" 
-                                    style={{ backgroundColor: dangerColor }} 
+                                <Button
+                                    className="flex-1 h-12 rounded-xl"
+                                    style={{ backgroundColor: dangerColor }}
                                     onPress={() => setShowCancelModal(true)}
                                 >
                                     <HStack space="xs" className="items-center">
@@ -715,7 +715,7 @@ export default function TripDetailsScreen() {
                                 </Button>
                             )}
                         </HStack>
-                        
+
                         {!canEditTrip && trip.status === 'PUBLISHED' && (
                             <Text className="text-xs italic" style={{ color: subtextColor }}>
                                 {getEditTripBlockedReason()}
@@ -732,13 +732,21 @@ export default function TripDetailsScreen() {
                             <Box key={req.id} className="rounded-2xl p-4 border" style={{ backgroundColor: cardColor, borderColor }}>
                                 <HStack className="justify-between items-center mb-3">
                                     <HStack space="sm" className="items-center">
-                                      <Avatar size="sm">
-                                          <AvatarFallbackText>{req.passenger.username}</AvatarFallbackText>
-                                      </Avatar>
-                                      <VStack>
-                                        <Text className="font-bold" style={{ color: textColor }}>{req.passenger.username}</Text>
-                                        <Text className="text-xs" style={{ color: subtextColor }}>{req.requestedSeats} seats</Text>
-                                      </VStack>
+                                        <Avatar size="sm">
+                                            <AvatarFallbackText>{req.passenger.userProfile?.fullName || req.passenger.username}</AvatarFallbackText>
+                                            {getAvatarUrl(req.passenger.userProfile) && (
+                                                <AvatarImage 
+                                                    source={{ uri: getAvatarUrl(req.passenger.userProfile) }} 
+                                                    alt={req.passenger.userProfile?.fullName || req.passenger.username} 
+                                                />
+                                            )}
+                                        </Avatar>
+                                        <VStack>
+                                            <Text className="font-bold" style={{ color: textColor }}>
+                                                {req.passenger.userProfile?.fullName || req.passenger.username}
+                                            </Text>
+                                            <Text className="text-xs" style={{ color: subtextColor }}>{req.requestedSeats} seats</Text>
+                                        </VStack>
                                     </HStack>
                                     <Box className="px-2 py-0.5 rounded-md" style={{ backgroundColor: getStatusColor(req.status, successColor, dangerColor, subtextColor) }}>
                                         <Text className="text-[10px] text-white font-bold">{req.status}</Text>
@@ -770,36 +778,44 @@ export default function TripDetailsScreen() {
             {/* Custom Modals & Alerts */}
             <ReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} onSubmit={saveReport} reportedUserId={trip.creator?.id ?? 0} reportedUserName={creatorProfile?.fullName} tripDocumentId={trip.documentId} source="trip" />
             <CustomAlert visible={showProfileAlert} title="Profile Incomplete" message="Please update your profile details first." primaryButton={{ text: "Go to Profile", onPress: () => { setShowProfileAlert(false); router.push({ pathname: '/(tabs)/profile', params: { openEditor: 'true' } }); } }} onClose={() => setShowProfileAlert(false)} />
-            <CustomAlert visible={showGenderAlert} title="Gender Mismatch" message="This ride matches a different gender preference." primaryButton={{ text: "OK", onPress: () => setShowGenderAlert(false) }} onClose={() => setShowGenderAlert(false) } />
-            
-            <CustomAlert 
-                visible={showStartAlert} 
-                title="Start Ride?" 
-                message="Are you sure you want to start this ride now?" 
-                primaryButton={{ 
-                    text: "Start Ride", 
+            <CustomAlert visible={showGenderAlert} title="Gender Mismatch" message="This ride matches a different gender preference." primaryButton={{ text: "OK", onPress: () => setShowGenderAlert(false) }} onClose={() => setShowGenderAlert(false)} />
+
+            <CustomAlert
+                visible={showStartAlert}
+                title="Start Ride?"
+                message="Are you sure you want to start this ride now?"
+                primaryButton={{
+                    text: "Start Ride",
                     onPress: () => {
                         setShowStartAlert(false);
                         handleUpdateTripStatus('STARTED');
-                    } 
-                }} 
-                onClose={() => setShowStartAlert(false)} 
+                    }
+                }}
+                secondaryButton={{
+                    text: "Cancel",
+                    onPress: () => setShowStartAlert(false)
+                }}
+                onClose={() => setShowStartAlert(false)}
             />
 
-            <CustomAlert 
-                visible={showCancelModal} 
-                title="Cancel Ride?" 
-                message="Are you sure you want to cancel this ride? This action cannot be undone." 
-                primaryButton={{ 
-                    text: "Yes, Cancel", 
+            <CustomAlert
+                visible={showCancelModal}
+                title="Cancel Ride?"
+                message="Are you sure you want to cancel this ride? This action cannot be undone."
+                primaryButton={{
+                    text: "Yes, Cancel",
                     onPress: () => {
                         setAgreeToCancel(true);
                         // Trigger the actual cancellation in the next frame to avoid state sync issues
                         setTimeout(() => handleCancelTrip(), 100);
                     },
                     style: { backgroundColor: dangerColor }
-                }} 
-                onClose={() => setShowCancelModal(false)} 
+                }}
+                onClose={() => setShowCancelModal(false)}
+                secondaryButton={{
+                    text: "Go back",
+                    onPress: () => setShowCancelModal(false)
+                }}
             />
 
             {/* Price Completion Modal */}
@@ -916,7 +932,7 @@ export default function TripDetailsScreen() {
                     <Box className="w-full rounded-3xl p-6" style={{ backgroundColor: cardColor }}>
                         <Text className="text-xl font-bold mb-2" style={{ color: textColor }}>Final Price</Text>
                         <Text className="mb-6" style={{ color: subtextColor }}>Enter the final price per seat for this ride.</Text>
-                        
+
                         <Input className="h-14 rounded-2xl mb-6" style={{ borderColor }}>
                             <InputField
                                 placeholder="e.g. 150"
@@ -938,7 +954,7 @@ export default function TripDetailsScreen() {
                     </Box>
                 </Box>
             </Modal>
-            
+
             <BottomSheetModal
                 ref={joinSheetRef}
                 index={0}

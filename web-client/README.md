@@ -1,4 +1,12 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is the main web app for My Ride Partner.
+
+It includes:
+
+- the public web pages
+- the trip share fallback route at `/trip/[id]`
+- the admin area under `/backoffice`
+
+There is no separate standalone `backoffice/` app in this repo anymore. `web-client/` is the single source of truth for all web UI.
 
 ## Getting Started
 

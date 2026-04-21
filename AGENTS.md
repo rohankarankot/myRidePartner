@@ -55,6 +55,11 @@
 - Seed current app sources: `npm run seed:app-sources`
 - Register a future app source: `npm run register:app-source -- <slug> "<Display Name>"`
 
+## Backoffice Admin Bootstrap
+- Run these from `backend/` when provisioning local backoffice access.
+- Create or refresh the default super admin: `npm run create:super-admin`
+- List current super admins: `npm run list:super-admins`
+
 ## App Source Management
 - Existing seeded app sources:
 - `myridepartner`

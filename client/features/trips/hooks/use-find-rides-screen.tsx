@@ -164,7 +164,6 @@ export function useFindRidesScreen() {
     select: (queryData) =>
       filterAndSortTrips({
         blockedUserIds,
-        date,
         trips: queryData.pages.flatMap((page) => page.data),
         userId: user?.id,
       }),

@@ -7,11 +7,21 @@ import { HeaderRight } from '@/components/ui/HeaderRight';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppProviders } from '@/providers/app-providers';
 
+import mobileAds from 'react-native-google-mobile-ads';
+
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
 export default function RootLayout() {
+  React.useEffect(() => {
+    mobileAds()
+      .initialize()
+      .then((adapterStatuses) => {
+        console.log('AdMob SDK Initialized:', adapterStatuses);
+      });
+  }, []);
+
   return (
     <AppProviders>
       <Stack

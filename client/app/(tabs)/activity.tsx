@@ -9,6 +9,7 @@ import {
   ActivityTripCard,
 } from '@/features/trips/components/activity';
 import { useActivityScreen } from '@/features/trips/hooks/use-activity-screen';
+import { ActivityBannerAd } from '@/features/ads/components/activity-banner-ad';
 
 const getAvatarUrl = (avatar?: string | { url: string; formats?: any }) =>
   typeof avatar === 'string' ? avatar : avatar?.url;
@@ -50,6 +51,8 @@ export default function ActivityScreen() {
         primaryColor={primaryColor}
         subtextColor={subtextColor}
       />
+
+      <ActivityBannerAd />
 
       <ScrollView contentContainerStyle={{ padding: 20 }} scrollEnabled={false}>
         {displayTrips.length === 0 && displayRequests.length === 0 ? (

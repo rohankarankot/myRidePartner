@@ -17,18 +17,28 @@ const SECTIONS = [
     icon: 'checkmark.seal.fill'
   },
   {
-    title: '2. User Responsibilities',
-    body: 'Users are responsible for their own safety and behavior. My Ride Partner is a platform to connect riders and captains.',
-    icon: 'person.fill.checkmark'
+    title: '2. Information Collection',
+    body: 'We collect your name and email through Google Sign-In. To facilitate ride-sharing, we collect your precise geographical location (GPS) while the app is in use. This data is essential for matching you with nearby ride partners and calculating distances.',
+    icon: 'location.fill'
   },
   {
-    title: '3. Privacy Policy',
-    body: 'We value your privacy. Your data is used only to facilitate ride sharing and improve our services.',
-    icon: 'lock.fill'
+    title: '3. Data Usage & Advertising',
+    body: 'Your data is used to improve our services and facilitate communication between members. We use Google AdMob to show ads. AdMob may use your device identifiers and location to serve relevant ads. You can manage your ad preferences in your device settings.',
+    icon: 'chart.bar.fill'
   },
   {
-    title: '4. Verification',
-    body: "While we strive for a safe community, users should verify each other's identity before starting a ride.",
+    title: '4. Third-Party Services',
+    body: 'We use Google Firebase for authentication and analytics. These services help us secure your account and understand app stability. By using this app, you also agree to the 3rd-party privacy policies of Google and AdMob.',
+    icon: 'square.grid.2x2.fill'
+  },
+  {
+    title: '5. Account Deletion',
+    body: 'You have the right to delete your account and all associated data at any time. To request deletion, please contact support at rohan.alwayscodes@gmail.com. We will process your request within 48 hours.',
+    icon: 'trash.fill'
+  },
+  {
+    title: '6. User Responsibilities',
+    body: "While we strive for a safe community, My Ride Partner is a platform for connection. Users are responsible for their own safety and must verify others' identity before starting a ride.",
     icon: 'shield.fill'
   },
 ];

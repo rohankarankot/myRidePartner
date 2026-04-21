@@ -24,6 +24,7 @@ import {
 } from '@/features/trips/utils/create-trip';
 import type { LocationCoordinate } from '@/features/trips/types/location';
 import { analyticsService } from '@/services/analytics-service';
+import { useInterstitialAd } from '@/features/ads/hooks/use-interstitial-ad';
 
 export function useCreateScreen() {
   const { editTripId } = useLocalSearchParams<{ editTripId?: string }>();
@@ -58,6 +59,10 @@ export function useCreateScreen() {
   const queryClient = useQueryClient();
   const { profile } = useUserStore();
   const { isLoading: isProfileLoading } = useUserProfile();
+  const { showAdWithCallback } = useInterstitialAd(
+    1,
+    process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_CREATION_ANDROID
+  ); // Show ad every time a trip is created
 
   const isProfileIncomplete =
     !profile || !profile.fullName || !profile.phoneNumber || !profile.gender || !profile.city;
@@ -301,9 +306,9 @@ export function useCreateScreen() {
     setShowSharePrompt(false);
     const targetTripId = tripDocumentId || publishedTrip?.documentId;
     if (targetTripId) {
-      router.replace(`/trip/${targetTripId}`);
+      showAdWithCallback(() => router.replace(`/trip/${targetTripId}`));
     } else {
-      router.replace('/(tabs)/activity');
+      showAdWithCallback(() => router.replace('/(tabs)/activity'));
     }
   };
 
