@@ -49,7 +49,6 @@ export default async function BackofficeLayout({
         }}
       />
       <div
-        data-theme={themeToApply}
         className={cn(
           'bg-background min-h-screen overflow-x-hidden overscroll-none font-sans antialiased',
           fontVariables,
@@ -57,18 +56,10 @@ export default async function BackofficeLayout({
       >
         <NextTopLoader color='var(--primary)' showSpinner={false} />
         <NuqsAdapter>
-          <ThemeProvider
-            attribute='class'
-            defaultTheme='system'
-            enableSystem
-            disableTransitionOnChange
-            enableColorScheme
-          >
-            <Providers activeThemeValue={themeToApply}>
-              <Toaster />
-              {children}
-            </Providers>
-          </ThemeProvider>
+          <Providers activeThemeValue={themeToApply}>
+            <Toaster />
+            {children}
+          </Providers>
         </NuqsAdapter>
       </div>
     </>

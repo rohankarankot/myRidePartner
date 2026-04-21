@@ -12,11 +12,9 @@ export default function Providers({
 }) {
   return (
     <>
-      <ActiveThemeProvider initialTheme={activeThemeValue}>
-        <SessionProvider basePath='/backoffice/api/auth'>
-          {children}
-        </SessionProvider>
-      </ActiveThemeProvider>
+      <SessionProvider basePath='/backoffice/api/auth'>
+        {children}
+      </SessionProvider>
     </>
   );
 }
