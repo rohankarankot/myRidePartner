@@ -21,6 +21,52 @@ export interface TripFilters {
   viewerId?: number;
 }
 
+const getTodayDateString = (now = new Date()) => {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+const parseTripTime = (tripTime: string) => {
+  const normalizedTime = tripTime.replace(/\s+/g, ' ').trim();
+  const timeMatch = normalizedTime.match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
+
+  if (!timeMatch) {
+    return { hours: 0, minutes: 0 };
+  }
+
+  const [, rawHoursText, rawMinutesText, meridiemRaw] = timeMatch;
+  const rawHours = Number.parseInt(rawHoursText, 10);
+  const rawMinutes = Number.parseInt(rawMinutesText, 10);
+  const meridiem = meridiemRaw?.toUpperCase();
+
+  let hours = Number.isFinite(rawHours) ? rawHours : 0;
+  const minutes = Number.isFinite(rawMinutes) ? rawMinutes : 0;
+
+  if (meridiem === 'PM' && hours < 12) {
+    hours += 12;
+  }
+
+  if (meridiem === 'AM' && hours === 12) {
+    hours = 0;
+  }
+
+  return { hours, minutes };
+};
+
+const buildTripStartDateTime = (tripDate: string, tripTime: string) => {
+  const tripStart = new Date(`${tripDate}T00:00:00`);
+  const { hours, minutes } = parseTripTime(tripTime);
+
+  tripStart.setHours(hours, minutes, 0, 0);
+  return tripStart;
+};
+
+const isTripInFuture = (tripDate: string, tripTime: string, now = new Date()) =>
+  buildTripStartDateTime(tripDate, tripTime).getTime() > now.getTime();
+
 @Injectable()
 export class TripsService {
   constructor(
@@ -38,6 +84,8 @@ export class TripsService {
     filters: TripFilters = {},
   ): Promise<{ data: any[]; meta: PaginatedMeta }> {
     const where: Prisma.TripWhereInput = {};
+    const now = new Date();
+    const todayString = getTodayDateString(now);
 
     if (filters.status) {
       where.status = filters.status;
@@ -47,6 +95,10 @@ export class TripsService {
     }
     if (filters.date) {
       where.date = filters.date;
+    } else {
+      where.date = {
+        gte: todayString,
+      };
     }
     if (filters.creatorId) {
       where.creatorId = filters.creatorId;
@@ -81,30 +133,29 @@ export class TripsService {
       };
     }
 
-    const [trips, total] = await Promise.all([
-      this.prisma.trip.findMany({
-        where,
-        skip: pagination.skip,
-        take: pagination.take,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              userProfile: {
-                select: { avatar: true },
-              },
+    const trips = await this.prisma.trip.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
             },
           },
         },
-      }),
-      this.prisma.trip.count({ where }),
-    ]);
+      },
+    });
+
+    const upcomingTrips = trips.filter((trip) => isTripInFuture(trip.date, trip.time, now));
+    const total = upcomingTrips.length;
+    const data = upcomingTrips.slice(pagination.skip, pagination.skip + pagination.take);
 
     return {
-      data: trips,
+      data,
       meta: buildPaginationMeta(total, pagination),
     };
   }

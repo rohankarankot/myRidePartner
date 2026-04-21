@@ -24,6 +24,7 @@ type ProfileHeaderCardProps = {
   name: string;
   onCompleteProfile: () => void;
   onPickImage: () => void;
+  onViewImage: () => void;
   onVerifyNow: () => void;
   primaryColor: string;
   profileCity?: string;
@@ -48,6 +49,7 @@ export function ProfileHeaderCard({
   name,
   onCompleteProfile,
   onPickImage,
+  onViewImage,
   onVerifyNow,
   primaryColor,
   profileCity,
@@ -58,27 +60,30 @@ export function ProfileHeaderCard({
 }: ProfileHeaderCardProps) {
   return (
     <VStack className="items-center py-10" space="lg">
-      <Pressable onPress={onPickImage} disabled={isUploadingAvatar} className="relative">
-        <Avatar size="2xl" className="border-4 shadow-xl" style={{ borderColor: cardColor }}>
-          <AvatarFallbackText>{initials || 'MR'}</AvatarFallbackText>
-          <AvatarImage
-            source={avatarUrl ? { uri: avatarUrl } : { uri: DUMMY_AVATAR }}
-            alt={name}
-          />
-        </Avatar>
+      <Box className="relative">
+        <Pressable onPress={onViewImage} disabled={isUploadingAvatar}>
+          <Avatar size="2xl" className="border-4 shadow-xl" style={{ borderColor: cardColor }}>
+            <AvatarFallbackText>{initials || 'MR'}</AvatarFallbackText>
+            <AvatarImage
+              source={avatarUrl ? { uri: avatarUrl } : { uri: DUMMY_AVATAR }}
+              alt={name}
+            />
+          </Avatar>
+        </Pressable>
         {isUploadingAvatar ? (
           <Box className="absolute inset-0 bg-black/40 rounded-full items-center justify-center">
             <Spinner color="#fff" size="small" />
           </Box>
         ) : (
-          <Box
+          <Pressable
+            onPress={onPickImage}
             className="absolute bottom-1 right-1 w-10 h-10 rounded-full border-4 items-center justify-center shadow-lg"
             style={{ backgroundColor: primaryColor, borderColor: cardColor }}
           >
             <IconSymbol name="camera.fill" size={16} color="#fff" />
-          </Box>
+          </Pressable>
         )}
-      </Pressable>
+      </Box>
 
       <VStack className="items-center" space="xs">
         <Text className="text-3xl font-extrabold text-center" style={{ color: textColor }}>

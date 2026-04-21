@@ -23,6 +23,12 @@ type ProfileEditorSheetProps = {
   cardColor: string;
   city: string;
   citySearch: string;
+  dangerColor: string;
+  fieldErrors: {
+    fullName?: string;
+    phoneNumber?: string;
+    city?: string;
+  };
   fullName: string;
   gender: 'men' | 'women';
   isPending: boolean;
@@ -55,6 +61,8 @@ export function ProfileEditorSheet({
   cardColor,
   city,
   citySearch,
+  dangerColor,
+  fieldErrors,
   fullName,
   gender,
   isPending,
@@ -106,18 +114,23 @@ export function ProfileEditorSheet({
           <VStack space="xs">
             <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Full Name</Text>
             <BottomSheetTextInput
-              style={{ height: FormFieldTokens.height, borderWidth: 2, borderRadius: FormFieldTokens.radius, paddingHorizontal: FormFieldTokens.horizontalPadding, fontSize: FormFieldTokens.fontSize, color: textColor, borderColor, backgroundColor }}
+              style={{ height: FormFieldTokens.height, borderWidth: 2, borderRadius: FormFieldTokens.radius, paddingHorizontal: FormFieldTokens.horizontalPadding, fontSize: FormFieldTokens.fontSize, color: textColor, borderColor: fieldErrors.fullName ? dangerColor : borderColor, backgroundColor }}
               placeholder="Enter your legal name"
               placeholderTextColor={subtextColor}
               value={fullName}
               onChangeText={setFullName}
             />
+            {fieldErrors.fullName ? (
+              <Text className="text-xs font-medium ml-1" style={{ color: dangerColor }}>
+                {fieldErrors.fullName}
+              </Text>
+            ) : null}
           </VStack>
 
           <VStack space="xs">
             <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Phone Number</Text>
             <BottomSheetTextInput
-              style={{ height: FormFieldTokens.height, borderWidth: 2, borderRadius: FormFieldTokens.radius, paddingHorizontal: FormFieldTokens.horizontalPadding, fontSize: FormFieldTokens.fontSize, color: textColor, borderColor, backgroundColor }}
+              style={{ height: FormFieldTokens.height, borderWidth: 2, borderRadius: FormFieldTokens.radius, paddingHorizontal: FormFieldTokens.horizontalPadding, fontSize: FormFieldTokens.fontSize, color: textColor, borderColor: fieldErrors.phoneNumber ? dangerColor : borderColor, backgroundColor }}
               placeholder="+91 XXXXX XXXXX"
               placeholderTextColor={subtextColor}
               keyboardType="number-pad"
@@ -125,6 +138,11 @@ export function ProfileEditorSheet({
               value={phoneNumber}
               onChangeText={setPhoneNumber}
             />
+            {fieldErrors.phoneNumber ? (
+              <Text className="text-xs font-medium ml-1" style={{ color: dangerColor }}>
+                {fieldErrors.phoneNumber}
+              </Text>
+            ) : null}
           </VStack>
 
           <VStack space="xs">
@@ -157,7 +175,7 @@ export function ProfileEditorSheet({
             <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1" style={{ color: subtextColor }}>Preferred City</Text>
             <Pressable
               className="h-14 border-2 rounded-[24px] px-4 flex-row items-center justify-between"
-              style={{ borderColor, backgroundColor }}
+              style={{ borderColor: fieldErrors.city ? dangerColor : borderColor, backgroundColor }}
               onPress={() => setShowCityPicker(!showCityPicker)}
             >
               <Text style={{ color: city ? textColor : subtextColor }} className="text-base font-medium">
@@ -165,6 +183,11 @@ export function ProfileEditorSheet({
               </Text>
               <IconSymbol name="chevron.down" size={16} color={subtextColor} />
             </Pressable>
+            {fieldErrors.city ? (
+              <Text className="text-xs font-medium ml-1" style={{ color: dangerColor }}>
+                {fieldErrors.city}
+              </Text>
+            ) : null}
 
             {showCityPicker ? (
               <Box className="mt-2 rounded-[24px] border-2 p-3 shadow-sm" style={{ backgroundColor: `${subtextColor}05`, borderColor: `${borderColor}50` }}>

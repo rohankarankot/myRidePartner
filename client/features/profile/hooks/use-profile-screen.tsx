@@ -16,6 +16,10 @@ import { useUserStore } from '@/store/user-store';
 import { userService } from '@/services/user-service';
 import { extractAadhaarNumber } from '@/features/profile/utils/profile-screen';
 
+type ProfileFieldName = 'fullName' | 'phoneNumber' | 'city';
+
+type ProfileFieldErrors = Partial<Record<ProfileFieldName, string>>;
+
 function getAadhaarVerificationErrorMessage(error: unknown) {
   const rawMessage = error instanceof Error ? error.message : String(error ?? '');
   const normalizedMessage = rawMessage.toLowerCase();
@@ -29,6 +33,61 @@ function getAadhaarVerificationErrorMessage(error: unknown) {
   }
 
   return 'We could not verify this Aadhaar image right now. Please try again in a moment.';
+}
+
+function getErrorMessages(error: any): string[] {
+  const message = error?.response?.data?.message;
+
+  if (Array.isArray(message)) {
+    return message.map((entry) => String(entry));
+  }
+
+  if (typeof message === 'string') {
+    return [message];
+  }
+
+  const nestedMessage = error?.response?.data?.error?.message;
+  if (typeof nestedMessage === 'string') {
+    return [nestedMessage];
+  }
+
+  return [];
+}
+
+function getProfileMutationErrors(error: unknown): {
+  fieldErrors: ProfileFieldErrors;
+  genericMessage: string | null;
+} {
+  const messages = getErrorMessages(error);
+  const fieldErrors: ProfileFieldErrors = {};
+
+  for (const message of messages) {
+    const normalizedMessage = message.toLowerCase();
+
+    if (normalizedMessage.includes('name')) {
+      fieldErrors.fullName ??= message;
+      continue;
+    }
+
+    if (normalizedMessage.includes('phone')) {
+      fieldErrors.phoneNumber ??= message;
+      continue;
+    }
+
+    if (normalizedMessage.includes('city')) {
+      fieldErrors.city ??= message;
+    }
+  }
+
+  const hasFieldErrors = Object.keys(fieldErrors).length > 0;
+  if (hasFieldErrors) {
+    return { fieldErrors, genericMessage: null };
+  }
+
+  return {
+    fieldErrors,
+    genericMessage: messages[0] ?? 'Failed to save profile. Please try again.',
+  };
 }
 
 export function useProfileScreen() {
@@ -63,6 +122,7 @@ export function useProfileScreen() {
   const [showVerificationAlert, setShowVerificationAlert] = useState(false);
   const [selectedAadhaarImageUri, setSelectedAadhaarImageUri] = useState<string | null>(null);
   const [isEditorSheetOpen, setIsEditorSheetOpen] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const hasOpenedFromRouteRef = useRef(false);
@@ -89,6 +149,7 @@ export function useProfileScreen() {
       userId: number;
     }) => userService.createProfile(data),
     onSuccess: (data) => {
+      setFieldErrors({});
       setProfile(data);
       queryClient.invalidateQueries({ queryKey: ['user-profile', authUser?.id] });
       refetch();
@@ -101,10 +162,17 @@ export function useProfileScreen() {
     },
     onError: (mutationError) => {
       console.error('Create profile error:', mutationError);
+
+      const { fieldErrors: nextFieldErrors, genericMessage } = getProfileMutationErrors(mutationError);
+      if (Object.keys(nextFieldErrors).length > 0) {
+        setFieldErrors(nextFieldErrors);
+        return;
+      }
+
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: 'Failed to create profile. Please try again.',
+        text2: genericMessage ?? 'Failed to create profile. Please try again.',
       });
     },
   });
@@ -136,6 +204,7 @@ export function useProfileScreen() {
         communityConsent: data.communityConsent,
       }),
     onSuccess: (data) => {
+      setFieldErrors({});
       setProfile(data);
       queryClient.invalidateQueries({ queryKey: ['user-profile', authUser?.id] });
       refetch();
@@ -148,15 +217,36 @@ export function useProfileScreen() {
     },
     onError: (mutationError) => {
       console.error('Update profile error:', mutationError);
+
+      const { fieldErrors: nextFieldErrors, genericMessage } = getProfileMutationErrors(mutationError);
+      if (Object.keys(nextFieldErrors).length > 0) {
+        setFieldErrors(nextFieldErrors);
+        return;
+      }
+
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: 'Failed to update profile. Please try again.',
+        text2: genericMessage ?? 'Failed to update profile. Please try again.',
       });
     },
   });
 
+  const clearFieldError = useCallback((field: ProfileFieldName) => {
+    setFieldErrors((current) => {
+      if (!current[field]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [field]: undefined,
+      };
+    });
+  }, []);
+
   const handlePresentModalPress = useCallback(() => {
+    setFieldErrors({});
     if (profile) {
       setFullName(profile.fullName || '');
       setPhoneNumber(profile.phoneNumber || '');
@@ -239,6 +329,7 @@ export function useProfileScreen() {
 
   const selectCity = (selected: string) => {
     setCity(selected);
+    clearFieldError('city');
     setShowCityPicker(false);
     setCitySearch('');
   };
@@ -254,24 +345,28 @@ export function useProfileScreen() {
   };
 
   const handleSubmit = () => {
-    if (!fullName.trim() || !phoneNumber.trim() || !city.trim()) {
-      Toast.show({
-        type: 'error',
-        text1: 'Required Fields',
-        text2: 'Please enter your name, phone number, and city.',
-      });
+    const nextFieldErrors: ProfileFieldErrors = {};
+
+    if (!fullName.trim()) {
+      nextFieldErrors.fullName = 'Please enter your full name.';
+    }
+
+    if (!phoneNumber.trim()) {
+      nextFieldErrors.phoneNumber = 'Please enter your phone number.';
+    } else if (phoneNumber.trim().length !== 10) {
+      nextFieldErrors.phoneNumber = 'Phone number must be exactly 10 digits.';
+    }
+
+    if (!city.trim()) {
+      nextFieldErrors.city = 'Please select your preferred city.';
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       return;
     }
 
-    const cleanedPhone = phoneNumber.trim();
-    if (cleanedPhone.length !== 10) {
-      Toast.show({
-        type: 'error',
-        text1: 'Invalid Phone Number',
-        text2: 'Phone number must be exactly 10 digits.',
-      });
-      return;
-    }
+    setFieldErrors({});
 
     if (profile) {
       updateProfileMutation.mutate({
@@ -399,7 +494,13 @@ export function useProfileScreen() {
 
   const handleSetPhoneNumber = (value: string) => {
     const digitsOnly = value.replace(/[^\d]/g, '');
+    clearFieldError('phoneNumber');
     setPhoneNumber(digitsOnly.slice(0, 10));
+  };
+
+  const handleSetFullName = (value: string) => {
+    clearFieldError('fullName');
+    setFullName(value);
   };
 
   return {
@@ -411,6 +512,7 @@ export function useProfileScreen() {
     city,
     citySearch,
     error,
+    fieldErrors,
     fullName,
     gender,
     handleEditorSheetChange: (index: number) => setIsEditorSheetOpen(index >= 0),
@@ -433,7 +535,7 @@ export function useProfileScreen() {
     router,
     selectCity,
     setCitySearch,
-    setFullName,
+    setFullName: handleSetFullName,
     setGender,
     communityConsent,
     setCommunityConsent,

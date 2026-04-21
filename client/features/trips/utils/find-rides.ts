@@ -1,5 +1,6 @@
 import { format, isToday, isTomorrow } from 'date-fns';
 import { Trip } from '@/types/api';
+import { buildTripStartDateTime } from '@/features/trips/utils/trip-editability';
 
 export const formatDisplayDate = (dateStr: string) => {
   if (!dateStr) return '';
@@ -13,25 +14,27 @@ export const formatDisplayDate = (dateStr: string) => {
 
 export const filterAndSortTrips = ({
   blockedUserIds,
-  date,
   trips,
   userId,
 }: {
   blockedUserIds: number[];
-  date?: Date;
   trips: Trip[];
   userId?: number;
 }) => {
-  const todayString = format(new Date(), 'yyyy-MM-dd');
+  const now = new Date();
 
   return trips
     .filter((trip) => {
       const isOwnTrip = Boolean(userId && trip.creator?.id === userId);
       const isBlockedCreator = trip.creator?.id ? blockedUserIds.includes(trip.creator.id) : false;
-      const isUpcoming = date ? true : trip.date >= todayString;
+      const isUpcoming = buildTripStartDateTime(trip.date, trip.time).getTime() > now.getTime();
       const isPublished = trip.status === 'PUBLISHED';
 
       return !isOwnTrip && !isBlockedCreator && isUpcoming && isPublished;
     })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .sort(
+      (a, b) =>
+        buildTripStartDateTime(a.date, a.time).getTime() -
+        buildTripStartDateTime(b.date, b.time).getTime()
+    );
 };
