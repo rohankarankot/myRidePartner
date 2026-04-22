@@ -6,8 +6,7 @@ import 'react-native-reanimated';
 import { HeaderRight } from '@/components/ui/HeaderRight';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppProviders } from '@/providers/app-providers';
-
-import mobileAds from 'react-native-google-mobile-ads';
+import { initializeMobileAds } from '@/features/ads/utils/initialize-mobile-ads';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -15,11 +14,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   React.useEffect(() => {
-    mobileAds()
-      .initialize()
-      .then((adapterStatuses) => {
-        console.log('AdMob SDK Initialized:', adapterStatuses);
-      });
+    void initializeMobileAds();
   }, []);
 
   return (

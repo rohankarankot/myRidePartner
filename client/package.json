@@ -17,6 +17,7 @@
     "@gluestack-ui/utils": "^3.0.19",
     "@gorhom/bottom-sheet": "^5.2.8",
     "@legendapp/motion": "^2.5.3",
+    "@lottiefiles/dotlottie-react": "^0.19.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-native-firebase/analytics": "^24.0.0",

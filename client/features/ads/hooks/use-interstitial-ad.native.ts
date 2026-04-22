@@ -7,7 +7,7 @@ const DEFAULT_AD_UNIT_ID = Platform.select({
   ios: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS || TestIds.INTERSTITIAL,
 }) || TestIds.INTERSTITIAL;
 
-const DEFAULT_FREQUENCY = 2; // Show every 2nd time
+const DEFAULT_FREQUENCY = 2;
 
 export function useInterstitialAd(frequency = DEFAULT_FREQUENCY, customAdUnitId?: string) {
   const [interstitial, setInterstitial] = useState<InterstitialAd | null>(null);
@@ -29,7 +29,7 @@ export function useInterstitialAd(frequency = DEFAULT_FREQUENCY, customAdUnitId?
 
     const unsubscribeClosed = newAd.addAdEventListener(AdEventType.CLOSED, () => {
       setLoaded(false);
-      loadAd(); // Pre-load the next ad
+      loadAd();
     });
 
     const unsubscribeError = newAd.addAdEventListener(AdEventType.ERROR, (error: Error) => {
@@ -55,7 +55,6 @@ export function useInterstitialAd(frequency = DEFAULT_FREQUENCY, customAdUnitId?
   const showAdWithCallback = useCallback((callback: () => void) => {
     clickCount.current += 1;
 
-    // Only show ad every X times
     if (clickCount.current % frequency === 0 && loaded && interstitial) {
       const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
         callback();
@@ -63,7 +62,6 @@ export function useInterstitialAd(frequency = DEFAULT_FREQUENCY, customAdUnitId?
       });
       interstitial.show();
     } else {
-      // Skip ad and just do the callback
       callback();
     }
   }, [frequency, loaded, interstitial]);
