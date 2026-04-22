@@ -85,6 +85,7 @@ const MAPPING = {
   'person.crop.circle.badge.xmark': 'person-remove',
   'chevron.down': 'expand-more',
   'message.fill': 'message',
+  'whatsapp.logo': 'chat',
   'globe': 'public',
   'arrowshape.turn.up.left.fill': 'reply',
   'wallet.pass.fill': 'account-balance-wallet',
@@ -111,6 +112,9 @@ export function IconSymbol({
 }) {
   if (name === 'github') {
     return <MaterialCommunityIcons color={color} size={size} name="github" style={style} />;
+  }
+  if (name === 'whatsapp.logo') {
+    return <MaterialCommunityIcons color={color} size={size} name="whatsapp" style={style} />;
   }
   return <MaterialIcons color={color} size={size} name={MAPPING[name] as any} style={style} />;
 }

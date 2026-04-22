@@ -25,6 +25,7 @@ type CreateTripFormProps = {
   genderPreference: 'men' | 'women' | 'both';
   handleDescriptionFocus: () => void;
   handleInputFocus: (offset?: number) => void;
+  handleNextStep: () => boolean;
   handlePublish: () => void;
   isEditing: boolean;
   isPriceCalculated: boolean;
@@ -67,6 +68,7 @@ export function CreateTripForm({
   genderPreference,
   handleDescriptionFocus,
   handleInputFocus,
+  handleNextStep,
   handlePublish,
   isEditing,
   isPriceCalculated,
@@ -97,6 +99,11 @@ export function CreateTripForm({
 }: CreateTripFormProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const canMoveToDetails = Boolean(from.trim()) && Boolean(to.trim());
+  const handleGoToDetailsStep = () => {
+    if (handleNextStep()) {
+      setStep(2);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -186,7 +193,7 @@ export function CreateTripForm({
                 <Button
                   className="mt-4 h-14 rounded-2xl"
                   style={{ backgroundColor: primaryColor, opacity: canMoveToDetails ? 1 : 0.6 }}
-                  onPress={() => setStep(2)}
+                  onPress={handleGoToDetailsStep}
                   disabled={!canMoveToDetails}
                 >
                   <HStack space="md" className="items-center">

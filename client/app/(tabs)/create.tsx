@@ -2,6 +2,10 @@ import React from 'react';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { CustomAlert } from '@/components/CustomAlert';
 import { LocationSearchModal } from '@/features/trips/components/LocationSearchModal';
+import { Box } from '@/components/ui/box';
+import { HStack } from '@/components/ui/hstack';
+import { Text } from '@/components/ui/text';
+import { VStack } from '@/components/ui/vstack';
 import {
   CreateTripEditSkeleton,
   CreateTripForm,
@@ -19,6 +23,8 @@ export default function CreateScreen() {
   const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
 
+  const shareCardColor = `${primaryColor}08`;
+
 
   const {
     date,
@@ -31,6 +37,7 @@ export default function CreateScreen() {
     handleDescriptionFocus,
     handleInputFocus,
     handlePublish,
+    validateRouteStep,
     hasLoadedEditTrip,
     isEditing,
     isEditTripLoading,
@@ -39,6 +46,7 @@ export default function CreateScreen() {
     navigateToPublishedTrip,
     onDateChange,
     onTimeChange,
+    openTimePicker,
     price,
     publishedTrip,
     publishMutation,
@@ -56,7 +64,6 @@ export default function CreateScreen() {
     setShowDatePicker,
     setShowFromPicker,
     setShowProfileAlert,
-    setShowTimePicker,
     setShowToPicker,
     setTo,
     setToCoordinate,
@@ -144,24 +151,59 @@ export default function CreateScreen() {
         title="Ride is Live! 🚀"
         message={
           publishedTrip
-            ? `Your route from ${publishedTrip.startingPoint} to ${publishedTrip.destination} is now public. Share it with your community.`
+            ? 'Your ride is now public.'
             : 'Your ride is live. Share it now through WhatsApp or text.'
         }
         primaryButton={{
           text: 'WhatsApp',
           onPress: shareViaWhatsApp,
+          icon: 'whatsapp.logo',
         }}
         secondaryButton={{
           text: 'Later',
           onPress: () => navigateToPublishedTrip(),
         }}
         tertiaryButton={{
-          text: 'Direct Text',
+          text: 'Text',
           onPress: shareViaText,
+          icon: 'message.fill',
         }}
         onClose={() => navigateToPublishedTrip()}
         icon="paperplane.fill"
-      />
+      >
+        {publishedTrip ? (
+          <Box
+            className="w-full rounded-[24px] border p-4"
+            style={{ backgroundColor: shareCardColor, borderColor }}
+          >
+            <HStack space="md" className="items-stretch">
+              <VStack className="items-center py-1">
+                <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: primaryColor }} />
+                <Box className="w-px flex-1 my-2 min-h-8" style={{ backgroundColor: borderColor }} />
+                <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: '#10B981' }} />
+              </VStack>
+              <VStack className="flex-1" space="lg">
+                <VStack space="xs">
+                  <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+                    Pickup
+                  </Text>
+                  <Text className="text-sm font-semibold leading-5" style={{ color: textColor }} numberOfLines={3}>
+                    {publishedTrip.startingPoint}
+                  </Text>
+                </VStack>
+                <VStack space="xs">
+                  <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+                    Destination
+                  </Text>
+                  <Text className="text-sm font-semibold leading-5" style={{ color: textColor }} numberOfLines={3}>
+                    {publishedTrip.destination}
+                  </Text>
+                </VStack>
+              </VStack>
+            </HStack>
+          </Box>
+        ) : null}
+      </CustomAlert>
 
       <CreateTripForm
         backgroundColor={backgroundColor}
@@ -177,6 +219,7 @@ export default function CreateScreen() {
         genderPreference={genderPreference}
         handleDescriptionFocus={handleDescriptionFocus}
         handleInputFocus={handleInputFocus}
+        handleNextStep={validateRouteStep}
         handlePublish={handlePublish}
         isEditing={isEditing}
         isPriceCalculated={isPriceCalculated}
@@ -205,7 +248,7 @@ export default function CreateScreen() {
         }}
         onShowDatePicker={() => setShowDatePicker(true)}
         onShowFromPicker={() => setShowFromPicker(true)}
-        onShowTimePicker={() => setShowTimePicker(true)}
+        onShowTimePicker={openTimePicker}
         onShowToPicker={() => setShowToPicker(true)}
         onTimeChange={onTimeChange}
         primaryColor={primaryColor}

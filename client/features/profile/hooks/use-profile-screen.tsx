@@ -471,10 +471,12 @@ export function useProfileScreen() {
         communityConsent,
       });
 
+      const maskedAadhaarSuffix = aadhaarNumber.replace(/\D/g, '').slice(-4);
+
       Toast.show({
         type: 'success',
         text1: 'Verification submitted',
-        text2: `Aadhaar ending ${aadhaarNumber.slice(-4)} verified successfully.`,
+        text2: `Aadhaar ending ${maskedAadhaarSuffix} verified successfully.`,
       });
       setShowVerificationAlert(false);
       setSelectedAadhaarImageUri(null);
