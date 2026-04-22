@@ -9,6 +9,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "maestro:test": "maestro test .maestro",
+    "maestro:test:smoke": "maestro test .maestro/smoke",
     "postinstall": "node ./scripts/patch-text-recognition-gradle.js"
   },
   "dependencies": {

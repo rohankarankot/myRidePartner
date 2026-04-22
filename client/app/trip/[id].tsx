@@ -13,6 +13,7 @@ import {
     Switch,
     TextInput,
     LayoutChangeEvent,
+    View,
 } from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -529,19 +530,23 @@ export default function TripDetailsScreen() {
                             }}
                         />
                         <VStack space="xl">
-                            <HStack className="items-center" space="md" onLayout={handleStartRowLayout}>
-                                <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: primaryColor }} />
-                                <HStack className="flex-1 justify-between items-center">
-                                    <Text className="flex-1 text-lg font-bold" style={{ color: textColor }}>{trip.startingPoint}</Text>
-                                    <Box className="px-2 py-1 rounded-lg" style={{ backgroundColor: getTripStatusColor(trip.status, successColor, dangerColor, primaryColor, subtextColor) }}>
-                                        <Text className="text-[10px] font-bold text-white uppercase">{trip.status}</Text>
-                                    </Box>
+                            <View onLayout={handleStartRowLayout}>
+                                <HStack className="items-center" space="md">
+                                    <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: primaryColor }} />
+                                    <HStack className="flex-1 justify-between items-center">
+                                        <Text className="flex-1 text-lg font-bold" style={{ color: textColor }}>{trip.startingPoint}</Text>
+                                        <Box className="px-2 py-1 rounded-lg" style={{ backgroundColor: getTripStatusColor(trip.status, successColor, dangerColor, primaryColor, subtextColor) }}>
+                                            <Text className="text-[10px] font-bold text-white uppercase">{trip.status}</Text>
+                                        </Box>
+                                    </HStack>
                                 </HStack>
-                            </HStack>
-                            <HStack className="items-center" space="md" onLayout={handleDestinationRowLayout}>
-                                <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: '#10B981' }} />
-                                <Text className="flex-1 text-lg font-bold" style={{ color: textColor }}>{trip.destination}</Text>
-                            </HStack>
+                            </View>
+                            <View onLayout={handleDestinationRowLayout}>
+                                <HStack className="items-center" space="md">
+                                    <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: '#10B981' }} />
+                                    <Text className="flex-1 text-lg font-bold" style={{ color: textColor }}>{trip.destination}</Text>
+                                </HStack>
+                            </View>
                         </VStack>
                     </Box>
                 </Box>

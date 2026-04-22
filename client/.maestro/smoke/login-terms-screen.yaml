@@ -1,0 +1,12 @@
+appId: com.rohanalwayscodes.myridepartner
+---
+- runFlow: ../subflows/open-login-screen.yaml
+- tapOn: "Terms and Privacy Policy."
+- assertVisible: "Legal Hub"
+- assertVisible: "1. Acceptance of Terms"
+- scrollUntilVisible:
+    element:
+      text: "Last Update: March 15, 2026"
+    direction: DOWN
+- assertVisible: "Last Update: March 15, 2026"
+

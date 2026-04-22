@@ -1,0 +1,10 @@
+appId: com.rohanalwayscodes.myridepartner
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Ride sharing made simple"
+- tapOn: "Skip"
+- assertVisible: "My Ride Partner"
+- assertVisible: "Sign In"
+- assertVisible: "Continue with Google"
+

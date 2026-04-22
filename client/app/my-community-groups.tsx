@@ -89,7 +89,7 @@ export default function MyCommunityGroupsScreen() {
       <VStack className="px-6 py-8" space="xs">
         <Text className="text-3xl font-extrabold" style={{ color: textColor }}>My Groups</Text>
         <Text className="text-sm font-medium" style={{ color: subtextColor }}>
-          Groups you've created and joined.
+          Groups you&apos;ve created and joined.
         </Text>
       </VStack>
 

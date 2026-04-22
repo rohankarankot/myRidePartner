@@ -6,7 +6,7 @@ import 'react-native-reanimated';
 import { HeaderRight } from '@/components/ui/HeaderRight';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppProviders } from '@/providers/app-providers';
-import { initializeMobileAds } from '@/features/ads/utils/initialize-mobile-ads';
+import { initializeMobileAds } from '../features/ads/utils/initialize-mobile-ads';
 
 export const unstable_settings = {
   anchor: '(tabs)',
