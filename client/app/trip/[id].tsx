@@ -12,6 +12,7 @@ import {
     Modal,
     Switch,
     TextInput,
+    LayoutChangeEvent,
 } from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -125,6 +126,8 @@ export default function TripDetailsScreen() {
     const [isSubmittingRating, setIsSubmittingRating] = useState(false);
     const [completionPriceInput, setCompletionPriceInput] = useState('');
     const [isCompletingTrip, setIsCompletingTrip] = useState(false);
+    const [startRowHeight, setStartRowHeight] = useState(0);
+    const [destinationRowHeight, setDestinationRowHeight] = useState(0);
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -134,6 +137,18 @@ export default function TripDetailsScreen() {
     const borderColor = useThemeColor({}, 'border');
     const dangerColor = useThemeColor({}, 'danger');
     const successColor = useThemeColor({}, 'success');
+    const routeDotSize = 12;
+    const routeDotRadius = routeDotSize / 2;
+    const routeLineTop = Math.max(startRowHeight / 2, routeDotRadius);
+    const routeLineBottom = Math.max(destinationRowHeight / 2, routeDotRadius);
+
+    const handleStartRowLayout = useCallback((event: LayoutChangeEvent) => {
+        setStartRowHeight(event.nativeEvent.layout.height);
+    }, []);
+
+    const handleDestinationRowLayout = useCallback((event: LayoutChangeEvent) => {
+        setDestinationRowHeight(event.nativeEvent.layout.height);
+    }, []);
 
     const { data: tripDetails, isLoading: loading, refetch } = useQuery({
         queryKey: ['trip-details', documentId, user?.id],
@@ -504,22 +519,31 @@ export default function TripDetailsScreen() {
             >
                 {/* Route Header */}
                 <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
-                    <HStack className="items-start" space="md">
-                        <VStack className="items-center pt-1" space="xs">
-                            <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: primaryColor }} />
-                            <Box className="w-px h-12" style={{ backgroundColor: borderColor }} />
-                            <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: '#10B981' }} />
-                        </VStack>
-                        <VStack className="flex-1" space="xl">
-                            <HStack className="justify-between items-center">
-                                <Text className="flex-1 text-lg font-bold" style={{ color: textColor }}>{trip.startingPoint}</Text>
-                                <Box className="px-2 py-1 rounded-lg" style={{ backgroundColor: getTripStatusColor(trip.status, successColor, dangerColor, primaryColor, subtextColor) }}>
-                                    <Text className="text-[10px] font-bold text-white uppercase">{trip.status}</Text>
-                                </Box>
+                    <Box className="relative">
+                        <Box
+                            className="absolute w-px left-[5.5px]"
+                            style={{
+                                backgroundColor: borderColor,
+                                top: routeLineTop,
+                                bottom: routeLineBottom,
+                            }}
+                        />
+                        <VStack space="xl">
+                            <HStack className="items-center" space="md" onLayout={handleStartRowLayout}>
+                                <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: primaryColor }} />
+                                <HStack className="flex-1 justify-between items-center">
+                                    <Text className="flex-1 text-lg font-bold" style={{ color: textColor }}>{trip.startingPoint}</Text>
+                                    <Box className="px-2 py-1 rounded-lg" style={{ backgroundColor: getTripStatusColor(trip.status, successColor, dangerColor, primaryColor, subtextColor) }}>
+                                        <Text className="text-[10px] font-bold text-white uppercase">{trip.status}</Text>
+                                    </Box>
+                                </HStack>
                             </HStack>
-                            <Text className="text-lg font-bold" style={{ color: textColor }}>{trip.destination}</Text>
+                            <HStack className="items-center" space="md" onLayout={handleDestinationRowLayout}>
+                                <Box className="h-3 w-3 rounded-full" style={{ backgroundColor: '#10B981' }} />
+                                <Text className="flex-1 text-lg font-bold" style={{ color: textColor }}>{trip.destination}</Text>
+                            </HStack>
                         </VStack>
-                    </HStack>
+                    </Box>
                 </Box>
 
                 <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
@@ -561,7 +585,7 @@ export default function TripDetailsScreen() {
                         <InfoItem icon="users" label="Seats" value={`${trip.availableSeats}`} textColor={textColor} subtextColor={subtextColor} />
                         <InfoItem
                             icon="credit-card"
-                            label="Price"
+                            label="Price per seat"
                             value={trip.pricePerSeat ? `₹${trip.pricePerSeat}` : trip.isPriceCalculated ? 'Later' : 'Free'}
                             textColor={textColor}
                             subtextColor={subtextColor}
@@ -735,9 +759,9 @@ export default function TripDetailsScreen() {
                                         <Avatar size="sm">
                                             <AvatarFallbackText>{req.passenger.userProfile?.fullName || req.passenger.username}</AvatarFallbackText>
                                             {getAvatarUrl(req.passenger.userProfile) && (
-                                                <AvatarImage 
-                                                    source={{ uri: getAvatarUrl(req.passenger.userProfile) }} 
-                                                    alt={req.passenger.userProfile?.fullName || req.passenger.username} 
+                                                <AvatarImage
+                                                    source={{ uri: getAvatarUrl(req.passenger.userProfile) }}
+                                                    alt={req.passenger.userProfile?.fullName || req.passenger.username}
                                                 />
                                             )}
                                         </Avatar>

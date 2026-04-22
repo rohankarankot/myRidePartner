@@ -60,6 +60,8 @@ export function LocationSearchModal({
     const [isFetchingCurrentLocation, setIsFetchingCurrentLocation] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
+    const [selectedLocation, setSelectedLocation] = useState<LocationSelection | null>(null);
+    const [shouldShowSuggestions, setShouldShowSuggestions] = useState(true);
     const requestSequenceRef = useRef(0);
 
     const backgroundColor = useThemeColor({}, 'background');
@@ -76,6 +78,8 @@ export function LocationSearchModal({
             setIsLoading(false);
             setErrorMessage('');
             setHasSearched(false);
+            setSelectedLocation(null);
+            setShouldShowSuggestions(true);
         }
     }, [visible]);
 
@@ -85,11 +89,13 @@ export function LocationSearchModal({
         }
 
         const trimmedQuery = query.trim();
-        if (trimmedQuery.length < 2) {
+        if (!shouldShowSuggestions || trimmedQuery.length < 2) {
             setSuggestions([]);
             setIsLoading(false);
             setErrorMessage('');
-            setHasSearched(false);
+            if (trimmedQuery.length < 2) {
+                setHasSearched(false);
+            }
             return;
         }
 
@@ -129,29 +135,45 @@ export function LocationSearchModal({
             clearTimeout(timeoutId);
             controller.abort();
         };
-    }, [query, visible]);
+    }, [query, shouldShowSuggestions, visible]);
 
     const handleConfirm = () => {
-        if (query.trim()) {
-            onSelectLocation({ address: query.trim() });
+        const trimmedQuery = query.trim();
+
+        if (trimmedQuery) {
+            const confirmedSelection =
+                selectedLocation && selectedLocation.address === trimmedQuery
+                    ? { ...selectedLocation, address: trimmedQuery }
+                    : { address: trimmedQuery };
+
+            onSelectLocation(confirmedSelection);
             setQuery('');
+            setSelectedLocation(null);
+            setShouldShowSuggestions(true);
             onClose();
         }
     };
 
     const handleClose = () => {
         setQuery('');
+        setSelectedLocation(null);
+        setShouldShowSuggestions(true);
         onClose();
     };
 
     const handleSuggestionSelect = (suggestion: OlaPlaceSuggestion) => {
-        onSelectLocation({
+        const nextSelection = {
             address: suggestion.address,
             latitude: suggestion.latitude,
             longitude: suggestion.longitude,
-        });
-        setQuery('');
-        onClose();
+        };
+
+        setQuery(suggestion.address);
+        setSelectedLocation(nextSelection);
+        setSuggestions([]);
+        setHasSearched(false);
+        setErrorMessage('');
+        setShouldShowSuggestions(false);
     };
 
     const handleUseCurrentLocation = async () => {
@@ -177,13 +199,17 @@ export function LocationSearchModal({
             const resolvedAddress = buildAddressFromGeocode(geocodeResults[0])
                 || `Current location (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)})`;
 
-            onSelectLocation({
+            const currentLocationSelection = {
                 address: resolvedAddress,
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
-            });
-            setQuery('');
-            onClose();
+            };
+
+            setQuery(resolvedAddress);
+            setSelectedLocation(currentLocationSelection);
+            setSuggestions([]);
+            setHasSearched(false);
+            setShouldShowSuggestions(false);
         } catch (error) {
             setErrorMessage(
                 error instanceof Error
@@ -218,32 +244,27 @@ export function LocationSearchModal({
 
                         <ScrollView className="flex-1" bounces={false} keyboardShouldPersistTaps="handled">
                             {allowCurrentLocation ? (
-                                <Box className="px-6 pt-6">
+                                <Box className="px-6 pt-4">
                                     <Pressable
                                         onPress={handleUseCurrentLocation}
                                         disabled={isFetchingCurrentLocation}
-                                        className="rounded-[24px] border px-4 py-4"
+                                        className="rounded-2xl border px-3 py-3"
                                         style={{ backgroundColor: cardColor, borderColor }}
                                     >
-                                        <HStack space="md" className="items-center">
+                                        <HStack space="sm" className="items-center">
                                             <Box
-                                                className="w-10 h-10 rounded-2xl items-center justify-center"
+                                                className="w-8 h-8 rounded-xl items-center justify-center"
                                                 style={{ backgroundColor }}
                                             >
                                                 {isFetchingCurrentLocation ? (
                                                     <Spinner color={primaryColor} />
                                                 ) : (
-                                                    <IconSymbol name="location.fill" size={20} color={primaryColor} />
+                                                    <IconSymbol name="location.fill" size={16} color={primaryColor} />
                                                 )}
                                             </Box>
-                                            <VStack className="flex-1">
-                                                <Text className="text-[15px] font-semibold" style={{ color: textColor }}>
-                                                    Use current location
-                                                </Text>
-                                                <Text className="text-[13px] leading-5 mt-1" style={{ color: subtextColor }}>
-                                                    Use current location as the pickup point.
-                                                </Text>
-                                            </VStack>
+                                            <Text className="flex-1 text-[14px] font-semibold" style={{ color: textColor }}>
+                                                Use current location
+                                            </Text>
                                         </HStack>
                                     </Pressable>
                                 </Box>
@@ -255,30 +276,48 @@ export function LocationSearchModal({
                                         Ola Places Search
                                     </Text>
                                     <HStack
-                                        className="items-center px-4 h-14 rounded-[24px] border-2 shadow-sm"
+                                        className="items-start px-4 py-4 rounded-[24px] border-2 shadow-sm"
                                         style={{ backgroundColor: cardColor, borderColor }}
                                         space="md"
                                     >
-                                        <IconSymbol name="magnifyingglass" size={18} color={primaryColor} />
+                                        <Box className="pt-1">
+                                            <IconSymbol name="magnifyingglass" size={18} color={primaryColor} />
+                                        </Box>
                                         <TextInput
                                             className="flex-1 font-medium"
-                                            style={{ color: textColor, fontSize: FormFieldTokens.fontSize }}
+                                            style={{
+                                                color: textColor,
+                                                fontSize: FormFieldTokens.fontSize,
+                                                minHeight: 24,
+                                                paddingTop: 0,
+                                                paddingBottom: 0,
+                                                textAlignVertical: 'top',
+                                            }}
                                             placeholder="Area, landmark, or city..."
                                             placeholderTextColor={subtextColor}
                                             value={query}
-                                            onChangeText={setQuery}
+                                            onChangeText={(text) => {
+                                                setQuery(text);
+                                                setShouldShowSuggestions(true);
+                                                setSelectedLocation((current) =>
+                                                    current?.address === text ? current : null
+                                                );
+                                            }}
                                             autoFocus
-                                            maxLength={50}
+                                            maxLength={250}
+                                            multiline
                                         />
                                         {query.length > 0 && (
                                             <Pressable
                                                 onPress={() => {
                                                     setQuery('');
+                                                    setSelectedLocation(null);
                                                     setSuggestions([]);
                                                     setErrorMessage('');
                                                     setHasSearched(false);
+                                                    setShouldShowSuggestions(true);
                                                 }}
-                                                className="w-8 h-8 rounded-full items-center justify-center"
+                                                className="w-8 h-8 rounded-full items-center justify-center mt-0.5"
                                                 style={{ backgroundColor }}
                                             >
                                                 <IconSymbol name="xmark" size={12} color={subtextColor} />
@@ -289,6 +328,19 @@ export function LocationSearchModal({
                                         Start typing at least 2 characters to fetch autocomplete suggestions.
                                     </Text>
                                 </VStack>
+                            </Box>
+
+                            <Box className="px-6 pb-4">
+                                {query.trim().length > 0 && (
+                                    <Button
+                                        className="h-16 rounded-[24px] shadow-xl"
+                                        style={{ backgroundColor: primaryColor }}
+                                        onPress={handleConfirm}
+                                    >
+                                        <ButtonIcon as={() => <IconSymbol name="checkmark.circle.fill" size={18} color="#fff" />} className="mr-3" />
+                                        <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Confirm location</ButtonText>
+                                    </Button>
+                                )}
                             </Box>
 
                             <Box className="px-6">
@@ -348,19 +400,6 @@ export function LocationSearchModal({
                                         </Box>
                                     ) : null}
                                 </VStack>
-                            </Box>
-
-                            <Box className="px-6 pt-4">
-                                {query.trim().length > 0 && (
-                                    <Button
-                                        className="h-16 rounded-[24px] shadow-xl"
-                                        style={{ backgroundColor: primaryColor }}
-                                        onPress={handleConfirm}
-                                    >
-                                        <ButtonIcon as={() => <IconSymbol name="checkmark.circle.fill" size={18} color="#fff" />} className="mr-3" />
-                                        <ButtonText className="text-xs font-extrabold uppercase tracking-widest">{`Use "${query.trim()}"`}</ButtonText>
-                                    </Button>
-                                )}
                             </Box>
 
                             <Box className="px-10 py-12 items-center">

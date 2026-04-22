@@ -20,14 +20,17 @@ interface CustomAlertProps {
         text: string;
         onPress: () => void;
         style?: any;
+        icon?: any;
     };
     secondaryButton?: {
         text: string;
         onPress: () => void;
+        icon?: any;
     };
     tertiaryButton?: {
         text: string;
         onPress: () => void;
+        icon?: any;
     };
     onClose: () => void;
     icon?: any;
@@ -102,9 +105,14 @@ export function CustomAlert({
                                 style={{ borderColor }}
                                 onPress={tertiaryButton.onPress}
                             >
-                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
-                                    {tertiaryButton.text}
-                                </Text>
+                                <VStack space="xs" className="items-center justify-center px-2">
+                                    {tertiaryButton.icon ? (
+                                        <IconSymbol name={tertiaryButton.icon} size={16} color={subtextColor} />
+                                    ) : null}
+                                    <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
+                                        {tertiaryButton.text}
+                                    </Text>
+                                </VStack>
                             </Pressable>
                         )}
                         {secondaryButton && (
@@ -114,9 +122,18 @@ export function CustomAlert({
                                 onPress={secondaryButton.onPress}
                                 disabled={loading}
                             >
-                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: loading ? `${subtextColor}50` : subtextColor }}>
-                                    {secondaryButton.text}
-                                </Text>
+                                <VStack space="xs" className="items-center justify-center px-2">
+                                    {secondaryButton.icon ? (
+                                        <IconSymbol
+                                            name={secondaryButton.icon}
+                                            size={16}
+                                            color={loading ? `${subtextColor}50` : subtextColor}
+                                        />
+                                    ) : null}
+                                    <Text className="text-[10px] font-extrabold uppercase tracking-widest text-center" style={{ color: loading ? `${subtextColor}50` : subtextColor }}>
+                                        {secondaryButton.text}
+                                    </Text>
+                                </VStack>
                             </Pressable>
                         )}
                         <Pressable
@@ -134,9 +151,14 @@ export function CustomAlert({
                             {loading ? (
                                 <ActivityIndicator size="small" color="white" />
                             ) : (
-                                <Text className="text-[10px] font-extrabold uppercase tracking-widest text-white text-center">
-                                    {primaryButton.text}
-                                </Text>
+                                <VStack space="xs" className="items-center justify-center px-2">
+                                    {primaryButton.icon ? (
+                                        <IconSymbol name={primaryButton.icon} size={16} color="white" />
+                                    ) : null}
+                                    <Text className="text-[10px] font-extrabold uppercase tracking-widest text-white text-center">
+                                        {primaryButton.text}
+                                    </Text>
+                                </VStack>
                             )}
                         </Pressable>
                     </HStack>

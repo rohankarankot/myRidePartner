@@ -140,6 +140,66 @@ export function useCreateScreen() {
     setErrors({});
   };
 
+  const getMinimumAllowedTime = (selectedDate: Date) => {
+    const now = new Date();
+    const minimumTime = new Date(now);
+    minimumTime.setSeconds(0, 0);
+    minimumTime.setMinutes(minimumTime.getMinutes() + 1);
+
+    return getStartOfDay(selectedDate).getTime() === getStartOfDay(now).getTime()
+      ? minimumTime
+      : null;
+  };
+
+  const normalizeTimeForDate = (selectedDate: Date, selectedTime: Date) => {
+    const normalizedTime = new Date(selectedTime);
+    const minimumAllowedTime = getMinimumAllowedTime(selectedDate);
+
+    if (!minimumAllowedTime) {
+      return normalizedTime;
+    }
+
+    const candidateDateTime = new Date(selectedDate);
+    candidateDateTime.setHours(
+      normalizedTime.getHours(),
+      normalizedTime.getMinutes(),
+      0,
+      0
+    );
+
+    if (candidateDateTime.getTime() < minimumAllowedTime.getTime()) {
+      return minimumAllowedTime;
+    }
+
+    return normalizedTime;
+  };
+
+  const validateRouteStep = () => {
+    const nextErrors: CreateTripFormErrors = {};
+    const trimmedFrom = from.trim();
+    const trimmedTo = to.trim();
+
+    if (!trimmedFrom) {
+      nextErrors.from = 'Starting point is required.';
+    } else if (trimmedFrom.length > 250) {
+      nextErrors.from = 'Starting point must be 250 characters or less.';
+    }
+
+    if (!trimmedTo) {
+      nextErrors.to = 'Destination is required.';
+    } else if (trimmedTo.length > 250) {
+      nextErrors.to = 'Destination must be 250 characters or less.';
+    }
+
+    setErrors((current) => ({
+      ...current,
+      from: nextErrors.from,
+      to: nextErrors.to,
+    }));
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const validateForm = () => {
     const nextErrors: CreateTripFormErrors = {};
     const trimmedFrom = from.trim();
@@ -152,16 +212,18 @@ export function useCreateScreen() {
     selectedDateTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
     const now = new Date();
 
-    if (!trimmedFrom) {
-      nextErrors.from = 'Starting point is required.';
-    } else if (trimmedFrom.length > 150) {
-      nextErrors.from = 'Starting point must be 150 characters or less.';
-    }
+    if (!validateRouteStep()) {
+      if (!trimmedFrom) {
+        nextErrors.from = 'Starting point is required.';
+      } else if (trimmedFrom.length > 200) {
+        nextErrors.from = 'Starting point must be 200 characters or less.';
+      }
 
-    if (!trimmedTo) {
-      nextErrors.to = 'Destination is required.';
-    } else if (trimmedTo.length > 150) {
-      nextErrors.to = 'Destination must be 150 characters or less.';
+      if (!trimmedTo) {
+        nextErrors.to = 'Destination is required.';
+      } else if (trimmedTo.length > 200) {
+        nextErrors.to = 'Destination must be 200 characters or less.';
+      }
     }
 
     if (selectedDate < today || selectedDate > maxTripDate) {
@@ -389,16 +451,31 @@ export function useCreateScreen() {
 
   const onDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
     const currentDate = getStartOfDay(selectedDate || date);
+    const normalizedTime = normalizeTimeForDate(currentDate, time);
+
     setShowDatePicker(Platform.OS === 'ios');
     setDate(currentDate);
+    setTime(normalizedTime);
     setErrors((current) => ({ ...current, date: undefined }));
   };
 
   const onTimeChange = (_event: DateTimePickerEvent, selectedTime?: Date) => {
-    const currentTime = selectedTime || time;
+    const currentTime = normalizeTimeForDate(date, selectedTime || time);
     setShowTimePicker(Platform.OS === 'ios');
     setTime(currentTime);
+    setErrors((current) => ({
+      ...current,
+      time: selectedTime && currentTime.getTime() !== selectedTime.getTime()
+        ? 'Past time is not allowed for today.'
+        : undefined,
+    }));
+  };
+
+  const openTimePicker = () => {
+    const normalizedTime = normalizeTimeForDate(date, time);
+    setTime(normalizedTime);
     setErrors((current) => ({ ...current, time: undefined }));
+    setShowTimePicker(true);
   };
 
   const setErrorForField = (field: keyof CreateTripFormErrors, value?: string) => {
@@ -427,6 +504,7 @@ export function useCreateScreen() {
     navigateToPublishedTrip,
     onDateChange,
     onTimeChange,
+    openTimePicker,
     price,
     profile,
     publishedTrip,
@@ -455,6 +533,7 @@ export function useCreateScreen() {
     setToCoordinate,
     shareViaText,
     shareViaWhatsApp,
+    validateRouteStep,
     showDatePicker,
     showFromPicker,
     showProfileAlert,
