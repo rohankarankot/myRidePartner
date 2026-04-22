@@ -132,7 +132,7 @@ export default function CreateCommunityGroupScreen() {
               Approval Required
             </Text>
             <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
-              All new groups need admin approval before being visible. You'll be notified once your group is reviewed.
+              All new groups need admin approval before being visible. You&apos;ll be notified once your group is reviewed.
             </Text>
           </VStack>
         </HStack>

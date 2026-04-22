@@ -3,6 +3,13 @@
   "compilerOptions": {
     "baseUrl": ".",
     "jsxImportSource": "nativewind",
+    "moduleSuffixes": [
+      ".native",
+      ".ios",
+      ".android",
+      ".web",
+      ""
+    ],
     "strict": true,
     "skipLibCheck": true,
     "paths": {

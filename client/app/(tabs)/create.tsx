@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text as NativeText } from 'react-native';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { CustomAlert } from '@/components/CustomAlert';
 import { LocationSearchModal } from '@/features/trips/components/LocationSearchModal';
@@ -187,17 +188,23 @@ export default function CreateScreen() {
                   <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
                     Pickup
                   </Text>
-                  <Text className="text-sm font-semibold leading-5" style={{ color: textColor }} numberOfLines={3}>
+                  <NativeText
+                    numberOfLines={3}
+                    style={{ color: textColor, fontSize: 14, fontWeight: '600', lineHeight: 20 }}
+                  >
                     {publishedTrip.startingPoint}
-                  </Text>
+                  </NativeText>
                 </VStack>
                 <VStack space="xs">
                   <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
                     Destination
                   </Text>
-                  <Text className="text-sm font-semibold leading-5" style={{ color: textColor }} numberOfLines={3}>
+                  <NativeText
+                    numberOfLines={3}
+                    style={{ color: textColor, fontSize: 14, fontWeight: '600', lineHeight: 20 }}
+                  >
                     {publishedTrip.destination}
-                  </Text>
+                  </NativeText>
                 </VStack>
               </VStack>
             </HStack>
