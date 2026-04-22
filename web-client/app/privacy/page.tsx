@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ThemeModeToggle } from "@/src/backoffice/components/themes/theme-mode-toggle";
+import { ThemeSelector } from "@/src/backoffice/components/themes/theme-selector";
 
 export default function PrivacyPage() {
   const sections = [
@@ -29,11 +31,17 @@ export default function PrivacyPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,216,138,0.3),_transparent_28%),linear-gradient(160deg,_#fffaf1_0%,_#fff4e3_38%,_#f3f7ff_100%)] text-slate-900">
+    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
+      {/* Background Glows */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute top-[40%] -right-[10%] w-[30%] h-[30%] rounded-full bg-blue-500/10 blur-[100px]" />
+      </div>
+
       <div className="mx-auto max-w-4xl px-6 py-12 sm:px-10 lg:px-12 lg:py-20">
         <header className="flex items-center justify-between">
           <Link href="/" className="group flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition-all group-hover:border-sky-300 group-hover:bg-sky-50">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-all group-hover:border-primary/50 group-hover:bg-primary/5">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -44,27 +52,33 @@ export default function PrivacyPage() {
                 strokeWidth="2.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-slate-600 transition-colors group-hover:text-sky-600"
+                className="text-muted-foreground transition-colors group-hover:text-primary"
               >
                 <path d="m15 18-6-6 6-6" />
               </svg>
             </div>
-            <span className="text-sm font-semibold uppercase tracking-widest text-slate-500 transition-colors group-hover:text-sky-700">
+            <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground transition-colors group-hover:text-primary">
               Back to Home
             </span>
           </Link>
-          <div className="text-right">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.32em] text-sky-700">
-              Legal
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2">
+              <ThemeSelector />
+              <ThemeModeToggle />
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.32em] text-primary">
+                Legal
+              </p>
+            </div>
           </div>
         </header>
 
         <div className="mt-16 sm:mt-24">
-          <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Privacy Policy
           </h1>
-          <p className="mt-6 text-lg leading-8 text-slate-600">
+          <p className="mt-6 text-lg leading-8 text-muted-foreground">
             At My Ride Partner, we are committed to protecting your privacy and
             ensuring a safe carpooling experience. This policy explains how we
             collect, use, and safeguard your data.
@@ -75,26 +89,32 @@ export default function PrivacyPage() {
           {sections.map((section) => (
             <section
               key={section.title}
-              className="rounded-[2.5rem] border border-white/60 bg-white/70 p-8 shadow-[0_15px_40px_rgba(15,23,42,0.06)] backdrop-blur-md transition-all hover:shadow-[0_20px_50px_rgba(15,23,42,0.1)] lg:p-12"
+              className="rounded-[2.5rem] border border-border bg-card/60 p-8 shadow-md backdrop-blur-md transition-all hover:shadow-lg lg:p-12"
             >
-              <h2 className="text-xl font-semibold text-slate-900 lg:text-2xl">
+              <h2 className="text-xl font-semibold text-foreground lg:text-2xl">
                 {section.title}
               </h2>
-              <p className="mt-6 text-base leading-8 text-slate-600 lg:text-lg">
+              <p className="mt-6 text-base leading-8 text-muted-foreground lg:text-lg">
                 {section.body}
               </p>
             </section>
           ))}
         </div>
 
-        <footer className="mt-20 border-t border-slate-200/80 pt-10 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <footer className="mt-20 border-t border-border pt-10 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Last Updated: March 2026
           </p>
-          <p className="mt-4 text-sm text-slate-400">
+          <p className="mt-4 text-sm text-muted-foreground/60">
             &copy; 2026 My Ride Partner. All rights reserved.
           </p>
         </footer>
+      </div>
+
+      {/* Mobile Floating Theme Controls */}
+      <div className="fixed bottom-6 right-6 z-50 flex sm:hidden items-center gap-2 rounded-2xl border border-border bg-background/60 p-1.5 backdrop-blur-xl shadow-2xl">
+        <ThemeSelector />
+        <ThemeModeToggle />
       </div>
     </main>
   );
