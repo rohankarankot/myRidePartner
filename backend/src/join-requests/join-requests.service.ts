@@ -320,7 +320,10 @@ export class JoinRequestsService {
         // 2. Update the request status
         await tx.joinRequest.update({
           where: { documentId },
-          data: { status: newStatus },
+          data: {
+            status: newStatus,
+            ...(newStatus !== 'APPROVED' ? { arrivedAtPickupAt: null } : {}),
+          },
         });
       });
     }
@@ -381,5 +384,78 @@ export class JoinRequestsService {
     });
 
     return request;
+  }
+
+  async updatePickupStatus(
+    documentId: string,
+    passengerId: number,
+    hasArrived: boolean,
+  ) {
+    const request = await this.prisma.joinRequest.findUnique({
+      where: { documentId },
+      include: {
+        trip: {
+          select: {
+            documentId: true,
+            status: true,
+            creatorId: true,
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Join request not found');
+    }
+
+    if (request.passengerId !== passengerId) {
+      throw new ForbiddenException('You can only update your own pickup status');
+    }
+
+    if (request.status !== JoinRequestStatus.APPROVED) {
+      throw new BadRequestException('Only approved riders can confirm pickup arrival');
+    }
+
+    if (request.trip.status !== 'PUBLISHED') {
+      throw new BadRequestException('Pickup confirmation is only available before the ride starts');
+    }
+
+    const updatedRequest = await this.prisma.joinRequest.update({
+      where: { id: request.id },
+      data: {
+        arrivedAtPickupAt: hasArrived ? new Date() : null,
+      },
+      include: {
+        passenger: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: { id: true, username: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    this.eventsGateway.emitToTripRoom(request.trip.documentId, 'trip_updated', {
+      documentId: request.trip.documentId,
+      pickupReadyUpdated: true,
+    });
+
+    return updatedRequest;
   }
 }

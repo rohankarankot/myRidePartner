@@ -7,11 +7,16 @@ import {
   Body,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { JoinRequestsService } from './join-requests.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CreateJoinRequestDto, UpdateJoinRequestStatusDto } from './dto/join-requests.dto';
+import {
+  CreateJoinRequestDto,
+  UpdateJoinRequestPickupStatusDto,
+  UpdateJoinRequestStatusDto,
+} from './dto/join-requests.dto';
 
 @ApiTags('Join Requests')
 @ApiBearerAuth()
@@ -72,5 +77,24 @@ export class JoinRequestsController {
     @Body() body: { status: string },
   ) {
     return this.joinRequestsService.updateStatus(documentId, body.status as any);
+  }
+
+  @Put(':documentId/pickup-status')
+  @ApiOperation({
+    summary: 'Update passenger pickup status',
+    description: 'Mark an approved passenger as arrived at the pickup point',
+  })
+  @ApiParam({ name: 'documentId' })
+  @ApiBody({ type: UpdateJoinRequestPickupStatusDto })
+  updatePickupStatus(
+    @Req() req: any,
+    @Param('documentId') documentId: string,
+    @Body() body: UpdateJoinRequestPickupStatusDto,
+  ) {
+    return this.joinRequestsService.updatePickupStatus(
+      documentId,
+      req.user.id,
+      body.hasArrived,
+    );
   }
 }

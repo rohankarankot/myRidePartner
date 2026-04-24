@@ -227,6 +227,7 @@ model JoinRequest {
   requestedSeats   Int               @default(1)
   message          String?
   sharePhoneNumber Boolean           @default(false)
+  arrivedAtPickupAt DateTime?
   tripId           Int
   trip             Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
   passengerId      Int

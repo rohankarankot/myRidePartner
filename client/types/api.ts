@@ -143,6 +143,7 @@ export interface JoinRequest {
     requestedSeats: number;
     message?: string;
     sharePhoneNumber: boolean;
+    arrivedAtPickupAt?: string | null;
     createdAt: string;
     updatedAt: string;
 }

@@ -35,6 +35,14 @@ class JoinRequestService {
         return data;
     }
 
+    async updatePickupStatus(documentId: string, hasArrived: boolean): Promise<JoinRequest> {
+        const { data } = await apiClient.put<JoinRequest>(
+            `/join-requests/${documentId}/pickup-status`,
+            { hasArrived }
+        );
+        return data;
+    }
+
     async deleteJoinRequest(documentId: string): Promise<void> {
         await apiClient.delete(`/join-requests/${documentId}`);
     }

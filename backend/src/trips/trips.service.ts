@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -9,6 +9,11 @@ import {
   PaginatedMeta,
 } from '../common/utils/query.utils';
 import { TripChatsService } from '../trip-chats/trip-chats.service';
+import {
+  buildTripStartDateTime,
+  getTodayDateString,
+  isTripInFuture,
+} from './trip-time.utils';
 
 export interface TripFilters {
   status?: TripStatus;
@@ -20,52 +25,6 @@ export interface TripFilters {
   toQuery?: string;
   viewerId?: number;
 }
-
-const getTodayDateString = (now = new Date()) => {
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
-
-const parseTripTime = (tripTime: string) => {
-  const normalizedTime = tripTime.replace(/\s+/g, ' ').trim();
-  const timeMatch = normalizedTime.match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
-
-  if (!timeMatch) {
-    return { hours: 0, minutes: 0 };
-  }
-
-  const [, rawHoursText, rawMinutesText, meridiemRaw] = timeMatch;
-  const rawHours = Number.parseInt(rawHoursText, 10);
-  const rawMinutes = Number.parseInt(rawMinutesText, 10);
-  const meridiem = meridiemRaw?.toUpperCase();
-
-  let hours = Number.isFinite(rawHours) ? rawHours : 0;
-  const minutes = Number.isFinite(rawMinutes) ? rawMinutes : 0;
-
-  if (meridiem === 'PM' && hours < 12) {
-    hours += 12;
-  }
-
-  if (meridiem === 'AM' && hours === 12) {
-    hours = 0;
-  }
-
-  return { hours, minutes };
-};
-
-const buildTripStartDateTime = (tripDate: string, tripTime: string) => {
-  const tripStart = new Date(`${tripDate}T00:00:00`);
-  const { hours, minutes } = parseTripTime(tripTime);
-
-  tripStart.setHours(hours, minutes, 0, 0);
-  return tripStart;
-};
-
-const isTripInFuture = (tripDate: string, tripTime: string, now = new Date()) =>
-  buildTripStartDateTime(tripDate, tripTime).getTime() > now.getTime();
 
 @Injectable()
 export class TripsService {
@@ -431,11 +390,17 @@ export class TripsService {
   /**
    * Update a trip by documentId (general update).
    */
-  async update(documentId: string, data: Prisma.TripUpdateInput) {
+  async update(
+    documentId: string,
+    data: Prisma.TripUpdateInput,
+    actorUserId?: number,
+  ) {
     // 1. Get the current trip to identify change
     const oldTrip = await this.prisma.trip.findUnique({
       where: { documentId },
       select: {
+        id: true,
+        creatorId: true,
         status: true,
         startingPoint: true,
         destination: true,
@@ -448,6 +413,10 @@ export class TripsService {
       throw new NotFoundException(`Trip not found`);
     }
 
+    if (actorUserId && oldTrip.creatorId !== actorUserId) {
+      throw new ForbiddenException('Only the captain can update this trip');
+    }
+
     if (
       data.status === 'COMPLETED' &&
       oldTrip.isPriceCalculated &&
@@ -457,6 +426,28 @@ export class TripsService {
       throw new BadRequestException(
         'Price per seat is required before completing a trip with calculated pricing.',
       );
+    }
+
+    if (data.status === 'STARTED') {
+      const approvedJoinRequests = await this.prisma.joinRequest.findMany({
+        where: {
+          tripId: oldTrip.id,
+          status: 'APPROVED',
+        },
+        select: {
+          arrivedAtPickupAt: true,
+        },
+      });
+
+      const hasPendingPickupConfirmations = approvedJoinRequests.some(
+        (request) => !request.arrivedAtPickupAt,
+      );
+
+      if (hasPendingPickupConfirmations) {
+        throw new BadRequestException(
+          'All approved riders must confirm they reached the pickup point before the ride can start.',
+        );
+      }
     }
 
     // 2. Perform the update
