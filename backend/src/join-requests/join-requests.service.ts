@@ -444,12 +444,63 @@ export class JoinRequestsService {
         trip: {
           include: {
             creator: {
-              select: { id: true, username: true, email: true },
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: { select: { avatar: true, fullName: true } },
+              },
             },
           },
         },
       },
     });
+
+    if (hasArrived) {
+      const passengerName =
+        updatedRequest.passenger.userProfile?.fullName ||
+        updatedRequest.passenger.username;
+      const destination = updatedRequest.trip.destination;
+      const passengerAvatar = updatedRequest.passenger.userProfile?.avatar;
+
+      // 1. Notify the captain
+      const captainId = updatedRequest.trip.creatorId;
+      await this.notificationsService.create({
+        title: 'Passenger Arrived',
+        message: `${passengerName} is ready at the pickup point for your trip to ${destination}.`,
+        type: NotificationType.TRIP_UPDATE,
+        userId: captainId,
+        relatedId: updatedRequest.trip.documentId,
+        data: {
+          tripId: updatedRequest.trip.documentId,
+          image: passengerAvatar,
+        },
+      });
+
+      // 2. Notify other approved passengers
+      const otherApprovedRequests = await this.prisma.joinRequest.findMany({
+        where: {
+          tripId: updatedRequest.tripId,
+          status: JoinRequestStatus.APPROVED,
+          id: { not: updatedRequest.id },
+        },
+        select: { passengerId: true },
+      });
+
+      for (const otherReq of otherApprovedRequests) {
+        await this.notificationsService.create({
+          title: 'Rider Arrived',
+          message: `${passengerName} has arrived at the pickup point.`,
+          type: NotificationType.TRIP_UPDATE,
+          userId: otherReq.passengerId,
+          relatedId: updatedRequest.trip.documentId,
+          data: {
+            tripId: updatedRequest.trip.documentId,
+            image: passengerAvatar,
+          },
+        });
+      }
+    }
 
     this.eventsGateway.emitToTripRoom(request.trip.documentId, 'trip_updated', {
       documentId: request.trip.documentId,

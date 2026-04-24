@@ -652,7 +652,7 @@ export default function TripDetailsScreen() {
                                     Came to pickup point
                                 </Text>
                                 <Text className="text-sm leading-6" style={{ color: subtextColor }}>
-                                    Mark yourself ready when you reach the pickup point so the captain can start the ride once everyone arrives.
+                                    Mark yourself ready when you reach the pickup point.
                                 </Text>
                             </VStack>
                             <Button
