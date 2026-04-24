@@ -104,7 +104,7 @@ export const columns: ColumnDef<User>[] = [
     header: '',
     cell: ({ row }) => (
       <Link
-        href={`/dashboard/users/${row.original.id}`}
+        href={`/backoffice/dashboard/users/${row.original.id}`}
         className='text-primary text-sm underline-offset-4 hover:underline'
       >
         360 view

@@ -91,6 +91,8 @@ export default function TripDetailsScreen() {
     const [showGenderAlert, setShowGenderAlert] = useState(false);
     const [showStartAlert, setShowStartAlert] = useState(false);
     const [showCompleteAlert, setShowCompleteAlert] = useState(false);
+    const [updatingJoinRequestId, setUpdatingJoinRequestId] = useState<string | null>(null);
+    const updatingJoinRequestIdRef = useRef<string | null>(null);
 
     const joinSheetRef = useRef<BottomSheetModal>(null);
     const [sheetIndex, setSheetIndex] = useState(-1);
@@ -302,6 +304,9 @@ export default function TripDetailsScreen() {
     };
 
     const handleUpdateJoinStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+        if (updatingJoinRequestIdRef.current) return;
+        updatingJoinRequestIdRef.current = requestId;
+        setUpdatingJoinRequestId(requestId);
         try {
             await joinRequestService.updateJoinRequestStatus(requestId, status);
             void analyticsService.trackEvent('join_request_status_updated', {
@@ -312,6 +317,9 @@ export default function TripDetailsScreen() {
             Toast.show({ type: 'success', text1: `Request ${status.toLowerCase()}` });
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to update request.' });
+        } finally {
+            updatingJoinRequestIdRef.current = null;
+            setUpdatingJoinRequestId(null);
         }
     };
 
@@ -783,11 +791,25 @@ export default function TripDetailsScreen() {
                                 </HStack>
                                 {req.status === 'PENDING' && (
                                     <HStack space="md">
-                                        <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => handleUpdateJoinStatus(req.documentId, 'REJECTED')}>
-                                            <ButtonText className="text-white">Reject</ButtonText>
+                                        <Button
+                                            className="flex-1 bg-red-500 rounded-lg"
+                                            disabled={updatingJoinRequestId === req.documentId}
+                                            onPress={() => handleUpdateJoinStatus(req.documentId, 'REJECTED')}
+                                        >
+                                            <ButtonText className="text-white">
+                                                {updatingJoinRequestId === req.documentId ? 'Processing...' : 'Reject'}
+                                            </ButtonText>
                                         </Button>
-                                        <Button className="flex-1 bg-green-500 rounded-lg" onPress={() => handleUpdateJoinStatus(req.documentId, 'APPROVED')}>
-                                            <ButtonText className="text-white">Approve</ButtonText>
+                                        <Button
+                                            className="flex-1 bg-green-500 rounded-lg"
+                                            disabled={updatingJoinRequestId === req.documentId}
+                                            onPress={() => handleUpdateJoinStatus(req.documentId, 'APPROVED')}
+                                        >
+                                            {updatingJoinRequestId === req.documentId ? (
+                                                <Spinner color="#fff" />
+                                            ) : (
+                                                <ButtonText className="text-white">Approve</ButtonText>
+                                            )}
                                         </Button>
                                     </HStack>
                                 )}

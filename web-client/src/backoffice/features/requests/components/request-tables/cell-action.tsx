@@ -28,7 +28,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
       <DropdownMenuContent align='end'>
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuItem asChild>
-          <Link href={`/dashboard/users/${data.passenger.id}`}>
+          <Link href={`/backoffice/dashboard/users/${data.passenger.id}`}>
             Passenger 360 view
           </Link>
         </DropdownMenuItem>

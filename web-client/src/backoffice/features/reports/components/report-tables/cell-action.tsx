@@ -76,12 +76,12 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           </DropdownMenuItem>
         ))}
         <DropdownMenuItem asChild>
-          <Link href={`/dashboard/users/${data.reportedUser.id}`}>
+          <Link href={`/backoffice/dashboard/users/${data.reportedUser.id}`}>
             Reported user 360
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href={`/dashboard/users/${data.reporter.id}`}>
+          <Link href={`/backoffice/dashboard/users/${data.reporter.id}`}>
             Reporter 360
           </Link>
         </DropdownMenuItem>
