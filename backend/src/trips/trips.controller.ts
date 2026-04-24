@@ -88,10 +88,11 @@ export class TripsController {
   @ApiParam({ name: 'documentId', description: 'UUID document ID of the trip' })
   @ApiBody({ type: UpdateTripBodyDto })
   update(
+    @Req() req: any,
     @Param('documentId') documentId: string,
     @Body() body: { data: any },
   ) {
-    return this.tripsService.update(documentId, body.data);
+    return this.tripsService.update(documentId, body.data, req.user.id);
   }
 
   @Post(':documentId/actions/publish')

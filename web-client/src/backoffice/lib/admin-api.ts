@@ -29,12 +29,18 @@ export const getAdminStats = cache(async (): Promise<AdminStats | null> => {
   if (!token || !base) {
     return null;
   }
-  const res = await fetch(`${base}/api/admin/stats`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) {
+
+  try {
+    const res = await fetch(`${base}/api/admin/stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      return null;
+    }
+    return res.json();
+  } catch (error) {
+    console.error('Failed to load admin stats', error);
     return null;
   }
-  return res.json();
 });

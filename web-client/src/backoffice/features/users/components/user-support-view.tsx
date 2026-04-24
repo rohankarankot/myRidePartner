@@ -264,7 +264,7 @@ export function UserSupportView({ userId }: { userId: number }) {
           <CardHeader className='flex flex-row items-center justify-between'>
             <CardTitle>Recent notifications</CardTitle>
             <Button asChild variant='outline' size='sm'>
-              <Link href={`/dashboard/notifications?userId=${u.id}`}>
+              <Link href={`/backoffice/dashboard/notifications?userId=${u.id}`}>
                 Full log
               </Link>
             </Button>

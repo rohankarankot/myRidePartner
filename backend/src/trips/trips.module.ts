@@ -5,11 +5,12 @@ import { TripsService } from './trips.service';
 import { PrismaService } from '../prisma.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TripChatsModule } from '../trip-chats/trip-chats.module';
+import { TripRemindersTask } from './trip-reminders.task';
 
 @Module({
   imports: [NotificationsModule, TripChatsModule],
   controllers: [TripsController, PublicTripsController],
-  providers: [TripsService, PrismaService],
+  providers: [TripsService, TripRemindersTask, PrismaService],
   exports: [TripsService],
 })
 export class TripsModule {}

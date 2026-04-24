@@ -116,7 +116,7 @@ export default function NotificationLogPage() {
                     <TableCell>
                       <Link
                         className='text-primary underline-offset-4 hover:underline'
-                        href={`/dashboard/users/${n.user.id}`}
+                        href={`/backoffice/dashboard/users/${n.user.id}`}
                       >
                         {n.user.email}
                       </Link>

@@ -82,7 +82,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
 
           <DropdownMenuItem asChild>
-            <Link href={`/dashboard/users/${data.id}`}>360 view</Link>
+            <Link href={`/backoffice/dashboard/users/${data.id}`}>360 view</Link>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onBlockToggle}>
             {data.blocked ? (

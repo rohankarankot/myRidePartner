@@ -8,7 +8,6 @@ import {
     Keyboard,
     RefreshControl,
     ScrollView,
-    Alert,
     Modal,
     Switch,
     TextInput,
@@ -69,7 +68,7 @@ export default function TripDetailsScreen() {
         if (documentId) {
             socketService.joinTrip(documentId as string);
             const handleTripUpdate = (data: any) => {
-                queryClient.invalidateQueries({ queryKey: ['trip-details', documentId] });
+                queryClient.invalidateQueries({ queryKey: ['trip-details', documentId, user?.id] });
                 queryClient.invalidateQueries({ queryKey: ['trips'] });
             };
             socketService.on('trip_updated', handleTripUpdate);
@@ -78,7 +77,7 @@ export default function TripDetailsScreen() {
                 socketService.leaveTrip(documentId as string);
             };
         }
-    }, [documentId, queryClient]);
+    }, [documentId, queryClient, user?.id]);
 
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [showCompletionPriceModal, setShowCompletionPriceModal] = useState(false);
@@ -89,8 +88,14 @@ export default function TripDetailsScreen() {
     const [isJoining, setIsJoining] = useState(false);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
     const [showGenderAlert, setShowGenderAlert] = useState(false);
+    const [showNoSeatsAlert, setShowNoSeatsAlert] = useState(false);
     const [showStartAlert, setShowStartAlert] = useState(false);
     const [showCompleteAlert, setShowCompleteAlert] = useState(false);
+    const [updatingJoinRequestId, setUpdatingJoinRequestId] = useState<string | null>(null);
+    const [isUpdatingPickupStatus, setIsUpdatingPickupStatus] = useState(false);
+    const [selectedJoinRequest, setSelectedJoinRequest] = useState<JoinRequest | null>(null);
+    const [showJoinRequestAlert, setShowJoinRequestAlert] = useState(false);
+    const updatingJoinRequestIdRef = useRef<string | null>(null);
 
     const joinSheetRef = useRef<BottomSheetModal>(null);
     const [sheetIndex, setSheetIndex] = useState(-1);
@@ -167,6 +172,7 @@ export default function TripDetailsScreen() {
             return { trip: tripData, creatorProfile, requests };
         },
         enabled: !!documentId,
+        refetchInterval: 5000,
     });
 
     const { data: chatAccess } = useQuery({
@@ -223,8 +229,12 @@ export default function TripDetailsScreen() {
     const trip = tripDetails?.trip || null;
     const creatorProfile = tripDetails?.creatorProfile || null;
     const joinRequests = tripDetails?.requests || [];
+    const approvedJoinRequests = joinRequests.filter((request) => request.status === 'APPROVED');
     const approvedPassengerCount = joinRequests.filter((request) => request.status === 'APPROVED').length;
     const userJoinRequest = user ? joinRequests.find(r => r.passenger.id === user.id) || null : null;
+    const isApprovedPassengerReady = Boolean(approvedJoinRequest?.arrivedAtPickupAt);
+    const allApprovedPassengersReady = approvedJoinRequests.every((request) => Boolean(request.arrivedAtPickupAt));
+    const pendingPickupConfirmationsCount = approvedJoinRequests.filter((request) => !request.arrivedAtPickupAt).length;
     const isCreatorBlocked = isBlocked(trip?.creator?.id);
     const canOpenChat = Boolean(user && trip && !isCreatorBlocked && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED' && chatAccess?.canAccess);
     const canRateTrip = Boolean(user && trip && trip.status === 'COMPLETED' && isPassenger && !userRating);
@@ -265,7 +275,7 @@ export default function TripDetailsScreen() {
             return;
         }
         if (trip.availableSeats <= 0) {
-            Alert.alert('No Seats Available', 'This trip is already full.');
+            setShowNoSeatsAlert(true);
             return;
         }
         setSelectedSeats(1);
@@ -301,7 +311,49 @@ export default function TripDetailsScreen() {
         }
     };
 
+    const handleConfirmPickupArrival = async () => {
+        if (!approvedJoinRequest || isUpdatingPickupStatus) return;
+        setIsUpdatingPickupStatus(true);
+        try {
+            const updatedRequest = await joinRequestService.updatePickupStatus(approvedJoinRequest.documentId, true);
+
+            queryClient.setQueryData(['trip-details', documentId, user?.id], (oldData: any) => {
+                if (!oldData?.requests) return oldData;
+                return {
+                    ...oldData,
+                    requests: oldData.requests.map((request: JoinRequest) =>
+                        request.documentId === updatedRequest.documentId ? updatedRequest : request
+                    ),
+                };
+            });
+
+            await refetch();
+            Toast.show({ type: 'success', text1: 'Pickup confirmed', text2: 'Captain can now see that you reached the pickup point.' });
+        } catch (error: any) {
+            const message =
+                error?.response?.data?.message ||
+                error?.response?.data?.error?.message ||
+                'Failed to update pickup status.';
+            Toast.show({ type: 'error', text1: 'Error', text2: Array.isArray(message) ? message[0] : message });
+        } finally {
+            setIsUpdatingPickupStatus(false);
+        }
+    };
+
+    const closeJoinRequestAlert = () => {
+        setShowJoinRequestAlert(false);
+        setSelectedJoinRequest(null);
+    };
+
+    const openJoinRequestAlert = (request: JoinRequest) => {
+        setSelectedJoinRequest(request);
+        setShowJoinRequestAlert(true);
+    };
+
     const handleUpdateJoinStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+        if (updatingJoinRequestIdRef.current) return;
+        updatingJoinRequestIdRef.current = requestId;
+        setUpdatingJoinRequestId(requestId);
         try {
             await joinRequestService.updateJoinRequestStatus(requestId, status);
             void analyticsService.trackEvent('join_request_status_updated', {
@@ -312,7 +364,17 @@ export default function TripDetailsScreen() {
             Toast.show({ type: 'success', text1: `Request ${status.toLowerCase()}` });
         } catch (error) {
             Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to update request.' });
+        } finally {
+            updatingJoinRequestIdRef.current = null;
+            setUpdatingJoinRequestId(null);
         }
+    };
+
+    const confirmJoinRequestAction = (status: 'APPROVED' | 'REJECTED') => {
+        if (!selectedJoinRequest) return;
+        const requestId = selectedJoinRequest.documentId;
+        closeJoinRequestAlert();
+        void handleUpdateJoinStatus(requestId, status);
     };
 
     const handleCancelTrip = async () => {
@@ -579,6 +641,38 @@ export default function TripDetailsScreen() {
                     </VStack>
                 </Box>
 
+                {!isCreator && isPassenger && trip.status === 'PUBLISHED' && (
+                    <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
+                        <VStack space="md">
+                            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
+                                Pickup Status
+                            </Text>
+                            <VStack space="xs">
+                                <Text className="text-lg font-bold" style={{ color: textColor }}>
+                                    Came to pickup point
+                                </Text>
+                                <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+                                    Mark yourself ready when you reach the pickup point.
+                                </Text>
+                            </VStack>
+                            <Button
+                                className="h-12 rounded-2xl"
+                                style={{ backgroundColor: isApprovedPassengerReady ? `${successColor}30` : successColor }}
+                                onPress={handleConfirmPickupArrival}
+                                disabled={isApprovedPassengerReady || isUpdatingPickupStatus}
+                            >
+                                {isUpdatingPickupStatus ? (
+                                    <Spinner color="#fff" />
+                                ) : (
+                                    <ButtonText className="text-white font-bold">
+                                        {isApprovedPassengerReady ? 'Marked at Pickup Point' : 'Came to Pickup Point'}
+                                    </ButtonText>
+                                )}
+                            </Button>
+                        </VStack>
+                    </Box>
+                )}
+
                 {/* Info Grid */}
                 <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
                     <HStack className="justify-between">
@@ -691,6 +785,35 @@ export default function TripDetailsScreen() {
                 {isCreator && (
                     <VStack space="md" className="mb-6">
                         <Text className="text-lg font-bold" style={{ color: textColor }}>Manage Ride</Text>
+                        {approvedJoinRequests.length > 0 && trip.status === 'PUBLISHED' && (
+                            <Box className="rounded-2xl p-4 border" style={{ backgroundColor: cardColor, borderColor }}>
+                                <VStack space="sm">
+                                    <Text className="font-bold" style={{ color: textColor }}>
+                                        Pickup confirmations
+                                    </Text>
+                                    <Text className="text-sm" style={{ color: subtextColor }}>
+                                        {allApprovedPassengersReady
+                                            ? 'All approved riders have reached the pickup point.'
+                                            : `Waiting for ${pendingPickupConfirmationsCount} rider${pendingPickupConfirmationsCount === 1 ? '' : 's'} to reach the pickup point.`}
+                                    </Text>
+                                    {approvedJoinRequests.map((request) => (
+                                        <HStack key={request.documentId} className="items-center justify-between">
+                                            <Text className="text-sm" style={{ color: textColor }}>
+                                                {request.passenger.userProfile?.fullName || request.passenger.username || request.passenger.email}
+                                            </Text>
+                                            <Box
+                                                className="px-2 py-1 rounded-lg"
+                                                style={{ backgroundColor: request.arrivedAtPickupAt ? successColor : `${subtextColor}60` }}
+                                            >
+                                                <Text className="text-[10px] font-bold text-white uppercase">
+                                                    {request.arrivedAtPickupAt ? 'Ready' : 'Waiting'}
+                                                </Text>
+                                            </Box>
+                                        </HStack>
+                                    ))}
+                                </VStack>
+                            </Box>
+                        )}
                         <HStack space="md">
                             {trip.status === 'PUBLISHED' && (
                                 <Button
@@ -708,8 +831,9 @@ export default function TripDetailsScreen() {
                             {trip.status === 'PUBLISHED' && (
                                 <Button
                                     className="flex-1 h-12 rounded-xl"
-                                    style={{ backgroundColor: successColor }}
+                                    style={{ backgroundColor: successColor, opacity: allApprovedPassengersReady ? 1 : 0.5 }}
                                     onPress={() => setShowStartAlert(true)}
+                                    disabled={!allApprovedPassengersReady}
                                 >
                                     <HStack space="xs" className="items-center">
                                         <IconSymbol name="play.fill" size={16} color="#fff" />
@@ -750,6 +874,11 @@ export default function TripDetailsScreen() {
                                 {getEditTripBlockedReason()}
                             </Text>
                         )}
+                        {trip.status === 'PUBLISHED' && approvedJoinRequests.length > 0 && !allApprovedPassengersReady && (
+                            <Text className="text-xs italic" style={{ color: subtextColor }}>
+                                Start is enabled only after all approved riders mark that they reached the pickup point.
+                            </Text>
+                        )}
                     </VStack>
                 )}
 
@@ -771,9 +900,14 @@ export default function TripDetailsScreen() {
                                             )}
                                         </Avatar>
                                         <VStack>
-                                            <Text className="font-bold" style={{ color: textColor }}>
-                                                {req.passenger.userProfile?.fullName || req.passenger.username}
-                                            </Text>
+                                            <HStack space="xs" className="items-center">
+                                                <Text className="font-bold" style={{ color: textColor }}>
+                                                    {req.passenger.userProfile?.fullName || req.passenger.username}
+                                                </Text>
+                                                {req.status === 'APPROVED' && req.arrivedAtPickupAt && (
+                                                    <IconSymbol name="checkmark.circle.fill" size={14} color={successColor} />
+                                                )}
+                                            </HStack>
                                             <Text className="text-xs" style={{ color: subtextColor }}>{req.requestedSeats} seats</Text>
                                         </VStack>
                                     </HStack>
@@ -783,11 +917,25 @@ export default function TripDetailsScreen() {
                                 </HStack>
                                 {req.status === 'PENDING' && (
                                     <HStack space="md">
-                                        <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => handleUpdateJoinStatus(req.documentId, 'REJECTED')}>
-                                            <ButtonText className="text-white">Reject</ButtonText>
+                                        <Button
+                                            className="flex-1 bg-red-500 rounded-lg"
+                                            disabled={updatingJoinRequestId === req.documentId}
+                                            onPress={() => openJoinRequestAlert(req)}
+                                        >
+                                            <ButtonText className="text-white">
+                                                {updatingJoinRequestId === req.documentId ? 'Processing...' : 'Reject'}
+                                            </ButtonText>
                                         </Button>
-                                        <Button className="flex-1 bg-green-500 rounded-lg" onPress={() => handleUpdateJoinStatus(req.documentId, 'APPROVED')}>
-                                            <ButtonText className="text-white">Approve</ButtonText>
+                                        <Button
+                                            className="flex-1 bg-green-500 rounded-lg"
+                                            disabled={updatingJoinRequestId === req.documentId}
+                                            onPress={() => openJoinRequestAlert(req)}
+                                        >
+                                            {updatingJoinRequestId === req.documentId ? (
+                                                <Spinner color="#fff" />
+                                            ) : (
+                                                <ButtonText className="text-white">Approve</ButtonText>
+                                            )}
                                         </Button>
                                     </HStack>
                                 )}
@@ -808,6 +956,13 @@ export default function TripDetailsScreen() {
             <ReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} onSubmit={saveReport} reportedUserId={trip.creator?.id ?? 0} reportedUserName={creatorProfile?.fullName} tripDocumentId={trip.documentId} source="trip" />
             <CustomAlert visible={showProfileAlert} title="Profile Incomplete" message="Please update your profile details first." primaryButton={{ text: "Go to Profile", onPress: () => { setShowProfileAlert(false); router.push({ pathname: '/(tabs)/profile', params: { openEditor: 'true' } }); } }} onClose={() => setShowProfileAlert(false)} />
             <CustomAlert visible={showGenderAlert} title="Gender Mismatch" message="This ride matches a different gender preference." primaryButton={{ text: "OK", onPress: () => setShowGenderAlert(false) }} onClose={() => setShowGenderAlert(false)} />
+            <CustomAlert
+                visible={showNoSeatsAlert}
+                title="No Seats Available"
+                message="This trip is already full."
+                primaryButton={{ text: "OK", onPress: () => setShowNoSeatsAlert(false) }}
+                onClose={() => setShowNoSeatsAlert(false)}
+            />
 
             <CustomAlert
                 visible={showStartAlert}
@@ -846,6 +1001,71 @@ export default function TripDetailsScreen() {
                     onPress: () => setShowCancelModal(false)
                 }}
             />
+
+            <CustomAlert
+                visible={showJoinRequestAlert}
+                title="Review Request"
+                message={
+                    selectedJoinRequest
+                        ? `Check ${selectedJoinRequest.passenger.userProfile?.fullName || selectedJoinRequest.passenger.username || 'this rider'} before updating this join request.`
+                        : ''
+                }
+                primaryButton={{
+                    text: "Approve",
+                    onPress: () => confirmJoinRequestAction('APPROVED'),
+                    style: { backgroundColor: successColor }
+                }}
+                secondaryButton={{
+                    text: "Reject",
+                    onPress: () => confirmJoinRequestAction('REJECTED')
+                }}
+                tertiaryButton={{
+                    text: "Cancel",
+                    onPress: closeJoinRequestAlert
+                }}
+                onClose={closeJoinRequestAlert}
+                icon="person.crop.circle.badge.checkmark"
+            >
+                {selectedJoinRequest ? (
+                    <VStack space="md">
+                        <Box
+                            className="rounded-2xl border p-4"
+                            style={{ backgroundColor: `${primaryColor}08`, borderColor }}
+                        >
+                            <Text
+                                className="text-[10px] font-extrabold uppercase tracking-widest mb-2"
+                                style={{ color: subtextColor }}
+                            >
+                                Joiner
+                            </Text>
+                            <Text className="text-base font-bold" style={{ color: textColor }}>
+                                {selectedJoinRequest.passenger.userProfile?.fullName ||
+                                    selectedJoinRequest.passenger.username ||
+                                    selectedJoinRequest.passenger.email}
+                            </Text>
+                            <Text className="text-xs mt-1" style={{ color: subtextColor }}>
+                                {selectedJoinRequest.requestedSeats} seat
+                                {selectedJoinRequest.requestedSeats > 1 ? 's' : ''} requested
+                            </Text>
+                        </Box>
+
+                        <Box
+                            className="rounded-2xl border p-4"
+                            style={{ backgroundColor: cardColor, borderColor }}
+                        >
+                            <Text
+                                className="text-[10px] font-extrabold uppercase tracking-widest mb-2"
+                                style={{ color: subtextColor }}
+                            >
+                                Description
+                            </Text>
+                            <Text className="text-sm leading-6" style={{ color: textColor }}>
+                                {selectedJoinRequest.message?.trim() || 'No description added.'}
+                            </Text>
+                        </Box>
+                    </VStack>
+                ) : null}
+            </CustomAlert>
 
             {/* Price Completion Modal */}
             <Modal
