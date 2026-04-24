@@ -8,7 +8,6 @@ import {
     Keyboard,
     RefreshControl,
     ScrollView,
-    Alert,
     Modal,
     Switch,
     TextInput,
@@ -89,9 +88,12 @@ export default function TripDetailsScreen() {
     const [isJoining, setIsJoining] = useState(false);
     const [showProfileAlert, setShowProfileAlert] = useState(false);
     const [showGenderAlert, setShowGenderAlert] = useState(false);
+    const [showNoSeatsAlert, setShowNoSeatsAlert] = useState(false);
     const [showStartAlert, setShowStartAlert] = useState(false);
     const [showCompleteAlert, setShowCompleteAlert] = useState(false);
     const [updatingJoinRequestId, setUpdatingJoinRequestId] = useState<string | null>(null);
+    const [selectedJoinRequest, setSelectedJoinRequest] = useState<JoinRequest | null>(null);
+    const [showJoinRequestAlert, setShowJoinRequestAlert] = useState(false);
     const updatingJoinRequestIdRef = useRef<string | null>(null);
 
     const joinSheetRef = useRef<BottomSheetModal>(null);
@@ -267,7 +269,7 @@ export default function TripDetailsScreen() {
             return;
         }
         if (trip.availableSeats <= 0) {
-            Alert.alert('No Seats Available', 'This trip is already full.');
+            setShowNoSeatsAlert(true);
             return;
         }
         setSelectedSeats(1);
@@ -303,6 +305,16 @@ export default function TripDetailsScreen() {
         }
     };
 
+    const closeJoinRequestAlert = () => {
+        setShowJoinRequestAlert(false);
+        setSelectedJoinRequest(null);
+    };
+
+    const openJoinRequestAlert = (request: JoinRequest) => {
+        setSelectedJoinRequest(request);
+        setShowJoinRequestAlert(true);
+    };
+
     const handleUpdateJoinStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
         if (updatingJoinRequestIdRef.current) return;
         updatingJoinRequestIdRef.current = requestId;
@@ -321,6 +333,13 @@ export default function TripDetailsScreen() {
             updatingJoinRequestIdRef.current = null;
             setUpdatingJoinRequestId(null);
         }
+    };
+
+    const confirmJoinRequestAction = (status: 'APPROVED' | 'REJECTED') => {
+        if (!selectedJoinRequest) return;
+        const requestId = selectedJoinRequest.documentId;
+        closeJoinRequestAlert();
+        void handleUpdateJoinStatus(requestId, status);
     };
 
     const handleCancelTrip = async () => {
@@ -794,7 +813,7 @@ export default function TripDetailsScreen() {
                                         <Button
                                             className="flex-1 bg-red-500 rounded-lg"
                                             disabled={updatingJoinRequestId === req.documentId}
-                                            onPress={() => handleUpdateJoinStatus(req.documentId, 'REJECTED')}
+                                            onPress={() => openJoinRequestAlert(req)}
                                         >
                                             <ButtonText className="text-white">
                                                 {updatingJoinRequestId === req.documentId ? 'Processing...' : 'Reject'}
@@ -803,7 +822,7 @@ export default function TripDetailsScreen() {
                                         <Button
                                             className="flex-1 bg-green-500 rounded-lg"
                                             disabled={updatingJoinRequestId === req.documentId}
-                                            onPress={() => handleUpdateJoinStatus(req.documentId, 'APPROVED')}
+                                            onPress={() => openJoinRequestAlert(req)}
                                         >
                                             {updatingJoinRequestId === req.documentId ? (
                                                 <Spinner color="#fff" />
@@ -830,6 +849,13 @@ export default function TripDetailsScreen() {
             <ReportModal visible={showReportModal} onClose={() => setShowReportModal(false)} onSubmit={saveReport} reportedUserId={trip.creator?.id ?? 0} reportedUserName={creatorProfile?.fullName} tripDocumentId={trip.documentId} source="trip" />
             <CustomAlert visible={showProfileAlert} title="Profile Incomplete" message="Please update your profile details first." primaryButton={{ text: "Go to Profile", onPress: () => { setShowProfileAlert(false); router.push({ pathname: '/(tabs)/profile', params: { openEditor: 'true' } }); } }} onClose={() => setShowProfileAlert(false)} />
             <CustomAlert visible={showGenderAlert} title="Gender Mismatch" message="This ride matches a different gender preference." primaryButton={{ text: "OK", onPress: () => setShowGenderAlert(false) }} onClose={() => setShowGenderAlert(false)} />
+            <CustomAlert
+                visible={showNoSeatsAlert}
+                title="No Seats Available"
+                message="This trip is already full."
+                primaryButton={{ text: "OK", onPress: () => setShowNoSeatsAlert(false) }}
+                onClose={() => setShowNoSeatsAlert(false)}
+            />
 
             <CustomAlert
                 visible={showStartAlert}
@@ -868,6 +894,71 @@ export default function TripDetailsScreen() {
                     onPress: () => setShowCancelModal(false)
                 }}
             />
+
+            <CustomAlert
+                visible={showJoinRequestAlert}
+                title="Review Request"
+                message={
+                    selectedJoinRequest
+                        ? `Check ${selectedJoinRequest.passenger.userProfile?.fullName || selectedJoinRequest.passenger.username || 'this rider'} before updating this join request.`
+                        : ''
+                }
+                primaryButton={{
+                    text: "Approve",
+                    onPress: () => confirmJoinRequestAction('APPROVED'),
+                    style: { backgroundColor: successColor }
+                }}
+                secondaryButton={{
+                    text: "Reject",
+                    onPress: () => confirmJoinRequestAction('REJECTED')
+                }}
+                tertiaryButton={{
+                    text: "Cancel",
+                    onPress: closeJoinRequestAlert
+                }}
+                onClose={closeJoinRequestAlert}
+                icon="person.crop.circle.badge.checkmark"
+            >
+                {selectedJoinRequest ? (
+                    <VStack space="md">
+                        <Box
+                            className="rounded-2xl border p-4"
+                            style={{ backgroundColor: `${primaryColor}08`, borderColor }}
+                        >
+                            <Text
+                                className="text-[10px] font-extrabold uppercase tracking-widest mb-2"
+                                style={{ color: subtextColor }}
+                            >
+                                Joiner
+                            </Text>
+                            <Text className="text-base font-bold" style={{ color: textColor }}>
+                                {selectedJoinRequest.passenger.userProfile?.fullName ||
+                                    selectedJoinRequest.passenger.username ||
+                                    selectedJoinRequest.passenger.email}
+                            </Text>
+                            <Text className="text-xs mt-1" style={{ color: subtextColor }}>
+                                {selectedJoinRequest.requestedSeats} seat
+                                {selectedJoinRequest.requestedSeats > 1 ? 's' : ''} requested
+                            </Text>
+                        </Box>
+
+                        <Box
+                            className="rounded-2xl border p-4"
+                            style={{ backgroundColor: cardColor, borderColor }}
+                        >
+                            <Text
+                                className="text-[10px] font-extrabold uppercase tracking-widest mb-2"
+                                style={{ color: subtextColor }}
+                            >
+                                Description
+                            </Text>
+                            <Text className="text-sm leading-6" style={{ color: textColor }}>
+                                {selectedJoinRequest.message?.trim() || 'No description added.'}
+                            </Text>
+                        </Box>
+                    </VStack>
+                ) : null}
+            </CustomAlert>
 
             {/* Price Completion Modal */}
             <Modal

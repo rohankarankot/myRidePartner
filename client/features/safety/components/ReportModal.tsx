@@ -155,8 +155,8 @@ export function ReportModal({
                     className="w-full"
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                 >
-                    <Box 
-                        className="rounded-t-[40px] px-8 pt-8 pb-10 max-h-[88%]" 
+                    <Box
+                        className="rounded-t-[40px] px-8 pt-8 pb-10 max-h-[88%]"
                         style={{ backgroundColor: cardColor }}
                     >
                         {submitted ? (
@@ -170,12 +170,12 @@ export function ReportModal({
                                 <Text className="text-sm font-medium leading-6 text-center opacity-80 mb-10 px-4" style={{ color: subtextColor }}>
                                     Your safety is our priority. We will investigate this report and take appropriate action immediately.
                                 </Text>
-                                <Button 
+                                <Button
                                     className="w-full h-16 rounded-[24px] shadow-xl"
                                     style={{ backgroundColor: primaryColor }}
                                     onPress={handleClose}
                                 >
-                                    <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Understood</ButtonText>
+                                    <ButtonText className="text-xs text-white font-extrabold uppercase tracking-widest">Understood</ButtonText>
                                 </Button>
                             </Box>
                         ) : (
@@ -189,8 +189,8 @@ export function ReportModal({
                                             </Text>
                                         ) : null}
                                     </VStack>
-                                    <Pressable 
-                                        onPress={handleClose} 
+                                    <Pressable
+                                        onPress={handleClose}
                                         className="w-10 h-10 rounded-full items-center justify-center bg-gray-50 border shadow-xs"
                                         style={{ borderColor }}
                                     >
@@ -202,8 +202,8 @@ export function ReportModal({
                                     {questionLabel}
                                 </Text>
 
-                                <ScrollView 
-                                    showsVerticalScrollIndicator={false} 
+                                <ScrollView
+                                    showsVerticalScrollIndicator={false}
                                     contentContainerStyle={{ paddingBottom: 24 }}
                                     className="max-h-[400px]"
                                 >
@@ -241,7 +241,7 @@ export function ReportModal({
                                     <Text className="text-[10px] font-extrabold uppercase tracking-widest ml-1 mt-8 mb-4" style={{ color: subtextColor }}>
                                         {isOtherReason ? 'Case Details (Required)' : 'Case Details (Optional)'}
                                     </Text>
-                                    
+
                                     <Box className="rounded-[24px] border-2 shadow-sm p-4 h-32" style={{ backgroundColor: `${subtextColor}05`, borderColor: isDetailsRequiredMissing ? dangerColor : borderColor }}>
                                         <TextInput
                                             className="flex-1 text-[15px] font-medium"
@@ -257,7 +257,7 @@ export function ReportModal({
                                             {details.length} / 500
                                         </Text>
                                     </Box>
-                                    
+
                                     {isDetailsRequiredMissing ? (
                                         <Text className="text-[10px] font-bold mt-2 ml-1" style={{ color: dangerColor }}>
                                             Please provide details for the &quot;Other&quot; category.
@@ -266,7 +266,7 @@ export function ReportModal({
                                 </ScrollView>
 
                                 <HStack className="mt-8" space="md">
-                                    <Button 
+                                    <Button
                                         variant="outline"
                                         className="flex-1 h-16 rounded-[24px] border-2 shadow-sm"
                                         style={{ borderColor }}
@@ -274,9 +274,9 @@ export function ReportModal({
                                     >
                                         <ButtonText className="text-xs font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Cancel</ButtonText>
                                     </Button>
-                                    <Button 
+                                    <Button
                                         className="flex-[2] h-16 rounded-[24px] shadow-xl"
-                                        style={{ 
+                                        style={{
                                             backgroundColor: selectedReason && !isDetailsRequiredMissing ? dangerColor : `${subtextColor}20`,
                                         }}
                                         onPress={handleSubmit}
@@ -285,7 +285,7 @@ export function ReportModal({
                                         {submitting ? (
                                             <ButtonSpinner color="#fff" />
                                         ) : (
-                                            <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Submit Case</ButtonText>
+                                            <ButtonText className="text-xs color-white font-extrabold uppercase tracking-widest">Submit Case</ButtonText>
                                         )}
                                     </Button>
                                 </HStack>
