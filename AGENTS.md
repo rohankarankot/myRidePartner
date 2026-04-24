@@ -4,6 +4,8 @@
 - This repo contains multiple apps sharing one backend and one user database.
 - The backend is the source of truth for authentication, user identity, and app-source registration.
 - Current user-facing app sources are `myridepartner` and `interport`.
+- `web-client/` is the single source of truth for web UI, including the public site, `/trip/[id]`, and `/backoffice`.
+- `client/` is the Expo mobile app for `myridepartner`.
 
 ## Shared Auth Model
 - Users are shared across apps through the `User` table.
@@ -69,6 +71,12 @@
 ## Google Auth Notes
 - Backend should support multiple Google client IDs through `GOOGLE_CLIENT_IDS`.
 - Use a comma-separated env value when multiple apps have different Google OAuth client IDs.
+
+## Mobile Smoke Tests
+- The Expo app includes Maestro smoke tests under `client/.maestro/`.
+- Run all mobile smoke tests from `client/` with `npm run maestro:test`.
+- Run only the smoke suite from `client/` with `npm run maestro:test:smoke`.
+- Before running Maestro tests, boot an iOS Simulator or Android Emulator and install a development build once with `npm run ios` or `npm run android`.
 
 ## Expectations For Future Agents
 - Preserve the shared-user model unless explicitly asked to separate users per app.

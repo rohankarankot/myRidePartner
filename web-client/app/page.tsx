@@ -86,7 +86,6 @@ export default function Home() {
             className="flex items-center gap-4"
           >
             <div className="hidden sm:flex items-center gap-2">
-              <ThemeSelector />
               <ThemeModeToggle />
             </div>
             <a
@@ -328,7 +327,6 @@ export default function Home() {
 
       {/* Mobile Floating Theme Controls */}
       <div className="fixed bottom-6 right-6 z-50 flex sm:hidden items-center gap-2 rounded-2xl border border-border bg-background/60 p-1.5 backdrop-blur-xl shadow-2xl">
-        <ThemeSelector />
         <ThemeModeToggle />
       </div>
     </main>

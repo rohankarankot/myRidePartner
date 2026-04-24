@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useThemeConfig } from '@bo/components/themes/active-theme';
 import { Label } from '@bo/components/ui/label';
 import {
@@ -18,6 +19,12 @@ import { THEMES } from './theme.config';
 
 export function ThemeSelector() {
   const { activeTheme, setActiveTheme } = useThemeConfig();
+  const pathname = usePathname();
+
+  const isBackoffice = pathname?.startsWith('/backoffice');
+  const themesToShow = isBackoffice
+    ? THEMES
+    : THEMES.filter((t) => t.value === 'blues');
 
   return (
     <div className='flex items-center gap-2'>
@@ -35,11 +42,11 @@ export function ThemeSelector() {
           <SelectValue placeholder='Select a theme' />
         </SelectTrigger>
         <SelectContent align='end'>
-          {THEMES.length > 0 && (
+          {themesToShow.length > 0 && (
             <>
               <SelectGroup>
                 <SelectLabel>themes</SelectLabel>
-                {THEMES.map((theme) => (
+                {themesToShow.map((theme) => (
                   <SelectItem key={theme.name} value={theme.value}>
                     {theme.name}
                   </SelectItem>

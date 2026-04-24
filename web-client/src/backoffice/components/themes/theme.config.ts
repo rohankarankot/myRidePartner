@@ -2,9 +2,17 @@
  * Default theme that loads when no user preference is set
  * Change this value to set a different default theme
  */
-export const DEFAULT_THEME = 'vercel';
+export const DEFAULT_THEME = 'blues';
 
 export const THEMES = [
+  {
+    name: 'White',
+    value: 'vercel'
+  },
+  {
+    name: 'Blues',
+    value: 'blues'
+  },
   {
     name: 'Claude',
     value: 'claude'
@@ -16,10 +24,6 @@ export const THEMES = [
   {
     name: 'Supabase',
     value: 'supabase'
-  },
-  {
-    name: 'Vercel',
-    value: 'vercel'
   },
   {
     name: 'Mono',
