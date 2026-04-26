@@ -1,11 +1,5 @@
 import { NextResponse } from "next/server";
 
-const androidPackageName =
-  process.env.ANDROID_PACKAGE_NAME ?? "com.rohankarankot.myridepartner";
-const androidSha256Fingerprint =
-  process.env.ANDROID_SHA256_FINGERPRINT ??
-  "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C";
-
 export function GET() {
   return NextResponse.json(
     [
@@ -13,8 +7,10 @@ export function GET() {
         relation: ["delegate_permission/common.handle_all_urls"],
         target: {
           namespace: "android_app",
-          package_name: androidPackageName,
-          sha256_cert_fingerprints: [androidSha256Fingerprint],
+          package_name: "com.rohanalwayscodes.myridepartner",
+          sha256_cert_fingerprints: [
+            "A2:3E:16:AE:46:AF:81:F0:5F:AC:9E:EC:88:8E:F9:D1:1E:36:52:23:B3:4C:1B:C2:09:7A:22:49:1E:7F:58:A3",
+          ],
         },
       },
     ],
