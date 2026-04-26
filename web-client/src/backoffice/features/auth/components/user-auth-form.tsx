@@ -31,7 +31,7 @@ export default function UserAuthForm() {
   const callbackUrl = searchParams.get('callbackUrl') || '/backoffice/dashboard/overview';
   const [loading, startTransition] = useTransition();
   const defaultValues = {
-    email: 'admin@myridepartner.com',
+    email: '',
     password: ''
   };
   const form = useForm<UserFormValue>({

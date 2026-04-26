@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 const iosBundleId =
-  process.env.IOS_BUNDLE_ID ?? "com.rohankarankot.myridepartner";
+  process.env.IOS_BUNDLE_ID ?? "com.rohanalwayscodes.myridepartner";
 const appleTeamId = process.env.APPLE_TEAM_ID;
 
 export function GET() {

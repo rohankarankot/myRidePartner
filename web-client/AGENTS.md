@@ -29,7 +29,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 - `NEXT_PUBLIC_API_URL` defaults to `http://localhost:3000/api` for the trip fallback page.
 - `APPLE_TEAM_ID` is required for the iOS `apple-app-site-association` route to return a valid payload.
-- `IOS_BUNDLE_ID` defaults to `com.rohankarankot.myridepartner`.
-- `ANDROID_PACKAGE_NAME` defaults to `com.rohankarankot.myridepartner`.
-- `ANDROID_SHA256_FINGERPRINT` currently has a fallback value in code; replace it with the production signing fingerprint before relying on Android App Links.
+- `IOS_BUNDLE_ID` defaults to `com.rohanalwayscodes.myridepartner`.
+- `ANDROID_PACKAGE_NAME` defaults to `com.rohanalwayscodes.myridepartner`.
+- `ANDROID_SHA256_FINGERPRINT` is hardcoded in `app/.well-known/assetlinks.json/route.ts` to support the current app signature.
 - TODO: add a checked-in env example for these deep-link variables before expanding this workflow further.
