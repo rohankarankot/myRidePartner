@@ -102,7 +102,7 @@ export default function PrivacyPage() {
 
         <footer className="mt-20 border-t border-border pt-10 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Last Updated: March 2026
+            Last Updated: April 2026
           </p>
           <p className="mt-4 text-sm text-muted-foreground/60">
             &copy; 2026 My Ride Partner. All rights reserved.
