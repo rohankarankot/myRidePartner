@@ -48,4 +48,22 @@
 
 ## Traceability
 
-*(To be filled by roadmap generator)*
+- **AUTH-01** -> Phase 1
+- **AUTH-02** -> Phase 1
+- **AUTH-03** -> Phase 5
+- **TRIP-01** -> Phase 2
+- **TRIP-02** -> Phase 2
+- **TRIP-03** -> Phase 2
+- **TRIP-04** -> Phase 2
+- **COMM-01** -> Phase 4
+- **COMM-02** -> Phase 4
+- **MSG-01** -> Phase 3
+- **MSG-02** -> Phase 3
+- **MSG-03** -> Phase 3
+- **NOTF-01** -> Phase 4
+- **NOTF-02** -> Phase 4
+- **ADMN-01** -> Phase 5
+- **ADMN-02** -> Phase 5
+- **ADMN-03** -> Phase 5
+- **ADMN-04** -> Phase 5
+- **AD-01** -> Phase 5
