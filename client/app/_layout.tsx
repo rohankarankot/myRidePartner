@@ -7,12 +7,18 @@ import { HeaderRight } from '@/components/ui/HeaderRight';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { AppProviders } from '@/providers/app-providers';
 import { initializeMobileAds } from '../features/ads/utils/initialize-mobile-ads';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-export default function RootLayout() {
+function RootLayout() {
   React.useEffect(() => {
     void initializeMobileAds();
   }, []);
@@ -59,3 +65,5 @@ export default function RootLayout() {
     </AppProviders>
   );
 }
+
+export default Sentry.wrap(RootLayout);
