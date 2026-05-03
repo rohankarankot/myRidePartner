@@ -116,6 +116,7 @@ const config: ExpoConfig = {
         iosAppId,
       },
     ],
+    '@sentry/react-native/expo',
     withVerificationToken as any,
   ],
   experiments: {
