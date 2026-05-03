@@ -257,6 +257,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
     const insets = useSafeAreaInsets();
     const headerHeight = insets.top + 70;
     const [composerText, setComposerText] = useState('');
+    const composerTextRef = useRef('');
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -479,6 +480,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
         );
         scrollToBottom();
 
+        composerTextRef.current = '';
         setComposerText('');
         setIsSending(true);
 
@@ -505,6 +507,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
                 )
             );
 
+            composerTextRef.current = trimmedMessage;
             setComposerText(trimmedMessage);
             Toast.show({
                 type: 'error',
@@ -517,7 +520,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
     };
 
     const handlePressSend = () => {
-        const trimmedMessage = composerText.trim();
+        const trimmedMessage = composerTextRef.current.trim();
         if (!trimmedMessage || isSending) {
             return;
         }
@@ -680,7 +683,10 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
                                 left: { color: subtextColor },
                             }}
                             textInputProps={{
-                                onChangeText: setComposerText,
+                                onChangeText: (value: string) => {
+                                    composerTextRef.current = value;
+                                    setComposerText(value);
+                                },
                                 placeholder: 'Post a thought or query...',
                                 editable: Boolean(groupDocumentId),
                                 placeholderTextColor: subtextColor,
@@ -871,7 +877,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
                             )}
                             renderSend={() => null}
                             renderChatEmpty={() => (
-                                <Box className="items-center px-10 py-20" style={{ transform: [{ rotate: '180deg' }] }}>
+                                <Box className="items-center px-10 py-20" style={{ transform: [{ rotate: '180deg' }] } as any}>
                                     <Box className="w-20 h-20 rounded-[32px] bg-primary-500/10 items-center justify-center mb-6 shadow-sm">
                                         <IconSymbol name="person.3.fill" size={32} color={primaryColor} />
                                     </Box>

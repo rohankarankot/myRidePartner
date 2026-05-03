@@ -30,7 +30,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
       >
         <Box 
             className="w-6 h-6 items-center justify-center rounded-full bg-gray-50/50"
-            style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
+            style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] } as any}
         >
             <IconSymbol
               name="chevron.right"

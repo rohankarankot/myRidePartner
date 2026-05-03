@@ -210,6 +210,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const insets = useSafeAreaInsets();
     const headerHeight = insets.top + 70;
     const [composerText, setComposerText] = useState('');
+    const composerTextRef = useRef('');
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
     const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -476,6 +477,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
         );
         scrollToBottom();
 
+        composerTextRef.current = '';
         setComposerText('');
         setIsSending(true);
 
@@ -503,6 +505,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                 )
             );
 
+            composerTextRef.current = trimmedMessage;
             setComposerText(trimmedMessage);
             Toast.show({
                 type: 'error',
@@ -515,7 +518,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     };
 
     const handlePressSend = () => {
-        const trimmedMessage = composerText.trim();
+        const trimmedMessage = composerTextRef.current.trim();
         if (!trimmedMessage || isSending) {
             return;
         }
@@ -694,7 +697,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                 left: { color: subtextColor },
                             }}
                             textInputProps={{
-                                onChangeText: setComposerText,
+                                onChangeText: (value: string) => {
+                                    composerTextRef.current = value;
+                                    setComposerText(value);
+                                },
                                 placeholder: 'Post a thought or query...',
                                 editable: Boolean(selectedCity),
                                 placeholderTextColor: subtextColor,
@@ -885,7 +891,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                             )}
                             renderSend={() => null}
                             renderChatEmpty={() => (
-                                <Box className="items-center px-10 py-20" style={{ transform: [{ rotate: '180deg' }] }}>
+                                <Box className="items-center px-10 py-20" style={{ transform: [{ rotate: '180deg' }] } as any}>
                                     <Box className="w-20 h-20 rounded-[32px] bg-primary-500/10 items-center justify-center mb-6 shadow-sm">
                                         <IconSymbol name="person.2.fill" size={32} color={primaryColor} />
                                     </Box>

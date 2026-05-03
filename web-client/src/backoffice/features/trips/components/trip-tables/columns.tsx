@@ -44,6 +44,9 @@ export const columns: ColumnDef<Trip>[] = [
   {
     id: 'creator',
     header: 'CREATOR',
+    size: 850,
+    minSize: 200,
+    maxSize: 600,
     cell: ({ row }) => {
       const trip = row.original;
       return (
@@ -64,10 +67,20 @@ export const columns: ColumnDef<Trip>[] = [
   {
     accessorKey: 'startingPoint',
     header: 'FROM',
+    cell: ({ row }) => (
+      <div className='min-w-[200px] max-w-[400px] whitespace-normal line-clamp-2'>
+        {row.getValue('startingPoint')}
+      </div>
+    ),
   },
   {
     accessorKey: 'destination',
     header: 'TO',
+    cell: ({ row }) => (
+      <div className='min-w-[200px] max-w-[400px] whitespace-normal line-clamp-2'>
+        {row.getValue('destination')}
+      </div>
+    ),
   },
   {
     id: 'when',
