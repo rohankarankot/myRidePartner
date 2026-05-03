@@ -278,6 +278,7 @@ export default function TripChatScreen() {
     const queryClient = useQueryClient();
     const insets = useSafeAreaInsets();
     const [composerText, setComposerText] = useState('');
+    const composerTextRef = useRef('');
     const [composerHeight, setComposerHeight] = useState(48);
     const [isSending, setIsSending] = useState(false);
     const [replyingTo, setReplyingTo] = useState<ExtendedMessage | null>(null);
@@ -641,6 +642,7 @@ export default function TripChatScreen() {
     };
 
     const handleComposerChange = (value: string) => {
+        composerTextRef.current = value;
         setComposerText(value);
 
         if (!tripId || !socketService.isConnected()) {
@@ -702,6 +704,7 @@ export default function TripChatScreen() {
         );
         scrollToBottom();
 
+        composerTextRef.current = '';
         setComposerText('');
         setIsSending(true);
 
@@ -728,6 +731,7 @@ export default function TripChatScreen() {
                 )
             );
 
+            composerTextRef.current = trimmedMessage;
             setComposerText(trimmedMessage);
             setComposerHeight(48);
             Toast.show({
@@ -999,7 +1003,7 @@ export default function TripChatScreen() {
     };
 
     const handlePressSend = () => {
-        const trimmedMessage = composerText.trim();
+        const trimmedMessage = composerTextRef.current.trim();
         if (!trimmedMessage || isSending || isSendingMedia) {
             return;
         }
@@ -1696,7 +1700,7 @@ export default function TripChatScreen() {
                         )}
                         renderSend={() => null}
                         renderChatEmpty={() => (
-                            <Box className="items-center px-10 py-10" style={{ transform: [{ rotate: '180deg' }] }}>
+                            <Box className="items-center px-10 py-10" style={{ transform: [{ rotate: '180deg' }] } as any}>
                                 <Text className="text-xl font-extrabold text-center uppercase tracking-widest" style={{ color: textColor }}>
                                     Launch Pad
                                 </Text>
