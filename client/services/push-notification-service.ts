@@ -7,11 +7,11 @@ import { userService } from './user-service';
 // Configure how notifications are handled when the app is foregrounded
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
-        shouldShowAlert: true,
+        shouldShowAlert: false,
         shouldPlaySound: true,
         shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
+        shouldShowBanner: false,
+        shouldShowList: false,
     }),
 });
 

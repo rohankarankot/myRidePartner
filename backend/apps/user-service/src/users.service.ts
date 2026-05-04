@@ -1,0 +1,695 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
+
+import { PrismaService } from '@app/common';
+import { Prisma, User, UserAccountStatus } from '@prisma/client';
+
+@Injectable()
+export class UsersService {
+  constructor(private prisma: PrismaService) {}
+
+  async findByEmail(email: string): Promise<(User & { userProfile?: any }) | null> {
+    try {
+      return await this.prisma.user.findUnique({ 
+        where: { email },
+        include: { userProfile: true }
+      });
+    } catch (error) {
+      if (!this.isMissingAccountStatusColumnError(error)) {
+        throw error;
+      }
+
+      return this.findByEmailLegacy(email);
+    }
+  }
+
+  async findById(id: number): Promise<(User & { userProfile?: any }) | null> {
+    try {
+      return await this.prisma.user.findUnique({ 
+        where: { id },
+        include: { userProfile: true }
+      });
+    } catch (error) {
+      if (!this.isMissingAccountStatusColumnError(error)) {
+        throw error;
+      }
+
+      return this.findByIdLegacy(id);
+    }
+  }
+
+  async update(id: number, data: any): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      include: { userProfile: true }
+    });
+  }
+
+  async pauseAccount(id: number): Promise<User> {
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: {
+          accountStatus: UserAccountStatus.PAUSED,
+          pausedAt: new Date(),
+        },
+        include: { userProfile: true },
+      });
+    } catch (error) {
+      if (this.isMissingAccountStatusColumnError(error)) {
+        throw new ServiceUnavailableException(
+          'Account pause is not ready yet. Please run the database update for account status fields.',
+        );
+      }
+
+      throw error;
+    }
+  }
+
+  async reactivateAccount(id: number): Promise<User> {
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: {
+          accountStatus: UserAccountStatus.ACTIVE,
+          pausedAt: null,
+        },
+        include: { userProfile: true },
+      });
+    } catch (error) {
+      if (this.isMissingAccountStatusColumnError(error)) {
+        const legacyUser = await this.findByIdLegacy(id);
+        if (!legacyUser) {
+          throw error;
+        }
+
+        return legacyUser as User;
+      }
+
+      throw error;
+    }
+  }
+
+  async deleteAccount(id: number): Promise<void> {
+    await this.prisma.user.delete({
+      where: { id },
+    });
+  }
+
+  async getUserAnalytics(userId: number) {
+    const [postedTrips, approvedRequestsForMyTrips, completedPassengerTrips] =
+      await Promise.all([
+        this.prisma.trip.findMany({
+          where: { creatorId: userId },
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            pricePerSeat: true,
+            joinRequests: {
+              where: {
+                status: 'APPROVED',
+              },
+              select: {
+                id: true,
+              },
+            },
+          },
+        }),
+        this.prisma.joinRequest.findMany({
+          where: {
+            status: 'APPROVED',
+            trip: { creatorId: userId },
+          },
+          select: {
+            updatedAt: true,
+          },
+        }),
+        this.prisma.joinRequest.findMany({
+          where: {
+            passengerId: userId,
+            status: 'APPROVED',
+            trip: {
+              status: 'COMPLETED',
+            },
+          },
+          select: {
+            trip: {
+              select: {
+                pricePerSeat: true,
+                updatedAt: true,
+              },
+            },
+          },
+        }),
+      ]);
+
+    const completedCaptainTrips = postedTrips.filter(
+      (trip) => trip.status === 'COMPLETED',
+    );
+
+    const estimatedMoneySaved = completedPassengerTrips.reduce((sum, request) => {
+      return sum + Number(request.trip.pricePerSeat ?? 0);
+    }, 0);
+
+    const estimatedCostRecovered = completedCaptainTrips.reduce((sum, trip) => {
+      return (
+        sum +
+        Number(trip.pricePerSeat ?? 0) * trip.joinRequests.length
+      );
+    }, 0);
+
+    const ridesPosted = postedTrips.length;
+    const ridesCompleted = completedCaptainTrips.length;
+    const requestsApproved = approvedRequestsForMyTrips.length;
+    const completionRate =
+      ridesPosted === 0
+        ? 0
+        : Math.round((ridesCompleted / ridesPosted) * 100);
+
+    const monthlyActivity = this.buildMonthlyAnalytics(
+      postedTrips,
+      approvedRequestsForMyTrips,
+      completedPassengerTrips,
+    );
+
+    return {
+      data: {
+        summary: {
+          ridesPosted,
+          requestsApproved,
+          ridesCompleted,
+          completionRate,
+          estimatedMoneySaved: Math.round(estimatedMoneySaved),
+          estimatedCostRecovered: Math.round(estimatedCostRecovered),
+        },
+        monthlyActivity,
+      },
+    };
+  }
+
+  async getBlockedUserIds(userId: number): Promise<number[]> {
+    const blocks = await this.prisma.userBlock.findMany({
+      where: { blockerId: userId },
+      select: { blockedUserId: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return blocks.map((block) => block.blockedUserId);
+  }
+
+  async getCommunityMembers(
+    userId: number,
+    options?: { page?: number; pageSize?: number; city?: string },
+  ) {
+    const page = Math.max(1, Number(options?.page ?? 1));
+    const pageSize = Math.min(50, Math.max(1, Number(options?.pageSize ?? 20)));
+    const skip = (page - 1) * pageSize;
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+
+    const where: Prisma.UserWhereInput = {
+      id: {
+        notIn: blockedUserIds,
+      },
+      accountStatus: UserAccountStatus.ACTIVE,
+      userProfile: {
+        is: {
+          communityConsent: true,
+          city: options?.city
+            ? options.city
+            : {
+                not: null,
+              },
+        },
+      },
+      ...(options?.city
+        ? {}
+        : {
+            NOT: {
+              userProfile: {
+                is: {
+                  city: '',
+                },
+              },
+            },
+          }),
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: [{ createdAt: 'desc' }],
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          userProfile: {
+            select: {
+              fullName: true,
+              city: true,
+              avatar: true,
+            },
+          },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: users,
+      meta: {
+        pagination: {
+          page,
+          pageSize,
+          pageCount: Math.ceil(total / pageSize),
+          total,
+        },
+      },
+    };
+  }
+
+  async getCommunityMemberCities(userId: number) {
+    const blockedUserIds = await this.getBlockedUserIds(userId);
+    const profiles = await this.prisma.userProfile.findMany({
+      where: {
+        communityConsent: true,
+        city: {
+          not: null,
+        },
+        NOT: {
+          city: '',
+        },
+        user: {
+          id: {
+            notIn: blockedUserIds,
+          },
+          accountStatus: UserAccountStatus.ACTIVE,
+        },
+      },
+      select: {
+        city: true,
+      },
+      distinct: ['city'],
+      orderBy: {
+        city: 'asc',
+      },
+    });
+
+    return {
+      data: profiles.map((profile) => profile.city!).filter(Boolean),
+    };
+  }
+
+  async blockUser(blockerId: number, blockedUserId: number): Promise<void> {
+    if (blockerId === blockedUserId) {
+      throw new BadRequestException('You cannot block yourself');
+    }
+
+    const blockedUser = await this.findById(blockedUserId);
+    if (!blockedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    try {
+      await this.prisma.userBlock.create({
+        data: {
+          blocker: { connect: { id: blockerId } },
+          blockedUser: { connect: { id: blockedUserId } },
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('User is already blocked');
+      }
+
+      throw error;
+    }
+  }
+
+  async unblockUser(blockerId: number, blockedUserId: number): Promise<void> {
+    await this.prisma.userBlock.deleteMany({
+      where: {
+        blockerId,
+        blockedUserId,
+      },
+    });
+  }
+
+  private buildMonthlyAnalytics(
+    postedTrips: Array<{
+      createdAt: Date;
+      updatedAt: Date;
+      status: string;
+      pricePerSeat: Prisma.Decimal | null;
+      joinRequests: Array<{ id: number }>;
+    }>,
+    approvedRequestsForMyTrips: Array<{ updatedAt: Date }>,
+    completedPassengerTrips: Array<{
+      trip: { pricePerSeat: Prisma.Decimal | null; updatedAt: Date };
+    }>,
+  ) {
+    const formatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
+    const months: Array<{
+      key: string;
+      label: string;
+      ridesPosted: number;
+      requestsApproved: number;
+      ridesCompleted: number;
+      moneySaved: number;
+      costRecovered: number;
+    }> = [];
+
+    for (let offset = 5; offset >= 0; offset -= 1) {
+      const date = new Date();
+      date.setDate(1);
+      date.setMonth(date.getMonth() - offset);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      months.push({
+        key,
+        label: formatter.format(date),
+        ridesPosted: 0,
+        requestsApproved: 0,
+        ridesCompleted: 0,
+        moneySaved: 0,
+        costRecovered: 0,
+      });
+    }
+
+    const monthMap = new Map(months.map((month) => [month.key, month]));
+    const getMonthKey = (date: Date) =>
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+    postedTrips.forEach((trip) => {
+      const createdMonth = monthMap.get(getMonthKey(trip.createdAt));
+      if (createdMonth) {
+        createdMonth.ridesPosted += 1;
+      }
+
+      if (trip.status === 'COMPLETED') {
+        const completedMonth = monthMap.get(getMonthKey(trip.updatedAt));
+        if (completedMonth) {
+          completedMonth.ridesCompleted += 1;
+          completedMonth.costRecovered += Math.round(
+            Number(trip.pricePerSeat ?? 0) * trip.joinRequests.length,
+          );
+        }
+      }
+    });
+
+    approvedRequestsForMyTrips.forEach((request) => {
+      const month = monthMap.get(getMonthKey(request.updatedAt));
+      if (month) {
+        month.requestsApproved += 1;
+      }
+    });
+
+    completedPassengerTrips.forEach((request) => {
+      const month = monthMap.get(getMonthKey(request.trip.updatedAt));
+      if (month) {
+        month.moneySaved += Math.round(Number(request.trip.pricePerSeat ?? 0));
+      }
+    });
+
+    return months;
+  }
+
+  async createWithGoogle(email: string, name: string, picture: string): Promise<User> {
+    const username = email.split('@')[0];
+    try {
+      return await this.prisma.user.create({
+        data: {
+          email,
+          username,
+          provider: "google",
+          confirmed: true,
+          accountStatus: UserAccountStatus.ACTIVE,
+          userProfile: {
+            create: {
+              fullName: name,
+              avatar: picture,
+            },
+          },
+        },
+      });
+    } catch (error) {
+      if (!this.isMissingAccountStatusColumnError(error)) {
+        throw error;
+      }
+
+      return this.prisma.user.create({
+        data: {
+          email,
+          username,
+          provider: "google",
+          confirmed: true,
+          userProfile: {
+            create: {
+              fullName: name,
+              avatar: picture,
+            },
+          },
+        },
+      });
+    }
+  }
+
+  async ensureAppSourceAccess(userId: number, source: string) {
+    try {
+      const appSource = await this.resolveAppSource(source);
+
+      return await this.prisma.userAppSource.upsert({
+        where: {
+          userId_source: {
+            userId,
+            source,
+          },
+        },
+        create: {
+          userId,
+          source,
+          appSourceId: appSource.id,
+        },
+        update: {
+          appSourceId: appSource.id,
+          lastLoginAt: new Date(),
+        },
+      });
+    } catch (error) {
+      if (this.isMissingUserAppSourceTableError(error)) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  async getOrCreateAppSource(slug: string, name?: string) {
+    return this.prisma.appSource.upsert({
+      where: { slug },
+      create: {
+        slug,
+        name: name ?? this.formatAppSourceName(slug),
+      },
+      update: {
+        name: name ?? this.formatAppSourceName(slug),
+      },
+    });
+  }
+
+  private async resolveAppSource(source: string) {
+    try {
+      const appSource = await this.prisma.appSource.findUnique({
+        where: { slug: source },
+      });
+
+      if (!appSource || !appSource.isActive) {
+        throw new UnauthorizedException('Unsupported app source');
+      }
+
+      return appSource;
+    } catch (error) {
+      if (this.isMissingAppSourceTableError(error)) {
+        return {
+          id: null,
+          slug: source,
+          name: this.formatAppSourceName(source),
+          isActive: true,
+        };
+      }
+
+      throw error;
+    }
+  }
+
+  private async findByEmailLegacy(email: string) {
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        u.id,
+        u.username,
+        u.email,
+        u.provider,
+        u.password,
+        u."resetPasswordToken",
+        u."confirmationToken",
+        u.confirmed,
+        u.blocked,
+        u.role,
+        'ACTIVE'::text AS "accountStatus",
+        NULL::timestamp AS "pausedAt",
+        u."createdAt",
+        u."updatedAt",
+        up.id AS "profileId",
+        up."fullName" AS "profileFullName",
+        up."phoneNumber" AS "profilePhoneNumber",
+        up.avatar AS "profileAvatar",
+        up.rating AS "profileRating",
+        up."completedTripsCount" AS "profileCompletedTripsCount",
+        up."ratingsCount" AS "profileRatingsCount",
+        up."isVerified" AS "profileIsVerified",
+        up."governmentIdVerified" AS "profileGovernmentIdVerified",
+        up.gender AS "profileGender",
+        up.city AS "profileCity",
+        up."pushToken" AS "profilePushToken",
+        up."userId" AS "profileUserId",
+        up."createdAt" AS "profileCreatedAt",
+        up."updatedAt" AS "profileUpdatedAt"
+      FROM "User" u
+      LEFT JOIN "UserProfile" up ON up."userId" = u.id
+      WHERE u.email = ${email}
+      LIMIT 1
+    `;
+
+    return this.mapLegacyUserRow(rows[0]);
+  }
+
+  private async findByIdLegacy(id: number) {
+    const rows = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        u.id,
+        u.username,
+        u.email,
+        u.provider,
+        u.password,
+        u."resetPasswordToken",
+        u."confirmationToken",
+        u.confirmed,
+        u.blocked,
+        u.role,
+        'ACTIVE'::text AS "accountStatus",
+        NULL::timestamp AS "pausedAt",
+        u."createdAt",
+        u."updatedAt",
+        up.id AS "profileId",
+        up."fullName" AS "profileFullName",
+        up."phoneNumber" AS "profilePhoneNumber",
+        up.avatar AS "profileAvatar",
+        up.rating AS "profileRating",
+        up."completedTripsCount" AS "profileCompletedTripsCount",
+        up."ratingsCount" AS "profileRatingsCount",
+        up."isVerified" AS "profileIsVerified",
+        up."governmentIdVerified" AS "profileGovernmentIdVerified",
+        up.gender AS "profileGender",
+        up.city AS "profileCity",
+        up."pushToken" AS "profilePushToken",
+        up."userId" AS "profileUserId",
+        up."createdAt" AS "profileCreatedAt",
+        up."updatedAt" AS "profileUpdatedAt"
+      FROM "User" u
+      LEFT JOIN "UserProfile" up ON up."userId" = u.id
+      WHERE u.id = ${id}
+      LIMIT 1
+    `;
+
+    return this.mapLegacyUserRow(rows[0]);
+  }
+
+  private mapLegacyUserRow(row: any) {
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      provider: row.provider,
+      password: row.password,
+      resetPasswordToken: row.resetPasswordToken,
+      confirmationToken: row.confirmationToken,
+      confirmed: row.confirmed,
+      blocked: row.blocked,
+      role: row.role,
+      accountStatus: UserAccountStatus.ACTIVE,
+      pausedAt: null,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      userProfile: row.profileId
+        ? {
+            id: row.profileId,
+            fullName: row.profileFullName,
+            phoneNumber: row.profilePhoneNumber,
+            avatar: row.profileAvatar,
+            rating: row.profileRating,
+            completedTripsCount: row.profileCompletedTripsCount,
+            ratingsCount: row.profileRatingsCount,
+            isVerified: row.profileIsVerified,
+            governmentIdVerified: row.profileGovernmentIdVerified,
+            gender: row.profileGender,
+            city: row.profileCity,
+            pushToken: row.profilePushToken,
+            userId: row.profileUserId,
+            createdAt: row.profileCreatedAt,
+            updatedAt: row.profileUpdatedAt,
+          }
+        : null,
+    };
+  }
+
+  private isMissingAccountStatusColumnError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2022' &&
+      typeof error.message === 'string' &&
+      (error.message.includes('User.accountStatus') || error.message.includes('User.pausedAt'))
+    );
+  }
+
+  private isMissingUserAppSourceTableError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2021' &&
+      typeof error.meta?.table === 'string' &&
+      error.meta.table.includes('UserAppSource')
+    );
+  }
+
+  private isMissingAppSourceTableError(error: unknown) {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2021' &&
+      typeof error.meta?.table === 'string' &&
+      error.meta.table.includes('AppSource')
+    );
+  }
+
+  private formatAppSourceName(slug: string) {
+    return slug
+      .split(/[-_.]+/)
+      .filter(Boolean)
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
+  }
+}

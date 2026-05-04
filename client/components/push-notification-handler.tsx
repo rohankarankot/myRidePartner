@@ -2,12 +2,11 @@ import { useEffect } from 'react';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { pushNotificationService } from '@/services/push-notification-service';
 import * as Notifications from 'expo-notifications';
-import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { notifeeService } from '@/services/notifee-service';
 
 export const PushNotificationHandler = () => {
     const { data: profile } = useUserProfile();
-    const router = useRouter();
     const queryClient = useQueryClient();
 
     useEffect(() => {
@@ -29,48 +28,27 @@ export const PushNotificationHandler = () => {
         }
     }, [profile?.documentId]);
 
+    useEffect(() => notifeeService.subscribeForegroundEvents(), []);
+
     useEffect(() => {
-        // Handle notification clicks
-        const responseSubscription = Notifications.addNotificationResponseReceivedListener((response: Notifications.NotificationResponse) => {
-            const data = response.notification.request.content.data;
-            console.log('Notification clicked with data:', data);
-
-            if (data?.screen === 'trip-chat' && data?.tripId) {
-                router.push({
-                    pathname: '/trip-chat/[tripId]',
-                    params: { 
-                        tripId: data.tripId,
-                        initialMessageId: data.messageDocumentId 
-                    }
-                } as any);
-            } else if (data?.tripId) {
-                router.push({
-                    pathname: '/trip/[id]',
-                    params: { id: data.tripId }
-                } as any);
-            } else if (data?.type === 'JOIN_REQUEST' && data?.relatedId) {
-                router.push({
-                    pathname: '/requests/[documentId]',
-                    params: { documentId: data.relatedId }
-                } as any);
-            } else if (data?.type === 'TRIP_COMPLETED' || data?.type === 'TRIP_UPDATE') {
-                router.push('/(tabs)/activity');
-            }
-        });
-
-        // Handle notifications received while app is foregrounded
         const notificationSubscription = Notifications.addNotificationReceivedListener((notification) => {
+            const data = notification.request.content.data as any;
             console.log('Notification received in foreground:', notification);
-            // Invalidate queries to refresh badges and inbox
+
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
+
+            notifeeService.displayRemoteNotification({
+                title: notification.request.content.title || 'New Notification',
+                body: notification.request.content.body || undefined,
+                data,
+            });
         });
 
         return () => {
-            responseSubscription.remove();
             notificationSubscription.remove();
         };
-    }, []);
+    }, [queryClient]);
 
     return null;
 };
