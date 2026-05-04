@@ -4,9 +4,10 @@ import { TripChatsService } from './trip-chats.service';
 import { PrismaService } from '../prisma.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UploadModule } from '../upload/upload.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [NotificationsModule, UploadModule],
+  imports: [EventsModule, NotificationsModule, UploadModule],
   controllers: [TripChatsController],
   providers: [TripChatsService, PrismaService],
   exports: [TripChatsService],
