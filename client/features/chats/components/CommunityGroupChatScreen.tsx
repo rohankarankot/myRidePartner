@@ -270,6 +270,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
         messagePreview?: string | null;
     } | null>(null);
     const flatListRef = useRef<FlatList<any>>(null);
+    const composerInputRef = useRef<TextInput>(null);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const backgroundColor = useThemeColor({}, 'background');
@@ -309,6 +310,18 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
                 animated: true,
             });
         });
+    };
+
+    const focusComposerInput = () => {
+        requestAnimationFrame(() => {
+            composerInputRef.current?.focus();
+        });
+    };
+
+    const handleStartReply = (message: ExtendedMessage) => {
+        setReplyingTo(message);
+        setActiveMessageMenuId(null);
+        focusComposerInput();
     };
 
     const scrollToMessage = (messageId: string) => {
@@ -737,10 +750,7 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
                                                 >
                                                     <Pressable
                                                         className="flex-row items-center p-3 rounded-2xl"
-                                                        onPress={() => {
-                                                            setReplyingTo(currentMessage);
-                                                            setActiveMessageMenuId(null);
-                                                        }}
+                                                        onPress={() => handleStartReply(currentMessage)}
                                                     >
                                                         <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
                                                         <GSText className="ml-3 text-xs font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Reply</GSText>
@@ -855,6 +865,10 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
                                                 backgroundColor: 'transparent',
                                                 flex: 1,
                                                 justifyContent: 'flex-end',
+                                            }}
+                                            textInputProps={{
+                                                ...(props.textInputProps || {}),
+                                                ref: composerInputRef,
                                             }}
                                             primaryStyle={{ alignItems: 'flex-end' }}
                                         />

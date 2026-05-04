@@ -448,6 +448,7 @@ export class TripChatsService {
               tripId: trip.documentId,
               screen: 'trip-chat',
               messageDocumentId: message.documentId,
+              avatar: message.sender.userProfile?.avatar || undefined,
             },
             threadId: trip.documentId,
             image: message.sender.userProfile?.avatar || undefined,

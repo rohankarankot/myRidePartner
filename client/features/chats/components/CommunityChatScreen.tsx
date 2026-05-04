@@ -226,6 +226,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const [citySearch, setCitySearch] = useState('');
     const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
     const flatListRef = useRef<FlatList<any>>(null);
+    const composerInputRef = useRef<TextInput>(null);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const citySheetRef = useRef<BottomSheetModal>(null);
 
@@ -250,6 +251,30 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                 animated: true,
             });
         });
+    };
+
+    const focusComposerInput = () => {
+        requestAnimationFrame(() => {
+            composerInputRef.current?.focus();
+        });
+    };
+
+    const handleStartReply = (message: ExtendedMessage) => {
+        setReplyingTo(message);
+        setActiveMessageMenuId(null);
+        focusComposerInput();
+    };
+
+    const focusComposerInput = () => {
+        requestAnimationFrame(() => {
+            composerInputRef.current?.focus();
+        });
+    };
+
+    const handleStartReply = (message: ExtendedMessage) => {
+        setReplyingTo(message);
+        setActiveMessageMenuId(null);
+        focusComposerInput();
     };
 
     const scrollToMessage = (messageId: string) => {
@@ -751,10 +776,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                                 >
                                                     <Pressable
                                                         className="flex-row items-center p-3 rounded-2xl"
-                                                        onPress={() => {
-                                                            setReplyingTo(currentMessage);
-                                                            setActiveMessageMenuId(null);
-                                                        }}
+                                                        onPress={() => handleStartReply(currentMessage)}
                                                     >
                                                         <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
                                                         <GSText className="ml-3 text-xs font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Reply</GSText>
@@ -869,6 +891,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                                 backgroundColor: 'transparent',
                                                 flex: 1,
                                                 justifyContent: 'flex-end',
+                                            }}
+                                            textInputProps={{
+                                                ...(props.textInputProps || {}),
+                                                ref: composerInputRef,
                                             }}
                                             primaryStyle={{ alignItems: 'flex-end' }}
                                         />

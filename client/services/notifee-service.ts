@@ -4,12 +4,16 @@ import { router } from 'expo-router';
 type NotificationData = {
   screen?: string;
   tripId?: string;
+  tripDocumentId?: string;
   relatedId?: string;
   messageDocumentId?: string;
   type?: string;
   image?: string;
   avatar?: string;
   senderAvatar?: string;
+  city?: string;
+  groupId?: string;
+  groupDocumentId?: string;
   title?: string;
 };
 
@@ -36,6 +40,20 @@ class NotifeeService {
     return data?.avatar || data?.senderAvatar || data?.image || undefined;
   }
 
+  private buildNotificationId(params: { title?: string; body?: string; data?: NotificationData }): string {
+    if (params.data?.screen === 'trip-chat' && params.data.tripId) {
+      return params.data.messageDocumentId
+        ? `trip-chat:${params.data.tripId}:${params.data.messageDocumentId}`
+        : `trip-chat:${params.data.tripId}`;
+    }
+
+    if (params.data?.relatedId) {
+      return `${params.data.type || 'notification'}:${params.data.relatedId}`;
+    }
+
+    return `notification:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   async displayRemoteNotification(params: {
     title?: string;
     body?: string;
@@ -45,8 +63,10 @@ class NotifeeService {
 
     const channelId = await this.ensureChannelId();
     const avatarUrl = this.resolveAvatarUrl(params.data);
+    const notificationId = this.buildNotificationId(params);
 
     await notifee.displayNotification({
+      id: notificationId,
       title: params.title || 'New Notification',
       body: params.body || '',
       data: Object.fromEntries(
@@ -62,14 +82,54 @@ class NotifeeService {
       },
       ios: avatarUrl
         ? {
-            attachments: [
-              {
-                url: avatarUrl,
-              },
-            ],
-          }
+          attachments: [
+            {
+              url: avatarUrl,
+            },
+          ],
+        }
         : undefined,
     });
+  }
+
+  async clearTripChatNotifications(tripId: string) {
+    await this.clearNotifications((data) => data.screen === 'trip-chat' && data.tripId === tripId);
+  }
+
+  async clearCommunityChatNotifications(city?: string | null) {
+    if (!city) return;
+    const normalized = city.trim().toLowerCase();
+    await this.clearNotifications((data) => {
+      const screen = data.screen?.toLowerCase();
+      const cityValue = data.city?.trim().toLowerCase();
+      return (screen === 'community-chat' || screen === 'public-chat') && cityValue === normalized;
+    });
+  }
+
+  async clearCommunityGroupChatNotifications(groupDocumentId?: string | null) {
+    if (!groupDocumentId) return;
+    const normalized = groupDocumentId.trim();
+    await this.clearNotifications((data) => {
+      const screen = data.screen?.toLowerCase();
+      const groupId = data.groupDocumentId || data.relatedId;
+      return (screen === 'community-group-chat' || screen === 'group-chat') && groupId === normalized;
+    });
+  }
+
+  private async clearNotifications(
+    predicate: (data: NotificationData) => boolean,
+  ) {
+    const displayedNotifications = await notifee.getDisplayedNotifications();
+    const matching = displayedNotifications.filter((item) => predicate(item.notification?.data as NotificationData));
+
+    await Promise.all(
+      matching.map((item) => {
+        if (item.id) {
+          return notifee.cancelNotification(item.id);
+        }
+        return Promise.resolve();
+      })
+    );
   }
 
   handlePress(data?: NotificationData) {

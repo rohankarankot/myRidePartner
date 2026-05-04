@@ -263,7 +263,11 @@ export class JoinRequestsService {
       type: NotificationType.JOIN_REQUEST,
       userId: captainId,
       relatedId: data.trip, // tripDocumentId
-      data: { tripId: data.trip },
+      data: {
+        tripId: data.trip,
+        tripDocumentId: data.trip,
+        screen: 'trip-chat',
+      },
     });
 
     return request;
@@ -374,6 +378,8 @@ export class JoinRequestsService {
       relatedId: request.trip.documentId,
       data: { 
         tripId: request.trip.documentId,
+        tripDocumentId: request.trip.documentId,
+        screen: 'trip-chat',
         status: request.status
       },
     });
@@ -473,6 +479,8 @@ export class JoinRequestsService {
         relatedId: updatedRequest.trip.documentId,
         data: {
           tripId: updatedRequest.trip.documentId,
+          tripDocumentId: updatedRequest.trip.documentId,
+          screen: 'trip-chat',
           image: passengerAvatar,
         },
       });
@@ -496,6 +504,8 @@ export class JoinRequestsService {
           relatedId: updatedRequest.trip.documentId,
           data: {
             tripId: updatedRequest.trip.documentId,
+            tripDocumentId: updatedRequest.trip.documentId,
+            screen: 'trip-chat',
             image: passengerAvatar,
           },
         });

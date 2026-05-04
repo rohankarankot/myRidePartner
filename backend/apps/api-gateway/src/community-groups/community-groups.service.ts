@@ -460,8 +460,10 @@ export class CommunityGroupsService {
             data: {
               url: `/community-group-chat/${documentId}`,
               groupId: documentId,
+              groupDocumentId: documentId,
               screen: 'community-group-chat',
               messageDocumentId: message.documentId,
+              avatar: message.sender.userProfile?.avatar || undefined,
             },
             threadId: documentId,
             image: message.sender.userProfile?.avatar || undefined,

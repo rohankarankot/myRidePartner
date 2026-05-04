@@ -76,12 +76,13 @@ export class NotificationsService {
     data?: any;
     relatedId?: string;
   }) {
+    const normalizedData = this.normalizeNotificationData(data.data, data.relatedId);
     const notification = await this.prisma.notification.create({
       data: {
         title: data.title,
         message: data.message,
         type: data.type,
-        data: data.data,
+        data: normalizedData,
         relatedId: data.relatedId,
         user: { connect: { id: data.userId } },
       },
@@ -98,7 +99,7 @@ export class NotificationsService {
       });
 
       if (userProfile?.pushToken) {
-        const optimizedImage = this.optimizeImageUrl(data.data?.image);
+        const optimizedImage = this.optimizeImageUrl(normalizedData?.image || normalizedData?.avatar);
         await this.expoPushService.sendNotification(
           userProfile.pushToken,
           data.title,
@@ -106,12 +107,12 @@ export class NotificationsService {
           {
             type: data.type,
             relatedId: data.relatedId,
-            ...data.data,
+            ...normalizedData,
             image: optimizedImage, // Also include in data for client-side handling
             icon: optimizedImage, // Redundancy for Android handlers
           },
           {
-            threadId: data.data?.threadId,
+            threadId: normalizedData?.threadId,
             image: optimizedImage,
           },
         );
@@ -139,18 +140,19 @@ export class NotificationsService {
       });
 
       if (userProfile?.pushToken) {
-        const optimizedImage = this.optimizeImageUrl(data.image);
+        const normalizedData = this.normalizeNotificationData(data.data, data.threadId);
+        const optimizedImage = this.optimizeImageUrl(data.image || normalizedData?.image || normalizedData?.avatar);
         await this.expoPushService.sendNotification(
           userProfile.pushToken,
           data.title,
           data.message,
           {
-            ...data.data,
+            ...normalizedData,
             image: optimizedImage, // Also include in data
             icon: optimizedImage, // Redundancy for Android handlers
           },
           {
-            threadId: data.threadId,
+            threadId: normalizedData?.threadId || data.threadId,
             image: optimizedImage,
           },
         );
@@ -232,5 +234,23 @@ export class NotificationsService {
 
     // 4. Trim trailing slashes at the end to ensure we don't return a malformed URL
     return optimized.replace(/\/+$/, '');
+  }
+
+  private normalizeNotificationData(data?: any, relatedId?: string) {
+    if (!data) {
+      return relatedId ? { relatedId } : undefined;
+    }
+
+    return {
+      ...data,
+      relatedId: data.relatedId ?? relatedId,
+      tripId: data.tripId ?? relatedId,
+      tripDocumentId: data.tripDocumentId ?? relatedId,
+      groupDocumentId: data.groupDocumentId ?? data.groupId,
+      city: data.city ?? undefined,
+      avatar: data.avatar ?? data.image ?? undefined,
+      image: data.image ?? data.avatar ?? undefined,
+      screen: data.screen ?? undefined,
+    };
   }
 }
