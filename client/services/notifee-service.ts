@@ -37,14 +37,41 @@ class NotifeeService {
   }
 
   private resolveAvatarUrl(data?: NotificationData) {
-    return data?.avatar || data?.senderAvatar || data?.image || undefined;
+    const avatarUrl = data?.avatar || data?.senderAvatar || data?.image || undefined;
+    return avatarUrl?.trim() ? avatarUrl.trim() : undefined;
+  }
+
+  private resolveTripId(data?: NotificationData) {
+    return data?.tripId || data?.tripDocumentId || data?.relatedId || undefined;
+  }
+
+  private resolveThreadId(data?: NotificationData) {
+    if (!data) return undefined;
+
+    const tripId = this.resolveTripId(data);
+
+    if (data.screen === 'trip-chat' && tripId) {
+      return `trip-chat:${tripId}`;
+    }
+
+    if ((data.screen === 'community-group-chat' || data.screen === 'group-chat') && (data.groupDocumentId || data.relatedId)) {
+      return `group-chat:${data.groupDocumentId || data.relatedId}`;
+    }
+
+    if ((data.screen === 'community-chat' || data.screen === 'public-chat') && data.city) {
+      return `public-chat:${data.city.trim().toLowerCase()}`;
+    }
+
+    return data.relatedId || tripId || data.groupDocumentId;
   }
 
   private buildNotificationId(params: { title?: string; body?: string; data?: NotificationData }): string {
-    if (params.data?.screen === 'trip-chat' && params.data.tripId) {
+    const tripId = this.resolveTripId(params.data);
+
+    if (params.data?.screen === 'trip-chat' && tripId) {
       return params.data.messageDocumentId
-        ? `trip-chat:${params.data.tripId}:${params.data.messageDocumentId}`
-        : `trip-chat:${params.data.tripId}`;
+        ? `trip-chat:${tripId}:${params.data.messageDocumentId}`
+        : `trip-chat:${tripId}`;
     }
 
     if (params.data?.relatedId) {
@@ -64,6 +91,7 @@ class NotifeeService {
     const channelId = await this.ensureChannelId();
     const avatarUrl = this.resolveAvatarUrl(params.data);
     const notificationId = this.buildNotificationId(params);
+    const threadId = this.resolveThreadId(params.data);
 
     await notifee.displayNotification({
       id: notificationId,
@@ -74,26 +102,35 @@ class NotifeeService {
       ),
       android: {
         channelId,
+        groupId: threadId,
         pressAction: {
           id: 'default',
         },
         smallIcon: 'ic_launcher',
-        largeIcon: avatarUrl,
+        ...(avatarUrl ? { largeIcon: avatarUrl } : {}),
       },
-      ios: avatarUrl
-        ? {
-          attachments: [
-            {
-              url: avatarUrl,
-            },
-          ],
-        }
-        : undefined,
+      ios: {
+        ...(threadId ? { threadId } : {}),
+        ...(avatarUrl
+          ? {
+              attachments: [
+                {
+                  url: avatarUrl,
+                },
+              ],
+            }
+          : {}),
+      },
     });
   }
 
   async clearTripChatNotifications(tripId: string) {
-    await this.clearNotifications((data) => data.screen === 'trip-chat' && data.tripId === tripId);
+    const normalized = tripId.trim();
+    await this.clearNotifications((data) => {
+      const screen = data.screen?.toLowerCase();
+      const messageTripId = this.resolveTripId(data);
+      return screen === 'trip-chat' && messageTripId === normalized;
+    });
   }
 
   async clearCommunityChatNotifications(city?: string | null) {
@@ -135,21 +172,38 @@ class NotifeeService {
   handlePress(data?: NotificationData) {
     if (!data) return;
 
-    if (data.screen === 'trip-chat' && data.tripId) {
+    if (data.screen === 'community-group-chat' && data.groupDocumentId) {
+      router.push({
+        pathname: '/community-group-chat/[documentId]',
+        params: { documentId: data.groupDocumentId },
+      } as any);
+      return;
+    }
+
+    if ((data.screen === 'community-chat' || data.screen === 'public-chat') && data.city) {
+      router.push({
+        pathname: '/community-chat',
+        params: { city: data.city },
+      } as any);
+      return;
+    }
+
+    const tripId = this.resolveTripId(data);
+    if (data.screen === 'trip-chat' && tripId) {
       router.push({
         pathname: '/trip-chat/[tripId]',
         params: {
-          tripId: data.tripId,
+          tripId,
           initialMessageId: data.messageDocumentId,
         },
       } as any);
       return;
     }
 
-    if (data.tripId) {
+    if (tripId && data.screen !== 'community-group-chat' && data.screen !== 'community-chat' && data.screen !== 'public-chat') {
       router.push({
         pathname: '/trip/[id]',
-        params: { id: data.tripId },
+        params: { id: tripId },
       } as any);
       return;
     }

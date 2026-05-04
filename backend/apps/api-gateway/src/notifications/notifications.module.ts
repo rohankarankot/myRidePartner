@@ -10,7 +10,7 @@ import { NotificationsController } from './notifications.controller';
         name: 'NOTIFICATION_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: '0.0.0.0',
+          host: process.env.NOTIFICATION_SERVICE_HOST || 'localhost',
           port: 4005,
         },
       },

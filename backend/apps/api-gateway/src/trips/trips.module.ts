@@ -10,7 +10,7 @@ import { PublicTripsController } from './public-trips.controller';
         name: 'TRIP_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: '0.0.0.0',
+          host: process.env.TRIP_SERVICE_HOST || 'localhost',
           port: 4003,
         },
       },

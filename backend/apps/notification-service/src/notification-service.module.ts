@@ -15,7 +15,7 @@ import { PrismaModule } from '@app/common';
         name: 'API_GATEWAY',
         transport: Transport.TCP,
         options: {
-          host: '0.0.0.0',
+          host: process.env.API_GATEWAY_HOST || 'localhost',
           port: 4000,
         },
       },

@@ -15,7 +15,7 @@ import { PrismaModule, UploadModule } from '@app/common';
         name: 'API_GATEWAY',
         transport: Transport.TCP,
         options: {
-          host: '0.0.0.0',
+          host: process.env.API_GATEWAY_HOST || 'localhost',
           port: 4000,
         },
       },
@@ -23,7 +23,7 @@ import { PrismaModule, UploadModule } from '@app/common';
         name: 'NOTIFICATION_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: '0.0.0.0',
+          host: process.env.NOTIFICATION_SERVICE_HOST || 'localhost',
           port: 4005,
         },
       },

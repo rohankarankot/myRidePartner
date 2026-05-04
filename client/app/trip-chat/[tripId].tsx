@@ -1030,6 +1030,9 @@ export default function TripChatScreen() {
             return;
         }
 
+        composerTextRef.current = '';
+        setComposerText('');
+
         void handleSend([
             {
                 _id: `local-${Date.now()}`,

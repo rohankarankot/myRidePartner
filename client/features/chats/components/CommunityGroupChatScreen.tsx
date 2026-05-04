@@ -538,6 +538,9 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
             return;
         }
 
+        composerTextRef.current = '';
+        setComposerText('');
+
         void handleSend([
             {
                 _id: `local-${Date.now()}`,

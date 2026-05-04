@@ -9,7 +9,7 @@ import { TripChatsController } from './trip-chats.controller';
         name: 'CHAT_SERVICE',
         transport: Transport.TCP,
         options: {
-          host: '0.0.0.0',
+          host: process.env.CHAT_SERVICE_HOST || 'localhost',
           port: 4004,
         },
       },

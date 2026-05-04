@@ -160,6 +160,8 @@ export class NotificationsService {
     } catch (error) {
       console.error('Failed to send push-only notification:', error);
     }
+
+    return { success: true };
   }
 
   /**

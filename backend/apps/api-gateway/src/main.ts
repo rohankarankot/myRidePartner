@@ -6,6 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger } from 'nestjs-pino';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -17,6 +18,13 @@ Sentry.init({
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.TCP,
+    options: {
+      host: process.env.API_GATEWAY_HOST || 'localhost',
+      port: Number(process.env.API_GATEWAY_TCP_PORT || 4000),
+    },
+  });
   
   app.setGlobalPrefix('api');
   app.enableCors();
@@ -47,6 +55,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  await app.startAllMicroservices();
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
