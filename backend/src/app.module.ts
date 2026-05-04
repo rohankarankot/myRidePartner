@@ -15,6 +15,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ReportsModule } from './reports/reports.module';
 import { PublicChatModule } from './public-chat/public-chat.module';
 import { CommunityGroupsModule } from './community-groups/community-groups.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { TripsModule } from './trips/trips.module';
+import { JoinRequestsModule } from './join-requests/join-requests.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -37,6 +42,11 @@ import { CommunityGroupsModule } from './community-groups/community-groups.modul
     UploadModule,
     RatingsModule,
     PrismaModule,
+    AuthModule,
+    UsersModule,
+    TripsModule,
+    JoinRequestsModule,
+    NotificationsModule,
     AdminModule,
     PublicChatModule,
     ReportsModule,
