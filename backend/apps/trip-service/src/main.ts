@@ -14,5 +14,6 @@ async function bootstrap() {
     },
   );
   await app.listen();
+  console.log('Trip Service is listening on port 4003');
 }
 bootstrap();

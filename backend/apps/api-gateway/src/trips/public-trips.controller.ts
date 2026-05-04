@@ -1,11 +1,12 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import { TripsService } from './trips.service';
+import { Controller, Get, Param, Inject } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 
 @ApiTags('Public Trips')
 @Controller('public/trips')
 export class PublicTripsController {
-  constructor(private readonly tripsService: TripsService) {}
+  constructor(@Inject('TRIP_SERVICE') private readonly tripClient: ClientProxy) {}
 
   @Get(':documentId')
   @ApiOperation({
@@ -13,7 +14,7 @@ export class PublicTripsController {
     description: 'Returns a safe public payload for shared ride links.',
   })
   @ApiParam({ name: 'documentId', description: 'UUID document ID of the trip' })
-  findOne(@Param('documentId') documentId: string) {
-    return this.tripsService.findPublicByDocumentId(documentId);
+  async findOne(@Param('documentId') documentId: string) {
+    return firstValueFrom(this.tripClient.send({ cmd: 'findPublicByDocumentId' }, { documentId }));
   }
 }

@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationType, TripStatus } from '@prisma/client';
 import { PrismaService } from '@app/common';
-import { NotificationsService } from '../notifications/notifications.service';
+import { ClientProxy } from '@nestjs/microservices';
 import {
   buildTripStartDateTime,
   getTodayDateString,
@@ -16,7 +16,7 @@ export class TripRemindersTask {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -98,7 +98,7 @@ export class TripRemindersTask {
           destination: trip.destination,
         });
 
-        await this.notificationsService.create({
+        this.notificationClient.emit({ cmd: 'createNotification' }, {
           userId,
           title,
           message,

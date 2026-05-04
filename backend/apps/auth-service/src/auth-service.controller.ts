@@ -1,12 +1,23 @@
-import { Controller, Get } from '@nestjs/common';
-import { AuthServiceService } from './auth-service.service';
+import { Controller } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { AuthService } from './auth.service';
 
 @Controller()
 export class AuthServiceController {
-  constructor(private readonly authServiceService: AuthServiceService) {}
+  constructor(private readonly authService: AuthService) {}
 
-  @Get()
-  getHello(): string {
-    return this.authServiceService.getHello();
+  @MessagePattern({ cmd: 'verifyGoogleToken' })
+  async verifyGoogleToken(@Payload() payload: { token: string; source?: string }) {
+    return this.authService.verifyGoogleToken(payload.token, payload.source);
+  }
+
+  @MessagePattern({ cmd: 'validateUser' })
+  async validateUser(@Payload() payload: { email: string; pass: string }) {
+    return this.authService.validateUser(payload.email, payload.pass);
+  }
+
+  @MessagePattern({ cmd: 'login' })
+  async login(@Payload() payload: { user: any; source?: string }) {
+    return this.authService.login(payload.user, payload.source);
   }
 }

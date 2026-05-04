@@ -5,16 +5,17 @@ import {
   Logger,
   NotFoundException,
   ServiceUnavailableException,
+  Inject,
 } from '@nestjs/common';
 import { JoinRequestStatus, Prisma, TripStatus } from '@prisma/client';
 import { PrismaService } from '@app/common';
-import { EventsGateway } from '../events/events.gateway';
-import { NotificationsService } from '../notifications/notifications.service';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import {
   CreateTripChatMessageDto,
   GetTripChatMessagesQueryDto,
-} from './dto/trip-chats.dto';
-import { UploadService } from '../upload/upload.service';
+  UploadService,
+} from '@app/common';
 
 const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
 const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
@@ -63,8 +64,8 @@ export class TripChatsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventsGateway: EventsGateway,
-    private readonly notificationsService: NotificationsService,
+    @Inject('API_GATEWAY') private readonly apiGateway: ClientProxy,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
     private readonly uploadService: UploadService,
   ) {}
 
@@ -215,10 +216,9 @@ export class TripChatsService {
         : null,
     };
 
-    this.eventsGateway.emitToChatRoom(
-      trip.documentId,
-      'chat_message_created',
-      responsePayload,
+    this.apiGateway.emit(
+      { cmd: 'emitToChatRoom' },
+      { tripDocumentId: trip.documentId, event: 'chat_message_created', data: responsePayload }
     );
     await this.notifyTripChatRecipients(trip, responsePayload);
 
@@ -270,9 +270,10 @@ export class TripChatsService {
       { swallowMissingTable: true },
     );
 
-    this.eventsGateway.emitToChatRoom(tripDocumentId, 'chat_deleted', {
-      tripDocumentId,
-    });
+    this.apiGateway.emit(
+      { cmd: 'emitToChatRoom' },
+      { tripDocumentId, event: 'chat_deleted', data: { tripDocumentId } }
+    );
   }
 
   async canJoinSocketRoom(tripDocumentId: string, userId: number) {
@@ -429,27 +430,29 @@ export class TripChatsService {
 
     await Promise.all(
       recipientIds.map(async (recipientId) => {
-        if (
-          this.eventsGateway.isUserActivelyViewingChat(
-            trip.documentId,
-            recipientId,
-          )
-        ) {
+        const isActivelyViewing = await firstValueFrom(
+          this.apiGateway.send({ cmd: 'isUserActivelyViewingChat' }, { tripDocumentId: trip.documentId, userId: recipientId })
+        );
+
+        if (isActivelyViewing) {
           return;
         }
 
-        await this.notificationsService.sendPushOnly({
-          title: senderName,
-          message: messagePreview,
-          userId: recipientId,
-          data: {
-            tripId: trip.documentId,
-            screen: 'trip-chat',
-            messageDocumentId: message.documentId,
-          },
-          threadId: trip.documentId,
-          image: message.sender.userProfile?.avatar || undefined,
-        });
+        await firstValueFrom(this.notificationClient.send(
+          { cmd: 'sendPushOnly' },
+          {
+            title: senderName,
+            message: messagePreview,
+            userId: recipientId,
+            data: {
+              tripId: trip.documentId,
+              screen: 'trip-chat',
+              messageDocumentId: message.documentId,
+            },
+            threadId: trip.documentId,
+            image: message.sender.userProfile?.avatar || undefined,
+          }
+        ));
       }),
     );
   }

@@ -1,12 +1,22 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { NotificationsController } from './notifications.controller';
-import { NotificationsService } from './notifications.service';
-import { PrismaService } from '@app/common';
-import { ExpoPushService } from './expo-push.service';
 
+@Global()
 @Module({
+  imports: [
+    ClientsModule.register([
+      {
+        name: 'NOTIFICATION_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: '0.0.0.0',
+          port: 4005,
+        },
+      },
+    ]),
+  ],
   controllers: [NotificationsController],
-  providers: [NotificationsService, PrismaService, ExpoPushService],
-  exports: [NotificationsService],
+  exports: [ClientsModule],
 })
 export class NotificationsModule {}

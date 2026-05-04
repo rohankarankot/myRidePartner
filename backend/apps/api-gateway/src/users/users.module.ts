@@ -1,12 +1,21 @@
 import { Module } from '@nestjs/common';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
-
-import { PrismaService } from '@app/common';
 
 @Module({
+  imports: [
+    ClientsModule.register([
+      {
+        name: 'USER_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: '0.0.0.0',
+          port: 4002,
+        },
+      },
+    ]),
+  ],
   controllers: [UsersController],
-  providers: [UsersService, PrismaService],
-  exports: [UsersService],
+  exports: [ClientsModule],
 })
 export class UsersModule {}

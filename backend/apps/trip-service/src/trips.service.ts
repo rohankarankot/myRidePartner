@@ -1,14 +1,13 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '@app/common';
-import { EventsGateway } from '../events/events.gateway';
-import { NotificationsService } from '../notifications/notifications.service';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { Prisma, TripStatus, GenderPreference, NotificationType } from '@prisma/client';
 import {
   PaginationParams,
   buildPaginationMeta,
   PaginatedMeta,
-} from '../common/utils/query.utils';
-import { TripChatsService } from '../trip-chats/trip-chats.service';
+} from 'apps/api-gateway/src/common/utils/query.utils';;
 import {
   buildTripStartDateTime,
   getTodayDateString,
@@ -30,10 +29,10 @@ export interface TripFilters {
 export class TripsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventsGateway: EventsGateway,
-    private readonly notificationsService: NotificationsService,
-    private readonly tripChatsService: TripChatsService,
-  ) {}
+    @Inject('API_GATEWAY') private readonly apiGateway: ClientProxy,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+    @Inject('CHAT_SERVICE') private readonly chatClient: ClientProxy,
+  ) { }
 
   /**
    * Paginated list of trips with optional filters.
@@ -469,10 +468,10 @@ export class TripsService {
     });
 
     // 3. Emit real-time event through socket trip room
-    this.eventsGateway.emitToTripRoom(documentId, 'trip_updated', {
-      documentId,
-      status: trip.status,
-    });
+    this.apiGateway.emit(
+      { cmd: 'emitToTripRoom' },
+      { tripDocumentId: documentId, event: 'trip_updated', data: { documentId, status: trip.status } }
+    );
 
     // 4. Send notifications to all approved passengers if status changed
     if (data.status && data.status !== oldTrip.status) {
@@ -481,7 +480,7 @@ export class TripsService {
       // 5. Increment completed trips count if status is COMPLETED
       if (data.status === 'COMPLETED') {
         this.incrementCompletedTripsStats(trip);
-        await this.tripChatsService.deleteChatForCompletedTrip(documentId);
+        this.chatClient.emit({ cmd: 'deleteChatForCompletedTrip' }, { tripDocumentId: documentId });
       }
     }
 
@@ -540,7 +539,7 @@ export class TripsService {
     const label = statusLabels[trip.status] || trip.status.toLowerCase();
 
     for (const p of passengers) {
-      await this.notificationsService.create({
+      this.notificationClient.emit({ cmd: 'createNotification' }, {
         userId: p.passengerId,
         title: `Trip ${label}`,
         message: `The trip from ${trip.startingPoint} to ${trip.destination} has been ${label}.`,

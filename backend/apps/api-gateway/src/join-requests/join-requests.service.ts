@@ -1,15 +1,15 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { EventsGateway } from '../events/events.gateway';
 import { PrismaService } from '@app/common';
 import { JoinRequestStatus, NotificationType } from '@prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class JoinRequestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
-    private readonly notificationsService: NotificationsService,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
   ) {}
 
   /**
@@ -257,7 +257,7 @@ export class JoinRequestsService {
       tripId: data.trip,
     });
     
-    await this.notificationsService.create({
+    this.notificationClient.emit({ cmd: 'createNotification' }, {
       title: 'New Join Request',
       message: `${request.passenger.username} wants to join your trip!`,
       type: NotificationType.JOIN_REQUEST,
@@ -366,7 +366,7 @@ export class JoinRequestsService {
       status: request.status,
     });
     
-    await this.notificationsService.create({
+    this.notificationClient.emit({ cmd: 'createNotification' }, {
       title: 'Join Request Update',
       message: `Your request for trip to ${request.trip.destination} was ${request.status.toLowerCase()}.`,
       type: NotificationType.TRIP_UPDATE,
@@ -465,7 +465,7 @@ export class JoinRequestsService {
 
       // 1. Notify the captain
       const captainId = updatedRequest.trip.creatorId;
-      await this.notificationsService.create({
+      this.notificationClient.emit({ cmd: 'createNotification' }, {
         title: 'Passenger Arrived',
         message: `${passengerName} is ready at the pickup point for your trip to ${destination}.`,
         type: NotificationType.TRIP_UPDATE,
@@ -488,7 +488,7 @@ export class JoinRequestsService {
       });
 
       for (const otherReq of otherApprovedRequests) {
-        await this.notificationsService.create({
+        this.notificationClient.emit({ cmd: 'createNotification' }, {
           title: 'Rider Arrived',
           message: `${passengerName} has arrived at the pickup point.`,
           type: NotificationType.TRIP_UPDATE,

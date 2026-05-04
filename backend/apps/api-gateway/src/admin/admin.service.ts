@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -11,9 +12,10 @@ import {
   UserAccountStatus,
   UserRole,
   CommunityGroupStatus,
+  NotificationType,
 } from '@prisma/client';
 import { PrismaService } from '@app/common';
-import { NotificationsService } from '../notifications/notifications.service';
+import { ClientProxy } from '@nestjs/microservices';
 import { AdminListQueryDto } from './dto/admin-list-query.dto';
 import { AdminReportsQueryDto } from './dto/admin-reports-query.dto';
 import { UpdateReportReviewDto } from './dto/update-report-review.dto';
@@ -26,7 +28,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly notificationsService: NotificationsService,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
   ) {}
 
   private async resolveScope(): Promise<AdminScope> {
@@ -862,14 +864,14 @@ export class AdminService {
 
     // Send notification to the group creator
     const isApproved = status === 'APPROVED';
-    await this.notificationsService.create({
+    this.notificationClient.emit({ cmd: 'createNotification' }, {
       title: isApproved
         ? '🎉 Community Group Approved!'
         : 'Community Group Rejected',
       message: isApproved
         ? `Your group "${updated.name}" has been approved. Members can now start chatting!`
         : `Your group "${updated.name}" was not approved. Please contact support for details.`,
-      type: 'COMMUNITY_GROUP',
+      type: NotificationType.COMMUNITY_GROUP,
       userId: updated.creator.id,
       relatedId: documentId,
       data: { groupName: updated.name, status },

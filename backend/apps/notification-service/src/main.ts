@@ -14,5 +14,6 @@ async function bootstrap() {
     },
   );
   await app.listen();
+  console.log('Notification Service is listening on port 4005');
 }
 bootstrap();

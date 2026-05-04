@@ -14,5 +14,6 @@ async function bootstrap() {
     },
   );
   await app.listen();
+  console.log('Chat Service is listening on port 4004');
 }
 bootstrap();

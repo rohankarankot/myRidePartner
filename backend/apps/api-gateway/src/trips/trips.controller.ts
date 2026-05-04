@@ -9,20 +9,22 @@ import {
   Query,
   Req,
   UseGuards,
+  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
-import { TripsService, TripFilters } from './trips.service';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { parsePagination } from '../common/utils/query.utils';
 import { TripStatus, GenderPreference } from '@prisma/client';
-import { CreateTripBodyDto, UpdateTripBodyDto } from './dto/trips.dto';
+import { CreateTripBodyDto, UpdateTripBodyDto } from '@app/common';
 
 @ApiTags('Trips')
 @ApiBearerAuth()
 @Controller('trips')
 @UseGuards(JwtAuthGuard)
 export class TripsController {
-  constructor(private readonly tripsService: TripsService) {}
+  constructor(@Inject('TRIP_SERVICE') private readonly tripClient: ClientProxy) {}
 
   @Get()
   @ApiOperation({ summary: 'List trips', description: 'Get a paginated, filtered list of trips' })
@@ -35,7 +37,7 @@ export class TripsController {
   @ApiQuery({ name: 'city', required: false, example: 'Pune' })
   @ApiQuery({ name: 'fromQuery', required: false, example: 'Kothrud' })
   @ApiQuery({ name: 'toQuery', required: false, example: 'Hinjewadi' })
-  findAll(
+  async findAll(
     @Req() req: any,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
@@ -49,7 +51,7 @@ export class TripsController {
   ) {
     const pagination = parsePagination({ page, pageSize });
 
-    const filters: TripFilters = {};
+    const filters: any = {};
     if (status) filters.status = status;
     if (gender && gender !== 'both') filters.genderPreference = gender as GenderPreference;
     if (date) filters.date = date;
@@ -59,40 +61,40 @@ export class TripsController {
     if (toQuery?.trim()) filters.toQuery = toQuery.trim();
     if (req?.user?.id) filters.viewerId = req.user.id;
 
-    return this.tripsService.findAll(pagination, filters);
+    return firstValueFrom(this.tripClient.send({ cmd: 'findAllTrips' }, { pagination, filters }));
   }
 
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get trips by user', description: 'Get all trips created by a specific user' })
   @ApiParam({ name: 'userId', example: 1 })
-  findByUser(@Req() req: any, @Param('userId') userId: string) {
-    return this.tripsService.findByCreatorId(parseInt(userId, 10), req.user.id);
+  async findByUser(@Req() req: any, @Param('userId') userId: string) {
+    return firstValueFrom(this.tripClient.send({ cmd: 'findByCreatorId' }, { userId: parseInt(userId, 10), viewerId: req.user.id }));
   }
 
   @Get(':documentId')
   @ApiOperation({ summary: 'Get trip by document ID' })
   @ApiParam({ name: 'documentId', description: 'UUID document ID of the trip' })
-  findOne(@Req() req: any, @Param('documentId') documentId: string) {
-    return this.tripsService.findAccessibleByDocumentId(documentId, req.user.id);
+  async findOne(@Req() req: any, @Param('documentId') documentId: string) {
+    return firstValueFrom(this.tripClient.send({ cmd: 'findAccessibleByDocumentId' }, { documentId, viewerId: req.user.id }));
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a trip' })
   @ApiBody({ type: CreateTripBodyDto })
-  create(@Body() body: { data: any }) {
-    return this.tripsService.create(body.data);
+  async create(@Body() body: { data: any }) {
+    return firstValueFrom(this.tripClient.send({ cmd: 'createTrip' }, body.data));
   }
 
   @Put(':documentId')
   @ApiOperation({ summary: 'Update a trip' })
   @ApiParam({ name: 'documentId', description: 'UUID document ID of the trip' })
   @ApiBody({ type: UpdateTripBodyDto })
-  update(
+  async update(
     @Req() req: any,
     @Param('documentId') documentId: string,
     @Body() body: { data: any },
   ) {
-    return this.tripsService.update(documentId, body.data, req.user.id);
+    return firstValueFrom(this.tripClient.send({ cmd: 'updateTrip' }, { documentId, data: body.data, actorUserId: req.user.id }));
   }
 
   @Post(':documentId/actions/publish')
@@ -105,7 +107,7 @@ export class TripsController {
   @Delete(':documentId')
   @ApiOperation({ summary: 'Delete a trip' })
   @ApiParam({ name: 'documentId' })
-  remove(@Param('documentId') documentId: string) {
-    return this.tripsService.delete(documentId);
+  async remove(@Param('documentId') documentId: string) {
+    return firstValueFrom(this.tripClient.send({ cmd: 'deleteTrip' }, { documentId }));
   }
 }

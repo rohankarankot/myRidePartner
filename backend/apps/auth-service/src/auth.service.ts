@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
+import { ClientProxy } from '@nestjs/microservices';
 import { OAuth2Client } from 'google-auth-library';
 import * as bcrypt from 'bcrypt';
 import { UserAccountStatus } from '@prisma/client';
+import { firstValueFrom } from 'rxjs';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -15,7 +16,7 @@ export class AuthService {
   private readonly supportEmail: string;
 
   constructor(
-    private usersService: UsersService,
+    @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {
@@ -43,17 +44,17 @@ export class AuthService {
       }
 
       const { email, name, picture } = payload;
-      let user = await this.usersService.findByEmail(email);
+      let user = await firstValueFrom(this.userClient.send({ cmd: 'findByEmail' }, email));
 
       if (!user) {
-        user = await this.usersService.createWithGoogle(email, name || '', picture || '');
+        user = await firstValueFrom(this.userClient.send({ cmd: 'createWithGoogle' }, { email, name: name || '', picture: picture || '' }));
       } else if (user.accountStatus === UserAccountStatus.PAUSED) {
-        user = await this.usersService.reactivateAccount(user.id);
+        user = await firstValueFrom(this.userClient.send({ cmd: 'reactivateAccount' }, user.id));
       }
 
       this.assertUserCanLogin(user);
 
-      await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
+      await firstValueFrom(this.userClient.send({ cmd: 'ensureAppSourceAccess' }, { userId: user.id, source: normalizedSource }));
 
       return {
         access_token: this.jwtService.sign({
@@ -76,10 +77,10 @@ export class AuthService {
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
-    let user = await this.usersService.findByEmail(email);
+    let user = await firstValueFrom(this.userClient.send({ cmd: 'findByEmail' }, email));
     if (user && user.password && await bcrypt.compare(pass, user.password)) {
       if (user.accountStatus === UserAccountStatus.PAUSED) {
-        user = await this.usersService.reactivateAccount(user.id);
+        user = await firstValueFrom(this.userClient.send({ cmd: 'reactivateAccount' }, user.id));
       }
 
       this.assertUserCanLogin(user);
@@ -93,7 +94,7 @@ export class AuthService {
   async login(user: any, source?: string) {
     const normalizedSource = this.normalizeSource(source);
 
-    await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
+    await firstValueFrom(this.userClient.send({ cmd: 'ensureAppSourceAccess' }, { userId: user.id, source: normalizedSource }));
 
     const payload = {
       email: user.email,

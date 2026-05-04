@@ -1,14 +1,21 @@
 import { Module } from '@nestjs/common';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TripChatsController } from './trip-chats.controller';
-import { TripChatsService } from './trip-chats.service';
-import { PrismaService } from '@app/common';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { UploadModule } from '../upload/upload.module';
 
 @Module({
-  imports: [NotificationsModule, UploadModule],
+  imports: [
+    ClientsModule.register([
+      {
+        name: 'CHAT_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: '0.0.0.0',
+          port: 4004,
+        },
+      },
+    ]),
+  ],
   controllers: [TripChatsController],
-  providers: [TripChatsService, PrismaService],
-  exports: [TripChatsService],
+  exports: [ClientsModule],
 })
 export class TripChatsModule {}

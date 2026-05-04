@@ -4,12 +4,13 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { CommunityGroupRole, CommunityGroupStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '@app/common';
 import { EventsGateway } from '../events/events.gateway';
-import { NotificationsService } from '../notifications/notifications.service';
-import { CreateGroupMessageDto, GetGroupMessagesQueryDto } from './dto/community-groups.dto';
+import { CreateGroupMessageDto, GetGroupMessagesQueryDto } from '@app/common';
+import { ClientProxy } from '@nestjs/microservices';
 
 const groupMessageSenderSelect = {
   id: true,
@@ -28,7 +29,7 @@ export class CommunityGroupsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
-    private readonly notificationsService: NotificationsService,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
   ) {}
 
   async createGroup(creatorId: number, name: string, description?: string) {
@@ -452,7 +453,7 @@ export class CommunityGroupsService {
       group.members
         .filter((m) => m.userId !== userId)
         .map((member) =>
-          this.notificationsService.sendPushOnly({
+          this.notificationClient.emit({ cmd: 'sendPushOnly' }, {
             userId: member.userId,
             title: `New message in ${group.name}`,
             message: `${notificationSenderName}: ${notificationMessage}`,

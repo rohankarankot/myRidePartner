@@ -1,14 +1,15 @@
-import { Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Inject, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { UsersService } from './users.service';
 
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(@Inject('USER_SERVICE') private readonly userClient: ClientProxy) {}
 
   @Get('me')
   @ApiOperation({ summary: 'Get current authenticated user' })
@@ -19,27 +20,29 @@ export class UsersController {
   @Post('me/account/pause')
   @ApiOperation({ summary: 'Pause the current user account' })
   async pauseAccount(@Req() req: any) {
-    await this.usersService.pauseAccount(req.user.id);
+    await firstValueFrom(this.userClient.send({ cmd: 'pauseAccount' }, req.user.id));
     return { message: 'Account paused successfully' };
   }
 
   @Delete('me')
   @ApiOperation({ summary: 'Permanently delete the current user account' })
   async deleteAccount(@Req() req: any) {
-    await this.usersService.deleteAccount(req.user.id);
+    await firstValueFrom(this.userClient.send({ cmd: 'deleteAccount' }, req.user.id));
     return { message: 'Account deleted successfully' };
   }
 
   @Get('me/analytics')
   @ApiOperation({ summary: 'Get analytics for the current authenticated user' })
   async getMyAnalytics(@Req() req: any) {
-    return this.usersService.getUserAnalytics(req.user.id);
+    return firstValueFrom(this.userClient.send({ cmd: 'getUserAnalytics' }, req.user.id));
   }
 
   @Get('me/blocks')
   @ApiOperation({ summary: 'List blocked users for the current authenticated user' })
   async getMyBlockedUsers(@Req() req: any) {
-    const blockedUserIds = await this.usersService.getBlockedUserIds(req.user.id);
+    const blockedUserIds = await firstValueFrom(
+      this.userClient.send({ cmd: 'getBlockedUserIds' }, req.user.id)
+    );
     return { data: blockedUserIds };
   }
 
@@ -51,17 +54,25 @@ export class UsersController {
     @Query('pageSize') pageSize?: string,
     @Query('city') city?: string,
   ) {
-    return this.usersService.getCommunityMembers(req.user.id, {
-      page: page ? Number(page) : undefined,
-      pageSize: pageSize ? Number(pageSize) : undefined,
-      city,
-    });
+    return firstValueFrom(
+      this.userClient.send(
+        { cmd: 'getCommunityMembers' },
+        {
+          userId: req.user.id,
+          options: {
+            page: page ? Number(page) : undefined,
+            pageSize: pageSize ? Number(pageSize) : undefined,
+            city,
+          },
+        }
+      )
+    );
   }
 
   @Get('community-members/cities')
   @ApiOperation({ summary: 'List available cities for community chat members' })
   async getCommunityMemberCities(@Req() req: any) {
-    return this.usersService.getCommunityMemberCities(req.user.id);
+    return firstValueFrom(this.userClient.send({ cmd: 'getCommunityMemberCities' }, req.user.id));
   }
 
   @Post('me/blocks/:blockedUserId')
@@ -70,7 +81,12 @@ export class UsersController {
     @Req() req: any,
     @Param('blockedUserId', ParseIntPipe) blockedUserId: number,
   ) {
-    await this.usersService.blockUser(req.user.id, blockedUserId);
+    await firstValueFrom(
+      this.userClient.send(
+        { cmd: 'blockUser' },
+        { blockerId: req.user.id, blockedUserId }
+      )
+    );
     return { message: 'User blocked successfully' };
   }
 
@@ -80,7 +96,12 @@ export class UsersController {
     @Req() req: any,
     @Param('blockedUserId', ParseIntPipe) blockedUserId: number,
   ) {
-    await this.usersService.unblockUser(req.user.id, blockedUserId);
+    await firstValueFrom(
+      this.userClient.send(
+        { cmd: 'unblockUser' },
+        { blockerId: req.user.id, blockedUserId }
+      )
+    );
     return { message: 'User unblocked successfully' };
   }
 }

@@ -19,7 +19,7 @@ import {
   SearchUsersQueryDto,
   CreateGroupMessageDto,
   GetGroupMessagesQueryDto,
-} from './dto/community-groups.dto';
+} from '@app/common';
 
 @ApiTags('Community Groups')
 @Controller('community-groups')

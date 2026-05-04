@@ -1,13 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '@app/common';
-import { EventsGateway } from '../events/events.gateway';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { ExpoPushService } from './expo-push.service';
 import { NotificationType } from '@prisma/client';
-import {
-  PaginationParams,
-  buildPaginationMeta,
-  PaginatedMeta,
-} from '../common/utils/query.utils';
+import { buildPaginationMeta, PaginatedMeta, PaginationParams } from 'apps/api-gateway/src/common/utils/query.utils';
 
 export interface NotificationFilters {
   userId?: number;
@@ -18,9 +15,9 @@ export interface NotificationFilters {
 export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventsGateway: EventsGateway,
+    @Inject('API_GATEWAY') private readonly apiGateway: ClientProxy,
     private readonly expoPushService: ExpoPushService,
-  ) {}
+  ) { }
 
   /**
    * Get paginated notifications with optional filters.
@@ -91,7 +88,7 @@ export class NotificationsService {
     });
 
     // Emit to socket
-    this.eventsGateway.emitToUser(data.userId, 'new_notification', notification);
+    this.apiGateway.emit({ cmd: 'emitToUser' }, { userId: data.userId, event: 'new_notification', data: notification });
 
     // Send push notification
     try {
