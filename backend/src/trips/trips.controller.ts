@@ -9,19 +9,21 @@ import {
   Query,
   Req,
   UseGuards,
-  Inject,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+import { TripsService, TripFilters } from './trips.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { parsePagination } from '@app/common';
+import { parsePagination } from '../common/utils/query.utils';
 import { TripStatus, GenderPreference } from '@prisma/client';
-import { CreateTripBodyDto, UpdateTripBodyDto } from '@app/common';
+import { CreateTripBodyDto, UpdateTripBodyDto } from './dto/trips.dto';
 
 @ApiTags('Trips')
 @ApiBearerAuth()
 @Controller('trips')
 @UseGuards(JwtAuthGuard)
 export class TripsController {
+  constructor(private readonly tripsService: TripsService) {}
+
   @Get()
   @ApiOperation({ summary: 'List trips', description: 'Get a paginated, filtered list of trips' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -33,7 +35,7 @@ export class TripsController {
   @ApiQuery({ name: 'city', required: false, example: 'Pune' })
   @ApiQuery({ name: 'fromQuery', required: false, example: 'Kothrud' })
   @ApiQuery({ name: 'toQuery', required: false, example: 'Hinjewadi' })
-  async findAll(
+  findAll(
     @Req() req: any,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
@@ -47,7 +49,7 @@ export class TripsController {
   ) {
     const pagination = parsePagination({ page, pageSize });
 
-    const filters: any = {};
+    const filters: TripFilters = {};
     if (status) filters.status = status;
     if (gender && gender !== 'both') filters.genderPreference = gender as GenderPreference;
     if (date) filters.date = date;
@@ -57,40 +59,40 @@ export class TripsController {
     if (toQuery?.trim()) filters.toQuery = toQuery.trim();
     if (req?.user?.id) filters.viewerId = req.user.id;
 
-    return { pagination, filters };
+    return this.tripsService.findAll(pagination, filters);
   }
 
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get trips by user', description: 'Get all trips created by a specific user' })
   @ApiParam({ name: 'userId', example: 1 })
-  async findByUser(@Req() req: any, @Param('userId') userId: string) {
-    return { userId: parseInt(userId, 10), viewerId: req.user.id };
+  findByUser(@Req() req: any, @Param('userId') userId: string) {
+    return this.tripsService.findByCreatorId(parseInt(userId, 10), req.user.id);
   }
 
   @Get(':documentId')
   @ApiOperation({ summary: 'Get trip by document ID' })
   @ApiParam({ name: 'documentId', description: 'UUID document ID of the trip' })
-  async findOne(@Req() req: any, @Param('documentId') documentId: string) {
-    return { documentId, viewerId: req.user.id };
+  findOne(@Req() req: any, @Param('documentId') documentId: string) {
+    return this.tripsService.findAccessibleByDocumentId(documentId, req.user.id);
   }
 
   @Post()
   @ApiOperation({ summary: 'Create a trip' })
   @ApiBody({ type: CreateTripBodyDto })
-  async create(@Body() body: { data: any }) {
-    return body.data;
+  create(@Body() body: { data: any }) {
+    return this.tripsService.create(body.data);
   }
 
   @Put(':documentId')
   @ApiOperation({ summary: 'Update a trip' })
   @ApiParam({ name: 'documentId', description: 'UUID document ID of the trip' })
   @ApiBody({ type: UpdateTripBodyDto })
-  async update(
+  update(
     @Req() req: any,
     @Param('documentId') documentId: string,
     @Body() body: { data: any },
   ) {
-    return { documentId, data: body.data, actorUserId: req.user.id };
+    return this.tripsService.update(documentId, body.data, req.user.id);
   }
 
   @Post(':documentId/actions/publish')
@@ -103,7 +105,7 @@ export class TripsController {
   @Delete(':documentId')
   @ApiOperation({ summary: 'Delete a trip' })
   @ApiParam({ name: 'documentId' })
-  async remove(@Param('documentId') documentId: string) {
-    return { documentId };
+  remove(@Param('documentId') documentId: string) {
+    return this.tripsService.delete(documentId);
   }
 }

@@ -1,12 +1,15 @@
-import { Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UsersService } from './users.service';
 
 @ApiTags('Users')
 @ApiBearerAuth()
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
   @Get('me')
   @ApiOperation({ summary: 'Get current authenticated user' })
   getCurrentUser(@Req() req: any) {
@@ -16,25 +19,28 @@ export class UsersController {
   @Post('me/account/pause')
   @ApiOperation({ summary: 'Pause the current user account' })
   async pauseAccount(@Req() req: any) {
-    throw new BadRequestException('User account actions are temporarily unavailable while the monolith user service is restored');
+    await this.usersService.pauseAccount(req.user.id);
+    return { message: 'Account paused successfully' };
   }
 
   @Delete('me')
   @ApiOperation({ summary: 'Permanently delete the current user account' })
   async deleteAccount(@Req() req: any) {
-    throw new BadRequestException('User account actions are temporarily unavailable while the monolith user service is restored');
+    await this.usersService.deleteAccount(req.user.id);
+    return { message: 'Account deleted successfully' };
   }
 
   @Get('me/analytics')
   @ApiOperation({ summary: 'Get analytics for the current authenticated user' })
   async getMyAnalytics(@Req() req: any) {
-    throw new BadRequestException('User analytics are temporarily unavailable while the monolith user service is restored');
+    return this.usersService.getUserAnalytics(req.user.id);
   }
 
   @Get('me/blocks')
   @ApiOperation({ summary: 'List blocked users for the current authenticated user' })
   async getMyBlockedUsers(@Req() req: any) {
-    throw new BadRequestException('Blocked-user lookups are temporarily unavailable while the monolith user service is restored');
+    const blockedUserIds = await this.usersService.getBlockedUserIds(req.user.id);
+    return { data: blockedUserIds };
   }
 
   @Get('community-members')
@@ -45,13 +51,17 @@ export class UsersController {
     @Query('pageSize') pageSize?: string,
     @Query('city') city?: string,
   ) {
-    throw new BadRequestException('Community member lookup is temporarily unavailable while the monolith user service is restored');
+    return this.usersService.getCommunityMembers(req.user.id, {
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+      city,
+    });
   }
 
   @Get('community-members/cities')
   @ApiOperation({ summary: 'List available cities for community chat members' })
   async getCommunityMemberCities(@Req() req: any) {
-    throw new BadRequestException('Community member cities are temporarily unavailable while the monolith user service is restored');
+    return this.usersService.getCommunityMemberCities(req.user.id);
   }
 
   @Post('me/blocks/:blockedUserId')
@@ -60,7 +70,8 @@ export class UsersController {
     @Req() req: any,
     @Param('blockedUserId', ParseIntPipe) blockedUserId: number,
   ) {
-    throw new BadRequestException('User blocking is temporarily unavailable while the monolith user service is restored');
+    await this.usersService.blockUser(req.user.id, blockedUserId);
+    return { message: 'User blocked successfully' };
   }
 
   @Delete('me/blocks/:blockedUserId')
@@ -69,6 +80,7 @@ export class UsersController {
     @Req() req: any,
     @Param('blockedUserId', ParseIntPipe) blockedUserId: number,
   ) {
-    throw new BadRequestException('User unblocking is temporarily unavailable while the monolith user service is restored');
+    await this.usersService.unblockUser(req.user.id, blockedUserId);
+    return { message: 'User unblocked successfully' };
   }
 }
