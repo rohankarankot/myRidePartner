@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -17,6 +17,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Box } from '@/components/ui/box';
 import { Pressable } from '@/components/ui/pressable';
 import { Spinner } from '@/components/ui/spinner';
+import { AppFlashList } from '@/components/ui/flash-list';
 import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
 import {
   CommunityCitiesEmptyState,
@@ -103,9 +104,10 @@ export default function CommunityMembersScreen() {
         }}
       />
 
-      <FlatList
+      <AppFlashList
         data={members}
         keyExtractor={(item) => String(item.id)}
+        estimatedItemSize={100}
         contentContainerStyle={{ padding: 20 }}
         onEndReachedThreshold={0.4}
         onEndReached={() => {

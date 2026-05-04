@@ -2,7 +2,7 @@ import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { NotificationsService } from './notifications.service';
 import { NotificationType } from '@prisma/client';
-import { PaginationParams } from 'apps/api-gateway/src/common/utils/query.utils';
+import { PaginationParams } from '@app/common';
 
 @Controller()
 export class NotificationServiceController {

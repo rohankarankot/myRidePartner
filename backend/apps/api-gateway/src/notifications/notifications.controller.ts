@@ -15,7 +15,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { NotificationType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { parsePagination } from '../common/utils/query.utils';
+import { parsePagination } from '@app/common';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()

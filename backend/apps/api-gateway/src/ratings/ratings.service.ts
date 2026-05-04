@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '@app/common';
-import { PaginationParams, buildPaginationMeta } from '../common/utils/query.utils';
+import { PaginationParams, buildPaginationMeta } from '@app/common';
 
 @Injectable()
 export class RatingsService {

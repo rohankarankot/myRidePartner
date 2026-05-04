@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/auth-context';
 import { socketService } from '@/services/socket-service';
 import Toast from 'react-native-toast-message';
+import { notifeeService } from '@/services/notifee-service';
 
 export function useSocketEvents() {
     const { user } = useAuth();
@@ -21,18 +22,21 @@ export function useSocketEvents() {
             queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count', user.id] });
 
-            if (notification?.data?.screen === 'trip-chat') {
-                return;
-            }
-
-            // Show a toast
-            Toast.show({
-                type: 'info',
-                text1: notification.title || 'New Notification',
-                text2: notification.message,
-                onPress: () => {
-                    // Optional: navigate to notifications screen
+            notifeeService.displayRemoteNotification({
+                title: notification.title || 'New Notification',
+                body: notification.message,
+                data: notification?.data,
+            }).catch((error) => {
+                console.error('Failed to display Notifee notification:', error);
+                if (notification?.data?.screen === 'trip-chat') {
+                    return;
                 }
+
+                Toast.show({
+                    type: 'info',
+                    text1: notification.title || 'New Notification',
+                    text2: notification.message,
+                });
             });
         };
 

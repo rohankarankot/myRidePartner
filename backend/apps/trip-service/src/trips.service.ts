@@ -1,13 +1,10 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Inject } from '@nestjs/common';
-import { PrismaService } from '@app/common';
+import { buildPaginationMeta, PaginatedMeta, PaginationParams, PrismaService } from '@app/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { Prisma, TripStatus, GenderPreference, NotificationType } from '@prisma/client';
 import {
-  PaginationParams,
-  buildPaginationMeta,
-  PaginatedMeta,
-} from 'apps/api-gateway/src/common/utils/query.utils';;
+} from '@app/common';
 import {
   buildTripStartDateTime,
   getTodayDateString,

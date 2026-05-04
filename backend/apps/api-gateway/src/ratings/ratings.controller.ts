@@ -11,7 +11,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } fro
 import { RatingsService } from './ratings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateRatingDto } from './dto/ratings.dto';
-import { parsePagination } from '../common/utils/query.utils';
+import { parsePagination } from '@app/common';
 
 @ApiTags('Ratings')
 @ApiBearerAuth()

@@ -2,7 +2,7 @@ import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { TripsService, TripFilters } from './trips.service';
 import { Prisma } from '@prisma/client';
-import { PaginationParams } from 'apps/api-gateway/src/common/utils/query.utils';
+import { PaginationParams } from '@app/common';
 
 @Controller()
 export class TripsController {

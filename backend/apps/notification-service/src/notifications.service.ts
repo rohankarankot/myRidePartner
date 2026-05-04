@@ -4,7 +4,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { ExpoPushService } from './expo-push.service';
 import { NotificationType } from '@prisma/client';
-import { buildPaginationMeta, PaginatedMeta, PaginationParams } from 'apps/api-gateway/src/common/utils/query.utils';
+import { buildPaginationMeta, PaginatedMeta, PaginationParams } from '@app/common';
 
 export interface NotificationFilters {
   userId?: number;
