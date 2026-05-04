@@ -1,0 +1,54 @@
+import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { UserProfilesModule } from './user-profiles/user-profiles.module';
+import { UploadModule } from './upload/upload.module';
+import { RatingsModule } from './ratings/ratings.module';
+import { PrismaModule } from '@app/common';
+import { AdminModule } from './admin/admin.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ReportsModule } from './reports/reports.module';
+import { PublicChatModule } from './public-chat/public-chat.module';
+import { CommunityGroupsModule } from './community-groups/community-groups.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    SentryModule.forRoot(),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? { target: 'pino-pretty', options: { singleLine: true, colorize: true } }
+            : undefined,
+      },
+    }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100,
+    }]),
+    ScheduleModule.forRoot(),
+    UserProfilesModule,
+    UploadModule,
+    RatingsModule,
+    PrismaModule,
+    AdminModule,
+    PublicChatModule,
+    ReportsModule,
+    CommunityGroupsModule,
+  ],
+  controllers: [AppController],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
+})
+export class AppModule {}

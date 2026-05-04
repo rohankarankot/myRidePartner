@@ -1,0 +1,452 @@
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventsGateway } from '../events/events.gateway';
+import { PrismaService } from '@app/common';
+import { JoinRequestStatus } from '@prisma/client';
+
+@Injectable()
+export class JoinRequestsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
+
+  /**
+   * Get all join requests for a specific trip.
+   */
+  async findByTrip(tripDocumentId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { documentId: tripDocumentId },
+      select: { id: true },
+    });
+
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    const requests = await this.prisma.joinRequest.findMany({
+      where: { tripId: trip.id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        passenger: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: { id: true, username: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    return requests;
+  }
+
+  /**
+   * Get pending requests where the user is the trip creator (captain).
+   */
+  async findPendingForCaptain(captainId: number) {
+    const requests = await this.prisma.joinRequest.findMany({
+      where: {
+        status: 'PENDING',
+        trip: { creatorId: captainId },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        passenger: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: { id: true, username: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    return requests;
+  }
+  /**
+   * Get all join requests made by a specific passenger.
+   */
+  async findByPassenger(passengerId: number) {
+    const requests = await this.prisma.joinRequest.findMany({
+      where: { passengerId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        passenger: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: { select: { fullName: true, avatar: true } },
+              },
+            },
+            joinRequests: {
+              select: { status: true },
+            },
+          },
+        },
+      },
+    });
+
+    return requests;
+  }
+
+  /**
+   * Get a single join request by its documentId.
+   */
+  async findByDocumentId(documentId: string) {
+    const request = await this.prisma.joinRequest.findUnique({
+      where: { documentId },
+      include: {
+        passenger: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: { id: true, username: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Join request not found');
+    }
+
+    return request;
+  }
+
+  /**
+   * Create a new join request.
+   */
+  async create(data: {
+    trip: string; // trip documentId
+    passenger: number; // passenger userId
+    requestedSeats: number;
+    message?: string;
+    sharePhoneNumber: boolean;
+  }) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { documentId: data.trip },
+      select: { id: true, creatorId: true },
+    });
+
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
+    }
+
+    const isBlocked = await this.prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          {
+            blockerId: data.passenger,
+            blockedUserId: trip.creatorId,
+          },
+          {
+            blockerId: trip.creatorId,
+            blockedUserId: data.passenger,
+          },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (isBlocked) {
+      throw new ForbiddenException('You cannot interact with this trip because one of the users is blocked');
+    }
+
+    const request = await this.prisma.joinRequest.create({
+      data: {
+        requestedSeats: data.requestedSeats,
+        message: data.message,
+        sharePhoneNumber: data.sharePhoneNumber,
+        trip: { connect: { id: trip.id } },
+        passenger: { connect: { id: data.passenger } },
+      },
+      include: {
+        passenger: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: { id: true, username: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Notify trip captain in the socket layer only.
+    const captainId = request.trip.creatorId;
+    this.eventsGateway.emitToUser(captainId, 'join_request_created', {
+      tripId: data.trip,
+    });
+
+    return request;
+  }
+
+  /**
+   * Update a join request's status (APPROVED / REJECTED / CANCELLED).
+   * When approved, decrement the trip's available seats.
+   */
+  async updateStatus(documentId: string, status: JoinRequestStatus) {
+    const existing = await this.prisma.joinRequest.findUnique({
+      where: { documentId },
+      select: { id: true, requestedSeats: true, tripId: true, status: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Join request not found');
+    }
+
+    const oldStatus = existing.status;
+    const newStatus = status;
+
+    // Only update if status is different
+    if (oldStatus !== newStatus) {
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Handle seat transitions
+        if (newStatus === 'APPROVED' && oldStatus !== 'APPROVED') {
+          // Transition TO Approved: Decrement seats
+          const trip = await tx.trip.findUnique({
+            where: { id: existing.tripId },
+            select: { availableSeats: true },
+          });
+
+          if (!trip) throw new NotFoundException('Trip not found');
+          
+          if (trip.availableSeats < existing.requestedSeats) {
+            throw new BadRequestException(
+              `Not enough available seats. (Available: ${trip.availableSeats}, Requested: ${existing.requestedSeats})`,
+            );
+          }
+
+          await tx.trip.update({
+            where: { id: existing.tripId },
+            data: { availableSeats: { decrement: existing.requestedSeats } },
+          });
+        } else if (oldStatus === 'APPROVED' && newStatus !== 'APPROVED') {
+          // Transition FROM Approved: Increment seats (recovery)
+          await tx.trip.update({
+            where: { id: existing.tripId },
+            data: { availableSeats: { increment: existing.requestedSeats } },
+          });
+        }
+
+        // 2. Update the request status
+        await tx.joinRequest.update({
+          where: { documentId },
+          data: {
+            status: newStatus,
+            ...(newStatus !== 'APPROVED' ? { arrivedAtPickupAt: null } : {}),
+          },
+        });
+      });
+    }
+
+    const request = await this.prisma.joinRequest.findUnique({
+      where: { documentId },
+      include: {
+        passenger: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: { id: true, username: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Updated join request not found');
+    }
+
+    // Notify passenger in the socket layer only.
+    this.eventsGateway.emitToUser(request.passengerId, 'join_request_updated', {
+      tripId: request.trip.documentId,
+      status: request.status,
+    });
+
+    // Update trip room
+    this.eventsGateway.emitToTripRoom(request.trip.documentId, 'trip_updated', {
+      documentId: request.trip.documentId,
+    });
+
+    return request;
+  }
+
+  async updatePickupStatus(
+    documentId: string,
+    passengerId: number,
+    hasArrived: boolean,
+  ) {
+    const request = await this.prisma.joinRequest.findUnique({
+      where: { documentId },
+      include: {
+        trip: {
+          select: {
+            documentId: true,
+            status: true,
+            creatorId: true,
+          },
+        },
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Join request not found');
+    }
+
+    if (request.passengerId !== passengerId) {
+      throw new ForbiddenException('You can only update your own pickup status');
+    }
+
+    if (request.status !== JoinRequestStatus.APPROVED) {
+      throw new BadRequestException('Only approved riders can confirm pickup arrival');
+    }
+
+    if (request.trip.status !== 'PUBLISHED') {
+      throw new BadRequestException('Pickup confirmation is only available before the ride starts');
+    }
+
+    const updatedRequest = await this.prisma.joinRequest.update({
+      where: { id: request.id },
+      data: {
+        arrivedAtPickupAt: hasArrived ? new Date() : null,
+      },
+      include: {
+        passenger: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                phoneNumber: true,
+                avatar: true,
+                city: true,
+              },
+            },
+          },
+        },
+        trip: {
+          include: {
+            creator: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: { select: { avatar: true, fullName: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (hasArrived) {
+      const passengerName =
+        updatedRequest.passenger.userProfile?.fullName ||
+        updatedRequest.passenger.username;
+      const destination = updatedRequest.trip.destination;
+      void passengerName;
+      void destination;
+    }
+
+    this.eventsGateway.emitToTripRoom(request.trip.documentId, 'trip_updated', {
+      documentId: request.trip.documentId,
+      pickupReadyUpdated: true,
+    });
+
+    return updatedRequest;
+  }
+}
