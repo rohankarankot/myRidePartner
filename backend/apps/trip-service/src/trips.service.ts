@@ -1,0 +1,560 @@
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { buildPaginationMeta, PaginatedMeta, PaginationParams, PrismaService } from '@app/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
+import { Prisma, TripStatus, GenderPreference, NotificationType } from '@prisma/client';
+import {
+} from '@app/common';
+import {
+  buildTripStartDateTime,
+  getTodayDateString,
+  isTripInFuture,
+} from './trip-time.utils';
+
+export interface TripFilters {
+  status?: TripStatus;
+  genderPreference?: GenderPreference;
+  date?: string;
+  creatorId?: number;
+  city?: string;
+  fromQuery?: string;
+  toQuery?: string;
+  viewerId?: number;
+}
+
+@Injectable()
+export class TripsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject('API_GATEWAY') private readonly apiGateway: ClientProxy,
+    @Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+    @Inject('CHAT_SERVICE') private readonly chatClient: ClientProxy,
+  ) { }
+
+  /**
+   * Paginated list of trips with optional filters.
+   */
+  async findAll(
+    pagination: PaginationParams,
+    filters: TripFilters = {},
+  ): Promise<{ data: any[]; meta: PaginatedMeta }> {
+    const where: Prisma.TripWhereInput = {};
+    const now = new Date();
+    const todayString = getTodayDateString(now);
+
+    if (filters.status) {
+      where.status = filters.status;
+    }
+    if (filters.genderPreference) {
+      where.genderPreference = filters.genderPreference;
+    }
+    if (filters.date) {
+      where.date = filters.date;
+    } else {
+      where.date = {
+        gte: todayString,
+      };
+    }
+    if (filters.creatorId) {
+      where.creatorId = filters.creatorId;
+    }
+    if (filters.city) {
+      where.city = filters.city;
+    }
+    if (filters.fromQuery) {
+      where.startingPoint = {
+        contains: filters.fromQuery,
+        mode: 'insensitive',
+      };
+    }
+    if (filters.toQuery) {
+      where.destination = {
+        contains: filters.toQuery,
+        mode: 'insensitive',
+      };
+    }
+    if (filters.viewerId) {
+      where.creator = {
+        blockedUsers: {
+          none: {
+            blockedUserId: filters.viewerId,
+          },
+        },
+        blockedByUsers: {
+          none: {
+            blockerId: filters.viewerId,
+          },
+        },
+      };
+    }
+
+    const trips = await this.prisma.trip.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
+        },
+      },
+    });
+
+    const upcomingTrips = trips.filter((trip) => isTripInFuture(trip.date, trip.time, now));
+    const total = upcomingTrips.length;
+    const data = upcomingTrips.slice(pagination.skip, pagination.skip + pagination.take);
+
+    return {
+      data,
+      meta: buildPaginationMeta(total, pagination),
+    };
+  }
+
+  /**
+   * Find a single trip by its documentId (UUID).
+   */
+  async findByDocumentId(documentId: string) {
+    const trip = await this.prisma.trip.findUnique({
+      where: { documentId },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
+        },
+        joinRequests: {
+          include: {
+            passenger: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: {
+                  select: {
+                    fullName: true,
+                    phoneNumber: true,
+                    avatar: true,
+                    city: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!trip) {
+      throw new NotFoundException(`Trip not found`);
+    }
+
+    return { data: trip };
+  }
+
+  async findAccessibleByDocumentId(documentId: string, viewerId: number) {
+    const trip = await this.prisma.trip.findFirst({
+      where: {
+        documentId,
+        creator: {
+          blockedUsers: {
+            none: {
+              blockedUserId: viewerId,
+            },
+          },
+          blockedByUsers: {
+            none: {
+              blockerId: viewerId,
+            },
+          },
+        },
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
+        },
+        joinRequests: {
+          include: {
+            passenger: {
+              select: {
+                id: true,
+                username: true,
+                email: true,
+                userProfile: {
+                  select: {
+                    fullName: true,
+                    phoneNumber: true,
+                    avatar: true,
+                    city: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!trip) {
+      throw new NotFoundException(`Trip not found`);
+    }
+
+    return { data: trip };
+  }
+
+  async findPublicByDocumentId(documentId: string) {
+    const trip = await this.prisma.trip.findFirst({
+      where: {
+        documentId,
+        status: {
+          in: [TripStatus.PUBLISHED, TripStatus.STARTED],
+        },
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            userProfile: {
+              select: {
+                fullName: true,
+                avatar: true,
+                city: true,
+                rating: true,
+                ratingsCount: true,
+                completedTripsCount: true,
+                governmentIdVerified: true,
+              },
+            },
+          },
+        },
+        joinRequests: {
+          select: {
+            status: true,
+            requestedSeats: true,
+          },
+        },
+      },
+    });
+
+    if (!trip) {
+      throw new NotFoundException(`Trip not found`);
+    }
+
+    const approvedRequests = trip.joinRequests.filter((request) => request.status === 'APPROVED');
+    const seatsBooked = approvedRequests.reduce((sum, request) => sum + request.requestedSeats, 0);
+
+    return {
+      data: {
+        documentId: trip.documentId,
+        description: trip.description,
+        startingPoint: trip.startingPoint,
+        destination: trip.destination,
+        date: trip.date,
+        time: trip.time,
+        city: trip.city,
+        availableSeats: trip.availableSeats,
+        seatsBooked,
+        seatsRemaining: trip.availableSeats,
+        pricePerSeat: trip.pricePerSeat,
+        isPriceCalculated: trip.isPriceCalculated,
+        genderPreference: trip.genderPreference,
+        status: trip.status,
+        createdAt: trip.createdAt,
+        creator: {
+          id: trip.creator.id,
+          username: trip.creator.username,
+          fullName: trip.creator.userProfile?.fullName ?? null,
+          avatar: trip.creator.userProfile?.avatar ?? null,
+          city: trip.creator.userProfile?.city ?? null,
+          rating: trip.creator.userProfile?.rating ?? null,
+          ratingsCount: trip.creator.userProfile?.ratingsCount ?? 0,
+          completedTripsCount: trip.creator.userProfile?.completedTripsCount ?? 0,
+          governmentIdVerified: trip.creator.userProfile?.governmentIdVerified ?? false,
+        },
+      },
+    };
+  }
+
+  /**
+   * Get all trips created by a specific user.
+   */
+  async findByCreatorId(userId: number, viewerId?: number) {
+    const where: Prisma.TripWhereInput = { creatorId: userId };
+
+    if (viewerId && viewerId !== userId) {
+      where.creator = {
+        blockedUsers: {
+          none: {
+            blockedUserId: viewerId,
+          },
+        },
+        blockedByUsers: {
+          none: {
+            blockerId: viewerId,
+          },
+        },
+      };
+    }
+
+    const trips = await this.prisma.trip.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
+        },
+        joinRequests: {
+          select: { status: true },
+        },
+      },
+    });
+
+    return { data: trips };
+  }
+
+  /**
+   * Create a new trip.
+   */
+  async create(data: {
+    description?: string;
+    startingPoint: string;
+    destination: string;
+    date: string;
+    time: string;
+    availableSeats: number;
+    city?: string;
+    pricePerSeat?: number;
+    isPriceCalculated: boolean;
+    genderPreference: string;
+    creator: number;
+  }) {
+    const trip = await this.prisma.trip.create({
+      data: {
+        description: data.description,
+        startingPoint: data.startingPoint,
+        destination: data.destination,
+        date: data.date,
+        time: data.time,
+        availableSeats: data.availableSeats,
+        city: data.city,
+        pricePerSeat: data.pricePerSeat,
+        isPriceCalculated: data.isPriceCalculated,
+        genderPreference: data.genderPreference as GenderPreference,
+        creator: { connect: { id: data.creator } },
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
+        },
+      },
+    });
+
+    return { data: trip };
+  }
+
+  /**
+   * Update a trip by documentId (general update).
+   */
+  async update(
+    documentId: string,
+    data: Prisma.TripUpdateInput,
+    actorUserId?: number,
+  ) {
+    // 1. Get the current trip to identify change
+    const oldTrip = await this.prisma.trip.findUnique({
+      where: { documentId },
+      select: {
+        id: true,
+        creatorId: true,
+        status: true,
+        startingPoint: true,
+        destination: true,
+        isPriceCalculated: true,
+        pricePerSeat: true,
+      },
+    });
+
+    if (!oldTrip) {
+      throw new NotFoundException(`Trip not found`);
+    }
+
+    if (actorUserId && oldTrip.creatorId !== actorUserId) {
+      throw new ForbiddenException('Only the captain can update this trip');
+    }
+
+    if (
+      data.status === 'COMPLETED' &&
+      oldTrip.isPriceCalculated &&
+      oldTrip.pricePerSeat == null &&
+      data.pricePerSeat == null
+    ) {
+      throw new BadRequestException(
+        'Price per seat is required before completing a trip with calculated pricing.',
+      );
+    }
+
+    if (data.status === 'STARTED') {
+      const approvedJoinRequests = await this.prisma.joinRequest.findMany({
+        where: {
+          tripId: oldTrip.id,
+          status: 'APPROVED',
+        },
+        select: {
+          arrivedAtPickupAt: true,
+        },
+      });
+
+      const hasPendingPickupConfirmations = approvedJoinRequests.some(
+        (request) => !request.arrivedAtPickupAt,
+      );
+
+      if (hasPendingPickupConfirmations) {
+        throw new BadRequestException(
+          'All approved riders must confirm they reached the pickup point before the ride can start.',
+        );
+      }
+    }
+
+    // 2. Perform the update
+    const trip = await this.prisma.trip.update({
+      where: { documentId },
+      data,
+      include: {
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            userProfile: {
+              select: { avatar: true },
+            },
+          },
+        },
+      },
+    });
+
+    // 3. Emit real-time event through socket trip room
+    this.apiGateway.emit(
+      { cmd: 'emitToTripRoom' },
+      { tripDocumentId: documentId, event: 'trip_updated', data: { documentId, status: trip.status } }
+    );
+
+    // 4. Send notifications to all approved passengers if status changed
+    if (data.status && data.status !== oldTrip.status) {
+      this.notifyPassengersOfStatusChange(trip);
+
+      // 5. Increment completed trips count if status is COMPLETED
+      if (data.status === 'COMPLETED') {
+        this.incrementCompletedTripsStats(trip);
+        this.chatClient.emit({ cmd: 'deleteChatForCompletedTrip' }, { tripDocumentId: documentId });
+      }
+    }
+
+    return { data: trip };
+  }
+
+  /**
+   * Helper to increment completedTripsCount for creator and passengers.
+   */
+  private async incrementCompletedTripsStats(trip: any) {
+    // 1. Increment for creator (Captain)
+    await this.prisma.userProfile.update({
+      where: { userId: trip.creatorId },
+      data: { completedTripsCount: { increment: 1 } },
+    });
+
+    // 2. Increment for approved passengers
+    const passengers = await this.prisma.joinRequest.findMany({
+      where: {
+        tripId: trip.id,
+        status: 'APPROVED',
+      },
+      select: {
+        passengerId: true,
+      },
+    });
+
+    for (const p of passengers) {
+      await this.prisma.userProfile.update({
+        where: { userId: p.passengerId },
+        data: { completedTripsCount: { increment: 1 } },
+      });
+    }
+  }
+
+  /**
+   * Helper to notify all approved passengers of a trip status change.
+   */
+  private async notifyPassengersOfStatusChange(trip: any) {
+    const passengers = await this.prisma.joinRequest.findMany({
+      where: {
+        tripId: trip.id,
+        status: 'APPROVED',
+      },
+      select: {
+        passengerId: true,
+      },
+    });
+
+    const statusLabels: Record<string, string> = {
+      STARTED: 'started',
+      COMPLETED: 'completed',
+      CANCELLED: 'cancelled',
+    };
+
+    const label = statusLabels[trip.status] || trip.status.toLowerCase();
+
+    for (const p of passengers) {
+      this.notificationClient.emit({ cmd: 'createNotification' }, {
+        userId: p.passengerId,
+        title: `Trip ${label}`,
+        message: `The trip from ${trip.startingPoint} to ${trip.destination} has been ${label}.`,
+        type: trip.status === 'COMPLETED' ? NotificationType.TRIP_COMPLETED : NotificationType.TRIP_UPDATE,
+        relatedId: trip.documentId,
+        data: { tripId: trip.documentId },
+      });
+    }
+  }
+
+  /**
+   * Delete a trip by documentId.
+   */
+  async delete(documentId: string) {
+    const trip = await this.prisma.trip.delete({
+      where: { documentId },
+    });
+
+    return { data: trip };
+  }
+}

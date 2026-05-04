@@ -19,6 +19,7 @@ import { useBottomSheetBackHandler } from '@/hooks/use-bottom-sheet-back-handler
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { tripChatService } from '@/services/trip-chat-service';
+import { notifeeService } from '@/services/notifee-service';
 import { analyticsService } from '@/services/analytics-service';
 import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
@@ -305,8 +306,17 @@ export default function TripChatScreen() {
     const mediaSheetRef = useRef<BottomSheetModal>(null);
     const initialScrollHandledRef = useRef(false);
     const keyboardHeight = useRef(new Animated.Value(0)).current;
+    const composerInputRef = useRef<TextInput>(null);
 
     useBottomSheetBackHandler([{ isOpen: isMediaSheetOpen, ref: mediaSheetRef }]);
+
+    useEffect(() => {
+        if (!tripId) {
+            return;
+        }
+
+        void notifeeService.clearTripChatNotifications(tripId);
+    }, [tripId]);
 
     useEffect(() => {
         const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -396,6 +406,18 @@ export default function TripChatScreen() {
                 Toast.show({ type: 'error', text1: 'Scroll Error', text2: 'Item is not measured yet.' });
             }
         }
+    };
+
+    const focusComposerInput = () => {
+        requestAnimationFrame(() => {
+            composerInputRef.current?.focus();
+        });
+    };
+
+    const handleStartReply = (message: ExtendedMessage) => {
+        setReplyingTo(message);
+        setActiveMessageMenuId(null);
+        focusComposerInput();
     };
 
     const backgroundColor = useThemeColor({}, 'background');
@@ -1008,6 +1030,9 @@ export default function TripChatScreen() {
             return;
         }
 
+        composerTextRef.current = '';
+        setComposerText('');
+
         void handleSend([
             {
                 _id: `local-${Date.now()}`,
@@ -1473,10 +1498,7 @@ export default function TripChatScreen() {
                                             >
                                                 <Pressable
                                                     className="flex-row items-center gap-2.5 px-4 py-2.5"
-                                                    onPress={() => {
-                                                        setReplyingTo(currentMessage);
-                                                        setActiveMessageMenuId(null);
-                                                    }}
+                                                    onPress={() => handleStartReply(currentMessage)}
                                                 >
                                                     <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
                                                     <Text className="text-[13px] font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Reply</Text>
@@ -1673,6 +1695,7 @@ export default function TripChatScreen() {
                         )}
                         renderComposer={(props: any) => (
                             <TextInput
+                                ref={composerInputRef}
                                 value={composerText}
                                 onChangeText={handleComposerChange}
                                 onContentSizeChange={handleComposerContentSizeChange}

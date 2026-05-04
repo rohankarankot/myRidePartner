@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList } from 'react-native';
+import { FlatList, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -127,12 +127,12 @@ const fromGiftedMessage = (message: ExtendedMessage, fallbackUser: { id: number;
     } : undefined,
 });
 
-const SwipeableMessageBubble = ({ 
-    props, 
-    children, 
-    onSwipe 
-}: { 
-    props: any; 
+const SwipeableMessageBubble = ({
+    props,
+    children,
+    onSwipe
+}: {
+    props: any;
     children: React.ReactNode;
     onSwipe: (message: ExtendedMessage) => void;
 }) => {
@@ -226,6 +226,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
     const [citySearch, setCitySearch] = useState('');
     const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
     const flatListRef = useRef<FlatList<any>>(null);
+    const composerInputRef = useRef<TextInput>(null);
     const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const citySheetRef = useRef<BottomSheetModal>(null);
 
@@ -252,9 +253,21 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
         });
     };
 
+    const focusComposerInput = () => {
+        requestAnimationFrame(() => {
+            composerInputRef.current?.focus();
+        });
+    };
+
+    const handleStartReply = (message: ExtendedMessage) => {
+        setReplyingTo(message);
+        setActiveMessageMenuId(null);
+        focusComposerInput();
+    };
+
     const scrollToMessage = (messageId: string) => {
         const index = giftedMessages.findIndex((m) => String(m._id) === String(messageId));
-        
+
         if (index === -1) {
             Toast.show({
                 type: 'info',
@@ -275,7 +288,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
             return;
         }
 
-        const actualList = 
+        const actualList =
             (typeof list.scrollToIndex === 'function' ? list : null) ||
             (list.flatListRef?.current && typeof list.flatListRef.current.scrollToIndex === 'function' ? list.flatListRef.current : null) ||
             (list.getNode && typeof list.getNode().scrollToIndex === 'function' ? list.getNode() : null) ||
@@ -458,7 +471,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                     createdAt: currentReplyState.createdAt.toString(),
                     sender: {
                         id: Number(currentReplyState.user._id),
-                        username: 'User', 
+                        username: 'User',
                         name: currentReplyState.user.name || 'Member',
                     }
                 } : null,
@@ -523,6 +536,9 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
             return;
         }
 
+        composerTextRef.current = '';
+        setComposerText('');
+
         void handleSend([
             {
                 _id: `local-${Date.now()}`,
@@ -584,10 +600,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                 ) : null}
 
                 {/* Custom Header */}
-                <Box 
+                <Box
                     className="absolute top-0 left-0 right-0 z-20 border-b shadow-sm"
-                    style={{ 
-                        backgroundColor, 
+                    style={{
+                        backgroundColor,
                         borderBottomColor: borderColor,
                         paddingTop: insets.top + 10,
                         height: headerHeight,
@@ -745,16 +761,13 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                     <SwipeableMessageBubble props={props} onSwipe={setReplyingTo}>
                                         <Box className="w-full" style={{ alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }}>
                                             {isMenuOpen && (
-                                                <Box 
-                                                    className="rounded-[24px] border-2 shadow-2xl p-2 mb-3 w-44" 
+                                                <Box
+                                                    className="rounded-[24px] border-2 shadow-2xl p-2 mb-3 w-44"
                                                     style={{ backgroundColor: cardColor, borderColor, alignSelf: isCurrentUser ? 'flex-end' : 'flex-start' }}
                                                 >
                                                     <Pressable
                                                         className="flex-row items-center p-3 rounded-2xl"
-                                                        onPress={() => {
-                                                            setReplyingTo(currentMessage);
-                                                            setActiveMessageMenuId(null);
-                                                        }}
+                                                        onPress={() => handleStartReply(currentMessage)}
                                                     >
                                                         <IconSymbol name="arrowshape.turn.up.left.fill" size={16} color={primaryColor} />
                                                         <GSText className="ml-3 text-xs font-extrabold uppercase tracking-widest" style={{ color: textColor }}>Reply</GSText>
@@ -816,7 +829,7 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                     const messageColor = isRight ? 'rgba(255,255,255,0.85)' : subtextColor;
 
                                     return (
-                                        <Pressable 
+                                        <Pressable
                                             onPress={() => scrollToMessage(currentMessage.replyTo.documentId)}
                                             className="mx-2 mt-2 mb-1 p-3 rounded-[20px] flex-row overflow-hidden"
                                             style={{ backgroundColor: bubbleBg, minWidth: 160 }}
@@ -851,8 +864,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                                     {replyingTo.text}
                                                 </GSText>
                                             </VStack>
-                                            <Pressable 
-                                                onPress={() => setReplyingTo(null)} 
+                                            <Pressable
+                                                onPress={() => setReplyingTo(null)}
                                                 className="w-7 h-7 rounded-full items-center justify-center"
                                                 style={{ backgroundColor: surfaceContainerLow }}
                                             >
@@ -869,6 +882,10 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                                 backgroundColor: 'transparent',
                                                 flex: 1,
                                                 justifyContent: 'flex-end',
+                                            }}
+                                            textInputProps={{
+                                                ...(props.textInputProps || {}),
+                                                ref: composerInputRef,
                                             }}
                                             primaryStyle={{ alignItems: 'flex-end' }}
                                         />
@@ -935,8 +952,8 @@ export function CommunityChatScreen({ initialCity }: { initialCity?: string | nu
                                         Browse active community rooms by city and connect with local members.
                                     </GSText>
                                 </VStack>
-                                <HStack 
-                                    className="items-center px-4 h-14 rounded-[24px] border-2 shadow-sm mt-6" 
+                                <HStack
+                                    className="items-center px-4 h-14 rounded-[24px] border-2 shadow-sm mt-6"
                                     style={{ backgroundColor: surfaceContainerHigh, borderColor: outlineVariant }}
                                     space="md"
                                 >
