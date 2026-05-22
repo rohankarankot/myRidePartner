@@ -1,16 +1,18 @@
 import 'dotenv/config';
-import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
 
-const prisma = new PrismaClient();
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function main() {
-  const admins = await prisma.user.findMany({
-    where: { role: 'SUPER_ADMIN' },
-    select: { email: true, username: true }
-  });
-  console.log(JSON.stringify(admins, null, 2));
+  const query = `
+    SELECT email, username FROM "User" WHERE role = 'SUPER_ADMIN';
+  `;
+  const result = await pool.query(query);
+  console.log(JSON.stringify(result.rows, null, 2));
 }
 
 main()
   .catch(console.error)
-  .finally(() => prisma.$disconnect());
+  .finally(() => pool.end());
+
+

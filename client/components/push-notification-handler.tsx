@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { pushNotificationService } from '@/services/push-notification-service';
 import * as Notifications from 'expo-notifications';
@@ -10,23 +11,33 @@ export const PushNotificationHandler = () => {
     const queryClient = useQueryClient();
 
     useEffect(() => {
-        // Explicitly request permissions on app open
-        pushNotificationService.requestPermissionsAsync();
-    }, []);
+        const syncPushToken = async () => {
+            if (!profile?.documentId) {
+                return;
+            }
 
-    useEffect(() => {
-        if (profile && profile.documentId) {
-            // Check/request permissions when profile becomes available (logged in)
-            pushNotificationService.requestPermissionsAsync().then(granted => {
-                if (granted) {
-                    // Always try to register/update token to ensure it's correct for this device
-                    // The service can be optimized internally if needed
-                    console.log('Verifying push notification registration...');
-                    pushNotificationService.registerForPushNotificationsAsync(profile.documentId, profile.pushToken);
-                }
-            });
-        }
-    }, [profile?.documentId]);
+            const hasPermission = await pushNotificationService.hasNotificationPermissionAsync();
+            if (!hasPermission) {
+                return;
+            }
+
+            console.log('Verifying push notification registration...');
+            const token = await pushNotificationService.registerForPushNotificationsAsync(profile.documentId, profile.pushToken);
+            if (token) {
+                console.log('Push token synced successfully:', token);
+            }
+        };
+
+        void syncPushToken();
+
+        const subscription = AppState.addEventListener('change', (nextState) => {
+            if (nextState === 'active') {
+                void syncPushToken();
+            }
+        });
+
+        return () => subscription.remove();
+    }, [profile?.documentId, profile?.pushToken]);
 
     useEffect(() => notifeeService.subscribeForegroundEvents(), []);
 

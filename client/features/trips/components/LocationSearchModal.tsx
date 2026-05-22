@@ -21,6 +21,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { olaPlacesService, type OlaPlaceSuggestion } from '@/services/ola-places-service';
 import { CONFIG } from '@/constants/config';
 import type { LocationSelection } from '@/features/trips/types/location';
+import { pushNotificationService } from '@/services/push-notification-service';
 
 interface LocationSearchModalProps {
     visible: boolean;
@@ -182,6 +183,7 @@ export function LocationSearchModal({
             setErrorMessage('');
 
             const permission = await Location.requestForegroundPermissionsAsync();
+            await pushNotificationService.requestPermissionsAsync();
             if (permission.status !== 'granted') {
                 setErrorMessage('Allow location access to use your current pickup point.');
                 return;

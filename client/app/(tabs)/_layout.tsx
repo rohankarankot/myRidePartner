@@ -1,15 +1,13 @@
 import { Tabs, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { View, Linking, TouchableOpacity, Image, Platform } from 'react-native';
+import { Image, Platform } from 'react-native';
 import * as Location from 'expo-location';
-import { ThemedText } from '@/components/themed-text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { getThemeColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
 import { useAuth } from '@/context/auth-context';
 import { HeaderRight } from '@/components/ui/HeaderRight';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,11 +15,9 @@ import { useUserStore } from '@/store/user-store';
 import { useThemeStore } from '@/store/theme-store';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
-import { Button, ButtonText } from '@/components/ui/button';
 import { VStack } from '@/components/ui/vstack';
-import { Pressable } from '@/components/ui/pressable';
+import { NotificationPermissionGate } from '@/components/notification-permission-gate';
 
-import FindFilledIcon from '@/assets/tab-icons/find-filled.svg';
 import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
 import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -35,7 +31,9 @@ export default function TabLayout() {
   const router = useRouter();
   const [locationPermission, setLocationPermission] = useState<Location.PermissionStatus | null>(null);
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
-  const currentColors = getThemeColors(palette)[colorScheme ?? 'light'];
+  const [notificationReady, setNotificationReady] = useState(false);
+  const mode = colorScheme === 'dark' ? 'dark' : 'light';
+  const currentColors = getThemeColors(palette)[mode];
   const tabBarBaseHeight = Platform.OS === 'ios' ? 60 : 60;
   const tabBarBottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 16);
   const tabBarHeight = tabBarBaseHeight + tabBarBottomPadding;
@@ -65,15 +63,16 @@ export default function TabLayout() {
   const showContent = !isLoading && user && isFirstLaunch === false;
 
   React.useEffect(() => {
-    if (showContent) {
-      (async () => {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        setLocationPermission(status);
-        if (status !== 'granted') {
-          console.log('Permission to access location was denied');
-        }
-      })();
-    }
+    if (!showContent) return;
+
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status);
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
+      }
+    })();
   }, [showContent]);
 
   if (!showContent) return null;
@@ -92,34 +91,47 @@ export default function TabLayout() {
             My Ride Partner needs your location to find nearby rides and set your pickup points safely.
           </Text>
         </VStack>
-
-        <VStack className="w-full mt-10" space="md">
-          <Button
-            className="h-14 rounded-2xl shadow-lg"
-            style={{ backgroundColor: currentColors.tint }}
-            onPress={() => Linking.openSettings()}
-          >
-            <ButtonText className="text-xs font-extrabold uppercase tracking-widest">Open Settings</ButtonText>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-14 rounded-2xl border-2"
-            style={{ borderColor: currentColors.border }}
-            onPress={async () => {
-              const { status } = await Location.requestForegroundPermissionsAsync();
-              setLocationPermission(status);
-            }}
-          >
-            <ButtonText className="text-xs font-extrabold uppercase tracking-widest" style={{ color: currentColors.subtext }}>Check Again</ButtonText>
-          </Button>
-        </VStack>
       </Box>
     );
   }
 
-  // Still checking permission
   if (!locationPermission) return null;
 
+  if (!notificationReady) {
+    return (
+      <NotificationPermissionGate
+        title="Notifications Locked"
+        description="My Ride Partner needs notification permissions to alert you when a ride is joined, updated, or when you receive chat messages."
+        onGranted={() => setNotificationReady(true)}
+        onDenied={() => undefined}
+      />
+    );
+  }
+
+  return (
+    <TabsShell
+      currentColors={currentColors}
+      tabBarHeight={tabBarHeight}
+      tabBarBottomPadding={tabBarBottomPadding}
+      profileAvatarUrl={profileAvatarUrl}
+      profileInitial={profileInitial}
+    />
+  );
+}
+
+function TabsShell({
+  currentColors,
+  tabBarHeight,
+  tabBarBottomPadding,
+  profileAvatarUrl,
+  profileInitial,
+}: {
+  currentColors: ReturnType<typeof getThemeColors>['light'];
+  tabBarHeight: number;
+  tabBarBottomPadding: number;
+  profileAvatarUrl?: string;
+  profileInitial: string;
+}) {
   return (
     <Tabs
       screenOptions={() => ({
@@ -188,7 +200,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="create"
         options={{
@@ -210,12 +221,12 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="profile"
         options={{
-          headerTitle: 'PROFILE',
           title: 'Profile',
+          headerShown: true,
+          headerTitle: 'PROFILE',
           headerRight: () => <HeaderRight type="settings" />,
           tabBarIcon: ({ focused, color }) => (
             profileAvatarUrl ? (

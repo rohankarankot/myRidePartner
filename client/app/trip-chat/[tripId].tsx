@@ -25,6 +25,7 @@ import { socketService } from '@/services/socket-service';
 import { userService } from '@/services/user-service';
 import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
+import { pushNotificationService } from '@/services/push-notification-service';
 import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 import { Box } from '@/components/ui/box';
@@ -775,6 +776,7 @@ export default function TripChatScreen() {
 
         try {
             const permission = await Location.requestForegroundPermissionsAsync();
+            await pushNotificationService.requestPermissionsAsync();
             if (permission.status !== 'granted') {
                 Toast.show({
                     type: 'info',
