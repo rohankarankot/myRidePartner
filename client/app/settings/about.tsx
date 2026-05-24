@@ -33,7 +33,7 @@ const TECH_STACK = [
 ];
 
 export default function AboutScreen() {
-  const appVersion = Constants.expoConfig?.version ?? '2.0.0';
+  const appVersion = Constants.expoConfig?.version ?? '3.0.0';
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const subtextColor = useThemeColor({}, 'subtext');

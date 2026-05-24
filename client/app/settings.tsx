@@ -21,7 +21,7 @@ import {
 } from '@/features/profile/components/settings';
 
 export default function SettingsScreen() {
-  const appVersion = Constants.expoConfig?.version ?? '2.0.0';
+  const appVersion = Constants.expoConfig?.version ?? '3.0.0';
   const { signOut } = useAuth();
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
