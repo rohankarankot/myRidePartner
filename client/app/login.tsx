@@ -96,7 +96,7 @@ export default function LoginScreen() {
                     method: 'google',
                     user_id: data.user.id,
                 });
-                router.replace('/(tabs)');
+                router.replace('/notification-permission');
             } else {
                 console.error('Login failed', data);
             }

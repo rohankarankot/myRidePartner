@@ -57,6 +57,14 @@
 - Seed current app sources: `npm run seed:app-sources`
 - Register a future app source: `npm run register:app-source -- <slug> "<Display Name>"`
 
+## Backend Commands
+- Run these from `backend/`.
+- Start the API once: `npm run start`
+- Start the API in watch mode: `npm run start:dev`
+- Lint backend files: `npm run lint`
+- Run unit tests: `npm run test`
+- Run e2e tests: `npm run test:e2e`
+
 ## Backoffice Admin Bootstrap
 - Run these from `backend/` when provisioning local backoffice access.
 - Create or refresh the default super admin: `npm run create:super-admin`
@@ -77,6 +85,13 @@
 - Run all mobile smoke tests from `client/` with `npm run maestro:test`.
 - Run only the smoke suite from `client/` with `npm run maestro:test:smoke`.
 - Before running Maestro tests, boot an iOS Simulator or Android Emulator and install a development build once with `npm run ios` or `npm run android`.
+
+## Web Client Commands
+- Run these from `web-client/`.
+- Start the Next.js dev server: `npm run dev`
+- Build the web app: `npm run build`
+- Start the production server: `npm run start`
+- Lint web-client files: `npm run lint`
 
 ## Expectations For Future Agents
 - Preserve the shared-user model unless explicitly asked to separate users per app.

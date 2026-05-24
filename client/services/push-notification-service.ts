@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { userService } from './user-service';
+import { useUserStore } from '@/store/user-store';
 
 // Configure how notifications are handled when the app is foregrounded
 Notifications.setNotificationHandler({
@@ -16,10 +17,19 @@ Notifications.setNotificationHandler({
 });
 
 class PushNotificationService {
+    async hasNotificationPermissionAsync() {
+        if (!Device.isDevice) {
+            return true;
+        }
+
+        const permissions = await Notifications.getPermissionsAsync();
+        return permissions.status === 'granted';
+    }
+
     async requestPermissionsAsync() {
         if (!Device.isDevice) {
             console.log('Must use physical device for Push Notifications');
-            return false;
+            return true;
         }
 
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -68,9 +78,20 @@ class PushNotificationService {
             if (token !== currentSavedToken) {
                 console.log('Updating push token on backend...');
                 await userService.updatePushToken(profileDocumentId, token);
+                // Also update the store profile's token!
+                const currentProfile = useUserStore.getState().profile;
+                if (currentProfile && currentProfile.documentId === profileDocumentId) {
+                    useUserStore.getState().setProfile({
+                        ...currentProfile,
+                        pushToken: token,
+                    });
+                }
             } else {
                 console.log('Push token is already up to date.');
             }
+
+            // Save the latest expoToken to store
+            useUserStore.getState().setExpoToken(token);
 
             return token;
         } catch (e) {

@@ -13,6 +13,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Google login', description: 'Verify a Google ID token and return a JWT access token' })
   @ApiBody({ type: GoogleLoginDto })
   async googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
+    // Controller logs stay minimal; service logs cover the important auth events.
     return this.authService.verifyGoogleToken(
       googleLoginDto.token,
       googleLoginDto.source,

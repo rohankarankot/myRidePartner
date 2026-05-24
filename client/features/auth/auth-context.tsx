@@ -8,6 +8,7 @@ import type { AuthContextType, AuthUser } from '@/features/auth/types';
 import { socketService } from '@/features/realtime/socket-service';
 import { logger } from '@/shared/lib/logger';
 import { useUserStore } from '@/store/user-store';
+import { pushNotificationService } from '@/services/push-notification-service';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await userService.getUserProfile(userId);
       if (profile) {
         setProfile(profile);
+        void pushNotificationService.registerForPushNotificationsAsync(profile.documentId, profile.pushToken);
       }
     } catch (error) {
       logger.error('Failed to fetch profile', { error, userId });

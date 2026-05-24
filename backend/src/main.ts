@@ -17,6 +17,28 @@ Sentry.init({
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
+  const requestLogger = app.get(Logger);
+
+  app.use((req, res, next) => {
+    const startedAt = process.hrtime.bigint();
+
+    res.on('finish', () => {
+      const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+      if (durationMs >= 500) {
+        requestLogger.warn(
+          {
+            method: req.method,
+            url: req.originalUrl || req.url,
+            statusCode: res.statusCode,
+            durationMs: Math.round(durationMs),
+          },
+          'Slow request completed',
+        );
+      }
+    });
+
+    next();
+  });
 
   app.setGlobalPrefix('api');
   app.enableCors();
