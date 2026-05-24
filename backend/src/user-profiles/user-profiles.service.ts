@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@app/common';
 import { Gender } from '@prisma/client';
 
 @Injectable()
 export class UserProfilesService {
+  private readonly logger = new Logger(UserProfilesService.name);
   constructor(private prisma: PrismaService) {}
 
   async create(data: { fullName: string; phoneNumber: string; gender: Gender; userId: number }) {
@@ -50,6 +51,10 @@ export class UserProfilesService {
           data.communityConsentRevokedAt = null;
         }
       }
+    }
+
+    if (data.pushToken !== undefined) {
+      this.logger.log(`Updating push token for userProfileId=${documentId}`);
     }
 
     return this.prisma.userProfile.update({

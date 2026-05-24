@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { OAuth2Client } from 'google-auth-library';
@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private googleClient: OAuth2Client;
   private readonly defaultAuthSource = 'myridepartner';
   private readonly googleAudiences: string[];
@@ -32,6 +33,7 @@ export class AuthService {
     const normalizedSource = this.normalizeSource(source);
 
     try {
+      this.logger.log(`Google login attempt received for source=${normalizedSource}`);
       const ticket = await this.googleClient.verifyIdToken({
         idToken: token,
         audience: this.googleAudiences.length > 0 ? this.googleAudiences : undefined,
@@ -54,6 +56,8 @@ export class AuthService {
       this.assertUserCanLogin(user);
 
       await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
+
+      this.logger.log(`Google login succeeded for userId=${user.id} source=${normalizedSource}`);
 
       return {
         access_token: this.jwtService.sign({
@@ -93,6 +97,7 @@ export class AuthService {
   async login(user: any, source?: string) {
     const normalizedSource = this.normalizeSource(source);
 
+    this.logger.log(`Password login succeeded for userId=${user.id} source=${normalizedSource}`);
     await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
 
     const payload = {

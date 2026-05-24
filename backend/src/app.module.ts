@@ -27,6 +27,18 @@ import { NotificationsModule } from './notifications/notifications.module';
     SentryModule.forRoot(),
     LoggerModule.forRoot({
       pinoHttp: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        customLogLevel: (_req, res, err) => {
+          if (err || res.statusCode >= 500) {
+            return 'error';
+          }
+
+          if (res.statusCode >= 400) {
+            return 'warn';
+          }
+
+          return 'silent';
+        },
         transport:
           process.env.NODE_ENV !== 'production'
             ? { target: 'pino-pretty', options: { singleLine: true, colorize: true } }
