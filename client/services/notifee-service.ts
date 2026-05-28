@@ -188,6 +188,14 @@ class NotifeeService {
       return;
     }
 
+    if (data.type === 'JOIN_REQUEST' && data.relatedId) {
+      router.push({
+        pathname: '/requests/[documentId]',
+        params: { documentId: data.relatedId },
+      } as any);
+      return;
+    }
+
     const tripId = this.resolveTripId(data);
     if (data.screen === 'trip-chat' && tripId) {
       router.push({
@@ -204,14 +212,6 @@ class NotifeeService {
       router.push({
         pathname: '/trip/[id]',
         params: { id: tripId },
-      } as any);
-      return;
-    }
-
-    if (data.type === 'JOIN_REQUEST' && data.relatedId) {
-      router.push({
-        pathname: '/requests/[documentId]',
-        params: { documentId: data.relatedId },
       } as any);
       return;
     }

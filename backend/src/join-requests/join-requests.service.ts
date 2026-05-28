@@ -1,13 +1,20 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventsGateway } from '../events/events.gateway';
 import { PrismaService } from '@app/common';
-import { JoinRequestStatus } from '@prisma/client';
+import { JoinRequestStatus, NotificationType } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class JoinRequestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -212,7 +219,9 @@ export class JoinRequestsService {
     });
 
     if (isBlocked) {
-      throw new ForbiddenException('You cannot interact with this trip because one of the users is blocked');
+      throw new ForbiddenException(
+        'You cannot interact with this trip because one of the users is blocked',
+      );
     }
 
     const request = await this.prisma.joinRequest.create({
@@ -255,6 +264,18 @@ export class JoinRequestsService {
       tripId: data.trip,
     });
 
+    // Notify trip captain of join request
+    const passengerName =
+      request.passenger.userProfile?.fullName || request.passenger.username;
+    await this.notificationsService.create({
+      userId: captainId,
+      title: 'New Join Request',
+      message: `${passengerName} has requested to join your trip from ${request.trip.startingPoint} to ${request.trip.destination}.`,
+      type: NotificationType.JOIN_REQUEST,
+      relatedId: request.documentId,
+      data: { tripId: request.trip.documentId },
+    });
+
     return request;
   }
 
@@ -287,7 +308,7 @@ export class JoinRequestsService {
           });
 
           if (!trip) throw new NotFoundException('Trip not found');
-          
+
           if (trip.availableSeats < existing.requestedSeats) {
             throw new BadRequestException(
               `Not enough available seats. (Available: ${trip.availableSeats}, Requested: ${existing.requestedSeats})`,
@@ -355,6 +376,27 @@ export class JoinRequestsService {
       status: request.status,
     });
 
+    // Notify passenger of status update
+    if (request.status === 'APPROVED' || request.status === 'REJECTED') {
+      const title =
+        request.status === 'APPROVED'
+          ? 'Join Request Approved'
+          : 'Join Request Declined';
+      const message =
+        request.status === 'APPROVED'
+          ? `Your request to join the trip from ${request.trip.startingPoint} to ${request.trip.destination} has been approved.`
+          : `Your request to join the trip from ${request.trip.startingPoint} to ${request.trip.destination} has been declined.`;
+
+      await this.notificationsService.create({
+        userId: request.passengerId,
+        title,
+        message,
+        type: NotificationType.TRIP_UPDATE,
+        relatedId: request.trip.documentId,
+        data: { tripId: request.trip.documentId },
+      });
+    }
+
     // Update trip room
     this.eventsGateway.emitToTripRoom(request.trip.documentId, 'trip_updated', {
       documentId: request.trip.documentId,
@@ -386,15 +428,21 @@ export class JoinRequestsService {
     }
 
     if (request.passengerId !== passengerId) {
-      throw new ForbiddenException('You can only update your own pickup status');
+      throw new ForbiddenException(
+        'You can only update your own pickup status',
+      );
     }
 
     if (request.status !== JoinRequestStatus.APPROVED) {
-      throw new BadRequestException('Only approved riders can confirm pickup arrival');
+      throw new BadRequestException(
+        'Only approved riders can confirm pickup arrival',
+      );
     }
 
     if (request.trip.status !== 'PUBLISHED') {
-      throw new BadRequestException('Pickup confirmation is only available before the ride starts');
+      throw new BadRequestException(
+        'Pickup confirmation is only available before the ride starts',
+      );
     }
 
     const updatedRequest = await this.prisma.joinRequest.update({
