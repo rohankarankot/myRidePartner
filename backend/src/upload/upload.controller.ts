@@ -1,6 +1,19 @@
-import { Controller, Post, UseInterceptors, UploadedFiles, UseGuards, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFiles,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Express } from 'express';
 import { UploadService } from './upload.service';
@@ -14,7 +27,10 @@ export class UploadController {
 
   @Post()
   @UseInterceptors(FilesInterceptor('files'))
-  @ApiOperation({ summary: 'Upload files', description: 'Upload one or more files to Cloudinary' })
+  @ApiOperation({
+    summary: 'Upload files',
+    description: 'Upload one or more files to Cloudinary',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

@@ -33,13 +33,16 @@ export class AuthService {
     const normalizedSource = this.normalizeSource(source);
 
     try {
-      this.logger.log(`Google login attempt received for source=${normalizedSource}`);
+      this.logger.log(
+        `Google login attempt received for source=${normalizedSource}`,
+      );
       const ticket = await this.googleClient.verifyIdToken({
         idToken: token,
-        audience: this.googleAudiences.length > 0 ? this.googleAudiences : undefined,
+        audience:
+          this.googleAudiences.length > 0 ? this.googleAudiences : undefined,
       });
       const payload = ticket.getPayload();
-      
+
       if (!payload || !payload.email) {
         throw new UnauthorizedException('Invalid Google token payload');
       }
@@ -48,7 +51,11 @@ export class AuthService {
       let user = await this.usersService.findByEmail(email);
 
       if (!user) {
-        user = await this.usersService.createWithGoogle(email, name || '', picture || '');
+        user = await this.usersService.createWithGoogle(
+          email,
+          name || '',
+          picture || '',
+        );
       } else if (user.accountStatus === UserAccountStatus.PAUSED) {
         user = await this.usersService.reactivateAccount(user.id);
       }
@@ -57,7 +64,9 @@ export class AuthService {
 
       await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
 
-      this.logger.log(`Google login succeeded for userId=${user.id} source=${normalizedSource}`);
+      this.logger.log(
+        `Google login succeeded for userId=${user.id} source=${normalizedSource}`,
+      );
 
       return {
         access_token: this.jwtService.sign({
@@ -81,7 +90,7 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     let user = await this.usersService.findByEmail(email);
-    if (user && user.password && await bcrypt.compare(pass, user.password)) {
+    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
       if (user.accountStatus === UserAccountStatus.PAUSED) {
         user = await this.usersService.reactivateAccount(user.id);
       }
@@ -97,7 +106,9 @@ export class AuthService {
   async login(user: any, source?: string) {
     const normalizedSource = this.normalizeSource(source);
 
-    this.logger.log(`Password login succeeded for userId=${user.id} source=${normalizedSource}`);
+    this.logger.log(
+      `Password login succeeded for userId=${user.id} source=${normalizedSource}`,
+    );
     await this.usersService.ensureAppSourceAccess(user.id, normalizedSource);
 
     const payload = {

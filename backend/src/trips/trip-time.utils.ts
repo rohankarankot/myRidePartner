@@ -7,7 +7,9 @@ export const getTodayDateString = (now = new Date()) => {
 
 export const parseTripTime = (tripTime: string) => {
   const normalizedTime = tripTime.replace(/\s+/g, ' ').trim();
-  const timeMatch = normalizedTime.match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
+  const timeMatch = normalizedTime.match(
+    /^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/,
+  );
   if (!timeMatch) return { hours: 0, minutes: 0 };
   const [, rawHoursText, rawMinutesText, meridiemRaw] = timeMatch;
   const rawHours = Number.parseInt(rawHoursText, 10);
@@ -27,5 +29,8 @@ export const buildTripStartDateTime = (tripDate: string, tripTime: string) => {
   return tripStart;
 };
 
-export const isTripInFuture = (tripDate: string, tripTime: string, now = new Date()) =>
-  buildTripStartDateTime(tripDate, tripTime).getTime() > now.getTime();
+export const isTripInFuture = (
+  tripDate: string,
+  tripTime: string,
+  now = new Date(),
+) => buildTripStartDateTime(tripDate, tripTime).getTime() > now.getTime();

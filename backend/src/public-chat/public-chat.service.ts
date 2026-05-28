@@ -70,7 +70,9 @@ export class PublicChatService {
     });
 
     const hasMore = messages.length > limit;
-    const selectedMessages = (hasMore ? messages.slice(0, limit) : messages).reverse();
+    const selectedMessages = (
+      hasMore ? messages.slice(0, limit) : messages
+    ).reverse();
 
     return {
       messages: selectedMessages.map((message) => ({
@@ -143,7 +145,11 @@ export class PublicChatService {
       replyTo: message.replyTo,
     };
 
-    this.eventsGateway.emitToPublicChatRoom(city, 'public_chat_message_created', payload);
+    this.eventsGateway.emitToPublicChatRoom(
+      city,
+      'public_chat_message_created',
+      payload,
+    );
 
     return payload;
   }
@@ -164,7 +170,9 @@ export class PublicChatService {
       return profileCity;
     }
 
-    throw new BadRequestException('Select a city before entering community chat');
+    throw new BadRequestException(
+      'Select a city before entering community chat',
+    );
   }
 
   private async assertUserExists(userId: number) {

@@ -7,7 +7,12 @@ export class UserProfilesService {
   private readonly logger = new Logger(UserProfilesService.name);
   constructor(private prisma: PrismaService) {}
 
-  async create(data: { fullName: string; phoneNumber: string; gender: Gender; userId: number }) {
+  async create(data: {
+    fullName: string;
+    phoneNumber: string;
+    gender: Gender;
+    userId: number;
+  }) {
     return this.prisma.userProfile.create({
       data: {
         fullName: data.fullName,
@@ -43,7 +48,10 @@ export class UserProfilesService {
       });
 
       if (currentProfile) {
-        if (data.communityConsent === false && currentProfile.communityConsent === true) {
+        if (
+          data.communityConsent === false &&
+          currentProfile.communityConsent === true
+        ) {
           // Transition from true to false: START the timer
           data.communityConsentRevokedAt = new Date();
         } else if (data.communityConsent === true) {

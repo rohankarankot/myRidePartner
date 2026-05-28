@@ -17,7 +17,10 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TripChatsService } from './trip-chats.service';
-import { CreateTripChatMessageDto, GetTripChatMessagesQueryDto } from './dto/trip-chats.dto';
+import {
+  CreateTripChatMessageDto,
+  GetTripChatMessagesQueryDto,
+} from './dto/trip-chats.dto';
 
 @ApiTags('Trip Chats')
 @ApiBearerAuth()

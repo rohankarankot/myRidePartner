@@ -73,7 +73,9 @@ export class CreateTripDto {
   @ApiPropertyOptional({ description: 'Trip description' })
   @IsOptional()
   @IsString()
-  @MaxLength(200, { message: 'Trip description must be at most 200 characters.' })
+  @MaxLength(200, {
+    message: 'Trip description must be at most 200 characters.',
+  })
   description?: string;
 
   @ApiProperty({ example: 'New York' })
@@ -86,7 +88,10 @@ export class CreateTripDto {
   @MaxLength(20, { message: 'Destination must be at most 20 characters.' })
   destination: string;
 
-  @ApiProperty({ example: '2025-03-20', description: 'Date in YYYY-MM-DD format' })
+  @ApiProperty({
+    example: '2025-03-20',
+    description: 'Date in YYYY-MM-DD format',
+  })
   @IsDateString({}, { message: 'Date must be a valid date.' })
   @Validate(IsTodayDateConstraint)
   date: string;
@@ -121,7 +126,10 @@ export class CreateTripDto {
   @IsBoolean()
   isPriceCalculated?: boolean;
 
-  @ApiPropertyOptional({ enum: GenderPreference, default: GenderPreference.both })
+  @ApiPropertyOptional({
+    enum: GenderPreference,
+    default: GenderPreference.both,
+  })
   @IsOptional()
   @IsEnum(GenderPreference)
   genderPreference?: GenderPreference;
@@ -140,6 +148,9 @@ export class CreateTripBodyDto {
 }
 
 export class UpdateTripBodyDto {
-  @ApiProperty({ type: CreateTripDto, description: 'Partial trip data to update' })
+  @ApiProperty({
+    type: CreateTripDto,
+    description: 'Partial trip data to update',
+  })
   data: Partial<CreateTripDto>;
 }

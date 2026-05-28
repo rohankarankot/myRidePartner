@@ -12,7 +12,10 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a user report', description: 'Submit a report for another user' })
+  @ApiOperation({
+    summary: 'Create a user report',
+    description: 'Submit a report for another user',
+  })
   @ApiBody({ type: CreateReportDto })
   create(@Request() req: any, @Body() dto: CreateReportDto) {
     return this.reportsService.create(req.user.id, dto);

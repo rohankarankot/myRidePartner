@@ -9,7 +9,14 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { NotificationType } from '@prisma/client';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,7 +30,11 @@ export class NotificationsController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  @ApiOperation({ summary: 'List notifications', description: 'Get paginated notifications, optionally filtered by user and read status' })
+  @ApiOperation({
+    summary: 'List notifications',
+    description:
+      'Get paginated notifications, optionally filtered by user and read status',
+  })
   @ApiQuery({ name: 'userId', required: false, example: 5 })
   @ApiQuery({ name: 'read', required: false, enum: ['true', 'false'] })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -44,19 +55,27 @@ export class NotificationsController {
   }
 
   @Post('test')
-  @ApiOperation({ summary: 'Send a test notification', description: 'Triggers a persistent test notification for a specific user' })
+  @ApiOperation({
+    summary: 'Send a test notification',
+    description: 'Triggers a persistent test notification for a specific user',
+  })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         userId: { type: 'number', example: 1 },
         title: { type: 'string', example: 'Test Notification' },
-        message: { type: 'string', example: 'This is a test notification from the API!' },
+        message: {
+          type: 'string',
+          example: 'This is a test notification from the API!',
+        },
       },
       required: ['userId'],
     },
   })
-  async sendTestNotification(@Body() body: { userId: number; title?: string; message?: string }) {
+  async sendTestNotification(
+    @Body() body: { userId: number; title?: string; message?: string },
+  ) {
     return this.notificationsService.create({
       title: body.title || 'Test Notification',
       message: body.message || 'This is a test notification from the API!',

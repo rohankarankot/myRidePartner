@@ -10,7 +10,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
     const secret = configService.get<string>('JWT_SECRET');
     if (!secret) {
-      throw new Error('CRITICAL ERROR: JWT_SECRET environment variable is missing!');
+      throw new Error(
+        'CRITICAL ERROR: JWT_SECRET environment variable is missing!',
+      );
     }
 
     super({
@@ -21,8 +23,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const user: any = { id: payload.sub, accountStatus: UserAccountStatus.ACTIVE, blocked: false };
-    if (!user || user.accountStatus === UserAccountStatus.PAUSED || user.blocked) {
+    const user: any = {
+      id: payload.sub,
+      accountStatus: UserAccountStatus.ACTIVE,
+      blocked: false,
+    };
+    if (
+      !user ||
+      user.accountStatus === UserAccountStatus.PAUSED ||
+      user.blocked
+    ) {
       throw new UnauthorizedException();
     }
     return {

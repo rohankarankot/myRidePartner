@@ -91,7 +91,11 @@ export class NotificationsService {
     });
 
     // Emit to socket
-    this.eventsGateway.emitToUser(data.userId, 'new_notification', notification);
+    this.eventsGateway.emitToUser(
+      data.userId,
+      'new_notification',
+      notification,
+    );
 
     // Send push notification
     try {
@@ -225,7 +229,10 @@ export class NotificationsService {
     }
 
     // 3. Cloudinary optimization (resize for notifications)
-    if (optimized.includes('res.cloudinary.com') && !optimized.includes('/w_')) {
+    if (
+      optimized.includes('res.cloudinary.com') &&
+      !optimized.includes('/w_')
+    ) {
       // Use high-compatibility transformations, avoiding f_auto to ensure standard formats
       optimized = optimized.replace(
         '/upload/',

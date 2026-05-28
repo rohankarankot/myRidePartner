@@ -14,11 +14,13 @@ import { Prisma, User, UserAccountStatus } from '@prisma/client';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findByEmail(email: string): Promise<(User & { userProfile?: any }) | null> {
+  async findByEmail(
+    email: string,
+  ): Promise<(User & { userProfile?: any }) | null> {
     try {
-      return await this.prisma.user.findUnique({ 
+      return await this.prisma.user.findUnique({
         where: { email },
-        include: { userProfile: true }
+        include: { userProfile: true },
       });
     } catch (error) {
       if (!this.isMissingAccountStatusColumnError(error)) {
@@ -31,9 +33,9 @@ export class UsersService {
 
   async findById(id: number): Promise<(User & { userProfile?: any }) | null> {
     try {
-      return await this.prisma.user.findUnique({ 
+      return await this.prisma.user.findUnique({
         where: { id },
-        include: { userProfile: true }
+        include: { userProfile: true },
       });
     } catch (error) {
       if (!this.isMissingAccountStatusColumnError(error)) {
@@ -48,7 +50,7 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data,
-      include: { userProfile: true }
+      include: { userProfile: true },
     });
   }
 
@@ -156,24 +158,22 @@ export class UsersService {
       (trip) => trip.status === 'COMPLETED',
     );
 
-    const estimatedMoneySaved = completedPassengerTrips.reduce((sum, request) => {
-      return sum + Number(request.trip.pricePerSeat ?? 0);
-    }, 0);
+    const estimatedMoneySaved = completedPassengerTrips.reduce(
+      (sum, request) => {
+        return sum + Number(request.trip.pricePerSeat ?? 0);
+      },
+      0,
+    );
 
     const estimatedCostRecovered = completedCaptainTrips.reduce((sum, trip) => {
-      return (
-        sum +
-        Number(trip.pricePerSeat ?? 0) * trip.joinRequests.length
-      );
+      return sum + Number(trip.pricePerSeat ?? 0) * trip.joinRequests.length;
     }, 0);
 
     const ridesPosted = postedTrips.length;
     const ridesCompleted = completedCaptainTrips.length;
     const requestsApproved = approvedRequestsForMyTrips.length;
     const completionRate =
-      ridesPosted === 0
-        ? 0
-        : Math.round((ridesCompleted / ridesPosted) * 100);
+      ridesPosted === 0 ? 0 : Math.round((ridesCompleted / ridesPosted) * 100);
 
     const monthlyActivity = this.buildMonthlyAnalytics(
       postedTrips,
@@ -426,14 +426,18 @@ export class UsersService {
     return months;
   }
 
-  async createWithGoogle(email: string, name: string, picture: string): Promise<User> {
+  async createWithGoogle(
+    email: string,
+    name: string,
+    picture: string,
+  ): Promise<User> {
     const username = email.split('@')[0];
     try {
       return await this.prisma.user.create({
         data: {
           email,
           username,
-          provider: "google",
+          provider: 'google',
           confirmed: true,
           accountStatus: UserAccountStatus.ACTIVE,
           userProfile: {
@@ -453,7 +457,7 @@ export class UsersService {
         data: {
           email,
           username,
-          provider: "google",
+          provider: 'google',
           confirmed: true,
           userProfile: {
             create: {
@@ -663,7 +667,8 @@ export class UsersService {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2022' &&
       typeof error.message === 'string' &&
-      (error.message.includes('User.accountStatus') || error.message.includes('User.pausedAt'))
+      (error.message.includes('User.accountStatus') ||
+        error.message.includes('User.pausedAt'))
     );
   }
 

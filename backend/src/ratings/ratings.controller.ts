@@ -7,7 +7,14 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { RatingsService } from './ratings.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateRatingDto } from './dto/ratings.dto';
@@ -21,10 +28,14 @@ export class RatingsController {
   constructor(private readonly ratingsService: RatingsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a rating', description: 'Rate a user for a specific trip' })
+  @ApiOperation({
+    summary: 'Create a rating',
+    description: 'Rate a user for a specific trip',
+  })
   @ApiBody({ type: CreateRatingDto })
   create(
-    @Body() body: {
+    @Body()
+    body: {
       stars: number;
       comment?: string;
       trip: string;
@@ -36,7 +47,10 @@ export class RatingsController {
   }
 
   @Get('user/:userId')
-  @ApiOperation({ summary: 'Get all ratings for a user', description: 'Returns paginated ratings received by a user' })
+  @ApiOperation({
+    summary: 'Get all ratings for a user',
+    description: 'Returns paginated ratings received by a user',
+  })
   @ApiParam({ name: 'userId', example: 1 })
   @ApiQuery({ name: 'page', required: false, example: 1 })
   @ApiQuery({ name: 'pageSize', required: false, example: 10 })
@@ -46,11 +60,17 @@ export class RatingsController {
     @Query('pageSize') pageSize?: string,
   ) {
     const pagination = parsePagination({ page, pageSize });
-    return this.ratingsService.getRatingsByUser(parseInt(userId, 10), pagination);
+    return this.ratingsService.getRatingsByUser(
+      parseInt(userId, 10),
+      pagination,
+    );
   }
 
   @Get('trip/:tripDocumentId/user/:userId')
-  @ApiOperation({ summary: 'Get rating for a trip by user', description: 'Check if a user has already rated for a specific trip' })
+  @ApiOperation({
+    summary: 'Get rating for a trip by user',
+    description: 'Check if a user has already rated for a specific trip',
+  })
   @ApiParam({ name: 'tripDocumentId', description: 'Trip document ID' })
   @ApiParam({ name: 'userId', example: 1 })
   getRatingForTripByUser(

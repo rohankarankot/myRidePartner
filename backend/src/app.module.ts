@@ -41,14 +41,19 @@ import { NotificationsModule } from './notifications/notifications.module';
         },
         transport:
           process.env.NODE_ENV !== 'production'
-            ? { target: 'pino-pretty', options: { singleLine: true, colorize: true } }
+            ? {
+                target: 'pino-pretty',
+                options: { singleLine: true, colorize: true },
+              }
             : undefined,
       },
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     ScheduleModule.forRoot(),
     UserProfilesModule,
     UploadModule,

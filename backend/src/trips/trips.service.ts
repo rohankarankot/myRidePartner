@@ -1,8 +1,18 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
-import { Prisma, TripStatus, GenderPreference, NotificationType } from '@prisma/client';
+import {
+  Prisma,
+  TripStatus,
+  GenderPreference,
+  NotificationType,
+} from '@prisma/client';
 import {
   PaginationParams,
   buildPaginationMeta,
@@ -109,9 +119,14 @@ export class TripsService {
       },
     });
 
-    const upcomingTrips = trips.filter((trip) => isTripInFuture(trip.date, trip.time, now));
+    const upcomingTrips = trips.filter((trip) =>
+      isTripInFuture(trip.date, trip.time, now),
+    );
     const total = upcomingTrips.length;
-    const data = upcomingTrips.slice(pagination.skip, pagination.skip + pagination.take);
+    const data = upcomingTrips.slice(
+      pagination.skip,
+      pagination.skip + pagination.take,
+    );
 
     return {
       data,
@@ -261,8 +276,13 @@ export class TripsService {
       throw new NotFoundException(`Trip not found`);
     }
 
-    const approvedRequests = trip.joinRequests.filter((request) => request.status === 'APPROVED');
-    const seatsBooked = approvedRequests.reduce((sum, request) => sum + request.requestedSeats, 0);
+    const approvedRequests = trip.joinRequests.filter(
+      (request) => request.status === 'APPROVED',
+    );
+    const seatsBooked = approvedRequests.reduce(
+      (sum, request) => sum + request.requestedSeats,
+      0,
+    );
 
     return {
       data: {
@@ -289,8 +309,10 @@ export class TripsService {
           city: trip.creator.userProfile?.city ?? null,
           rating: trip.creator.userProfile?.rating ?? null,
           ratingsCount: trip.creator.userProfile?.ratingsCount ?? 0,
-          completedTripsCount: trip.creator.userProfile?.completedTripsCount ?? 0,
-          governmentIdVerified: trip.creator.userProfile?.governmentIdVerified ?? false,
+          completedTripsCount:
+            trip.creator.userProfile?.completedTripsCount ?? 0,
+          governmentIdVerified:
+            trip.creator.userProfile?.governmentIdVerified ?? false,
         },
       },
     };
@@ -544,7 +566,10 @@ export class TripsService {
         userId: p.passengerId,
         title: `Trip ${label}`,
         message: `The trip from ${trip.startingPoint} to ${trip.destination} has been ${label}.`,
-        type: trip.status === 'COMPLETED' ? NotificationType.TRIP_COMPLETED : NotificationType.TRIP_UPDATE,
+        type:
+          trip.status === 'COMPLETED'
+            ? NotificationType.TRIP_COMPLETED
+            : NotificationType.TRIP_UPDATE,
         relatedId: trip.documentId,
         data: { tripId: trip.documentId },
       });

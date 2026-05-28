@@ -94,7 +94,9 @@ export class AdminService {
         action,
         entityType,
         entityId,
-        metadata: metadata ? (metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+        metadata: metadata
+          ? (metadata as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
       },
     });
   }
@@ -158,7 +160,10 @@ export class AdminService {
       },
       select: { createdAt: true },
     });
-    const registrationsByMonth = this.aggregateByMonth(usersForReg, 'createdAt');
+    const registrationsByMonth = this.aggregateByMonth(
+      usersForReg,
+      'createdAt',
+    );
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -172,7 +177,10 @@ export class AdminService {
     });
     const tripsByDay = this.aggregateByDay(recentTrips, 'createdAt');
     const requestsByDay = this.aggregateByDay(recentRequests, 'createdAt');
-    const dateMap = new Map<string, { date: string; trips: number; requests: number }>();
+    const dateMap = new Map<
+      string,
+      { date: string; trips: number; requests: number }
+    >();
     for (const t of tripsByDay) {
       dateMap.set(t.date, { date: t.date, trips: t.count, requests: 0 });
     }
@@ -199,19 +207,31 @@ export class AdminService {
     };
   }
 
-  private aggregateByMonth(data: { createdAt: Date }[], dateField: keyof (typeof data)[0]) {
+  private aggregateByMonth(
+    data: { createdAt: Date }[],
+    dateField: keyof (typeof data)[0],
+  ) {
     const counts = data.reduce<Record<string, number>>((acc, curr) => {
-      const d = curr[dateField] as Date;
-      const monthYear = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      const d = curr[dateField];
+      const monthYear = d.toLocaleString('en-US', {
+        month: 'short',
+        year: 'numeric',
+      });
       acc[monthYear] = (acc[monthYear] || 0) + 1;
       return acc;
     }, {});
-    return Object.keys(counts).map((month) => ({ month, count: counts[month] }));
+    return Object.keys(counts).map((month) => ({
+      month,
+      count: counts[month],
+    }));
   }
 
-  private aggregateByDay(data: { createdAt: Date }[], dateField: keyof (typeof data)[0]) {
+  private aggregateByDay(
+    data: { createdAt: Date }[],
+    dateField: keyof (typeof data)[0],
+  ) {
     const counts = data.reduce<Record<string, number>>((acc, curr) => {
-      const d = curr[dateField] as Date;
+      const d = curr[dateField];
       const date = d.toISOString().split('T')[0];
       acc[date] = (acc[date] || 0) + 1;
       return acc;
@@ -530,9 +550,15 @@ export class AdminService {
       data: { blocked },
     });
 
-    await this.appendAudit(actorId, blocked ? 'user.block' : 'user.unblock', 'User', String(userId), {
-      blocked,
-    });
+    await this.appendAudit(
+      actorId,
+      blocked ? 'user.block' : 'user.unblock',
+      'User',
+      String(userId),
+      {
+        blocked,
+      },
+    );
     return { id: userId, blocked };
   }
 
@@ -561,9 +587,15 @@ export class AdminService {
       },
     });
 
-    await this.appendAudit(actorId, 'user.accountStatus', 'User', String(userId), {
-      accountStatus: status,
-    });
+    await this.appendAudit(
+      actorId,
+      'user.accountStatus',
+      'User',
+      String(userId),
+      {
+        accountStatus: status,
+      },
+    );
     return { id: userId, accountStatus: status };
   }
 
@@ -690,12 +722,19 @@ export class AdminService {
       }),
     ]);
 
-    const withFallback = <T>(label: string, result: PromiseSettledResult<T>, fallback: T): T => {
+    const withFallback = <T>(
+      label: string,
+      result: PromiseSettledResult<T>,
+      fallback: T,
+    ): T => {
       if (result.status === 'fulfilled') {
         return result.value;
       }
 
-      console.error(`Failed to load admin support snapshot ${label} for user ${userId}`, result.reason);
+      console.error(
+        `Failed to load admin support snapshot ${label} for user ${userId}`,
+        result.reason,
+      );
       return fallback;
     };
 

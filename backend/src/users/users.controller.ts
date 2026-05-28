@@ -1,4 +1,14 @@
-import { Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
@@ -37,9 +47,13 @@ export class UsersController {
   }
 
   @Get('me/blocks')
-  @ApiOperation({ summary: 'List blocked users for the current authenticated user' })
+  @ApiOperation({
+    summary: 'List blocked users for the current authenticated user',
+  })
   async getMyBlockedUsers(@Req() req: any) {
-    const blockedUserIds = await this.usersService.getBlockedUserIds(req.user.id);
+    const blockedUserIds = await this.usersService.getBlockedUserIds(
+      req.user.id,
+    );
     return { data: blockedUserIds };
   }
 
@@ -75,7 +89,9 @@ export class UsersController {
   }
 
   @Delete('me/blocks/:blockedUserId')
-  @ApiOperation({ summary: 'Unblock a user for the current authenticated user' })
+  @ApiOperation({
+    summary: 'Unblock a user for the current authenticated user',
+  })
   async unblockUser(
     @Req() req: any,
     @Param('blockedUserId', ParseIntPipe) blockedUserId: number,
