@@ -109,7 +109,7 @@ class UserService {
     return this.updateProfile(documentId, { pushToken });
   }
 
-  async uploadFile(fileUri: string): Promise<string> {
+  async uploadFile(fileUri: string): Promise<{ url: string; publicId: string }> {
     const formData = new FormData();
     const filename = fileUri.split('/').pop() || `avatar-${Date.now()}.jpg`;
     const match = /\.(\w+)$/.exec(filename);
@@ -125,14 +125,14 @@ class UserService {
       } as any
     );
 
-    const { data } = await apiClient.post<any[]>('/upload', formData, {
+    const { data } = await apiClient.post<Array<{ url: string; publicId: string }>>('/upload', formData, {
       transformRequest: (requestData) => requestData,
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
 
-    return data[0].id;
+    return data[0];
   }
 }
 

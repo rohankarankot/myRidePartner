@@ -7,14 +7,15 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect(_userId: number, token: string) {
-    if (this.socket?.connected) {
+    if (this.socket?.connected || this.socket?.active) {
       return;
     }
 
+    this.socket?.disconnect();
     this.socket = io(CONFIG.API_URL, {
       auth: { token },
       autoConnect: false,
-      transports: ['websocket'],
+      transports: ['polling', 'websocket'],
       forceNew: true,
       reconnectionAttempts: 5,
       timeout: 10000,

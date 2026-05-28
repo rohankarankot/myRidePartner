@@ -485,9 +485,15 @@ export class JoinRequestsService {
       const passengerName =
         updatedRequest.passenger.userProfile?.fullName ||
         updatedRequest.passenger.username;
-      const destination = updatedRequest.trip.destination;
-      void passengerName;
-      void destination;
+      
+      await this.notificationsService.create({
+        userId: updatedRequest.trip.creatorId,
+        title: 'Rider Arrived',
+        message: `${passengerName} has arrived at the pickup point.`,
+        type: NotificationType.TRIP_UPDATE,
+        relatedId: updatedRequest.trip.documentId,
+        data: { tripId: updatedRequest.trip.documentId },
+      });
     }
 
     this.eventsGateway.emitToTripRoom(request.trip.documentId, 'trip_updated', {

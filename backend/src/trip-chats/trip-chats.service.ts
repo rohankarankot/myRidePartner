@@ -55,6 +55,8 @@ const tripChatMessageInclude = {
 
 type MediaMessagePayload = {
   url?: string;
+  publicId?: string;
+  public_id?: string;
 };
 
 @Injectable()
@@ -257,9 +259,21 @@ export class TripChatsService {
           .filter((url): url is string => Boolean(url)),
       ),
     );
+    const mediaPublicIds = Array.from(
+      new Set(
+        (messages ?? [])
+          .map((message) => this.extractMediaPublicId(message.message))
+          .filter((publicId): publicId is string => Boolean(publicId)),
+      ),
+    );
 
     await Promise.all(
       mediaUrls.map((url) => this.uploadService.deleteFileByUrl(url)),
+    );
+    await Promise.all(
+      mediaPublicIds.map((publicId) =>
+        this.uploadService.deleteFileByPublicId(publicId),
+      ),
     );
 
     await this.runWithChatTableGuard(
@@ -291,6 +305,24 @@ export class TripChatsService {
       ) as MediaMessagePayload;
       return typeof parsed.url === 'string' && parsed.url.trim()
         ? parsed.url
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private extractMediaPublicId(message: string): string | null {
+    if (!message.startsWith(MEDIA_MESSAGE_PREFIX)) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(
+        message.slice(MEDIA_MESSAGE_PREFIX.length),
+      ) as MediaMessagePayload;
+      const publicId = parsed.publicId || parsed.public_id;
+      return typeof publicId === 'string' && publicId.trim()
+        ? publicId.trim()
         : null;
     } catch {
       return null;
@@ -429,15 +461,9 @@ export class TripChatsService {
 
     await Promise.all(
       recipientIds.map(async (recipientId) => {
-        if (
-          this.eventsGateway.isUserActivelyViewingChat(
-            trip.documentId,
-            recipientId,
-          )
-        ) {
-          return;
-        }
-
+        this.logger.log(
+          `Sending ride chat push to user ${recipientId} for trip ${trip.documentId}`,
+        );
         await this.notificationsService.sendPushOnly({
           title: senderName,
           message: messagePreview,
@@ -446,6 +472,7 @@ export class TripChatsService {
             tripId: trip.documentId,
             screen: 'trip-chat',
             messageDocumentId: message.documentId,
+            image: message.sender.userProfile?.avatar || undefined,
           },
           threadId: trip.documentId,
           image: message.sender.userProfile?.avatar || undefined,

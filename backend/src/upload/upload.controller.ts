@@ -49,12 +49,13 @@ export class UploadController {
       throw new BadRequestException('No files uploaded');
     }
 
-    const responses: { id: string; url: string }[] = [];
+    const responses: { id: string; url: string; publicId: string }[] = [];
     for (const file of files) {
       const res = await this.uploadService.uploadFile(file);
       responses.push({
-        id: res.secure_url,
+        id: res.public_id,
         url: res.secure_url,
+        publicId: res.public_id,
       });
     }
 

@@ -46,6 +46,7 @@ type ParsedLocationMessage = {
 
 type ParsedMediaMessage = {
     url: string;
+    publicId?: string;
     caption: string;
 };
 
@@ -83,6 +84,7 @@ const parseMediaMessage = (value: string): ParsedMediaMessage | null => {
 
         return {
             url: parsed.url,
+            publicId: typeof parsed.publicId === 'string' ? parsed.publicId : typeof parsed.public_id === 'string' ? parsed.public_id : undefined,
             caption: typeof parsed.caption === 'string' ? parsed.caption : '',
         };
     } catch {
@@ -988,9 +990,10 @@ export default function TripChatScreen() {
             setPendingMediaDraft(null);
 
             // 4. Perform background upload and server sync
-            const uploadedUrl = await userService.uploadFile(localUri);
+            const uploadedFile = await userService.uploadFile(localUri);
             const serverMediaMessage = buildMediaMessage({
-                url: uploadedUrl,
+                url: uploadedFile.url,
+                publicId: uploadedFile.publicId,
                 caption: mediaCaption,
             });
 

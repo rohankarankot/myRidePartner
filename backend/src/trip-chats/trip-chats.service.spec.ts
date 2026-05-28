@@ -181,6 +181,12 @@ describe('TripChatsService', () => {
         title: 'Captain',
         message: 'Hello there',
         userId: 33,
+        threadId: 'trip-123',
+        data: expect.objectContaining({
+          tripId: 'trip-123',
+          screen: 'trip-chat',
+          messageDocumentId: 'msg-1',
+        }),
       }),
     );
   });
