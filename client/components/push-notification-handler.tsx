@@ -5,6 +5,7 @@ import { pushNotificationService } from '@/services/push-notification-service';
 import * as Notifications from 'expo-notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { notifeeService } from '@/services/notifee-service';
+import { buildNotificationDedupeKey, shouldSuppressNotification } from '@/shared/lib/notification-dedupe';
 
 export const PushNotificationHandler = () => {
     const { data: profile } = useUserProfile();
@@ -45,6 +46,16 @@ export const PushNotificationHandler = () => {
         const notificationSubscription = Notifications.addNotificationReceivedListener((notification) => {
             const data = notification.request.content.data as any;
             console.log('Notification received in foreground:', notification);
+            const dedupeKey = buildNotificationDedupeKey({
+                id: notification.request.identifier,
+                title: notification.request.content.title,
+                body: notification.request.content.body,
+                data,
+            });
+
+            if (shouldSuppressNotification(dedupeKey)) {
+                return;
+            }
 
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
             queryClient.invalidateQueries({ queryKey: ['notifications'] });

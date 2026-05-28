@@ -90,12 +90,15 @@ export class NotificationsService {
       },
     });
 
-    // Emit to socket
-    this.eventsGateway.emitToUser(
-      data.userId,
-      'new_notification',
-      notification,
-    );
+    // Emit to socket for in-app sync, but avoid duplicating trip completion alerts
+    // because the push notification listener already surfaces them on the client.
+    if (data.type !== NotificationType.TRIP_COMPLETED) {
+      this.eventsGateway.emitToUser(
+        data.userId,
+        'new_notification',
+        notification,
+      );
+    }
 
     // Send push notification
     try {

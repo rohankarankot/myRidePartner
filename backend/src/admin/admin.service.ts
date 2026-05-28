@@ -7,12 +7,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   Prisma,
+  NotificationType,
   TripStatus,
   UserAccountStatus,
   UserRole,
   CommunityGroupStatus,
 } from '@prisma/client';
 import { PrismaService } from '@app/common';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AdminListQueryDto } from './dto/admin-list-query.dto';
 import { AdminReportsQueryDto } from './dto/admin-reports-query.dto';
 import { UpdateReportReviewDto } from './dto/update-report-review.dto';
@@ -25,6 +27,7 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private async resolveScope(): Promise<AdminScope> {
@@ -896,6 +899,22 @@ export class AdminService {
       documentId,
       { status },
     );
+
+    await this.notificationsService.create({
+      userId: group.creatorId,
+      title: status === 'APPROVED' ? 'Community group approved' : 'Community group rejected',
+      message:
+        status === 'APPROVED'
+          ? `Your community group "${updated.name}" has been approved and is now visible.`
+          : `Your community group "${updated.name}" was not approved.`,
+      type: NotificationType.SYSTEM,
+      relatedId: documentId,
+      data: {
+        screen: 'community-groups',
+        groupDocumentId: documentId,
+        status,
+      },
+    });
 
     return {
       ...updated,

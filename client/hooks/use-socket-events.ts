@@ -4,6 +4,7 @@ import { useAuth } from '@/context/auth-context';
 import { socketService } from '@/services/socket-service';
 import Toast from 'react-native-toast-message';
 import { notifeeService } from '@/services/notifee-service';
+import { buildNotificationDedupeKey, shouldSuppressNotification } from '@/shared/lib/notification-dedupe';
 
 export function useSocketEvents() {
     const { user } = useAuth();
@@ -17,6 +18,10 @@ export function useSocketEvents() {
         // 1. New Notification
         const handleNewNotification = (notification: any) => {
             console.log('[Socket] Received new_notification:', notification);
+            const dedupeKey = buildNotificationDedupeKey(notification);
+            if (shouldSuppressNotification(dedupeKey)) {
+                return;
+            }
 
             // Invalidate queries to refresh UI
             queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
