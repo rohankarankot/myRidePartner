@@ -47,7 +47,6 @@ export const PushNotificationHandler = () => {
             const data = notification.request.content.data as any;
             console.log('Notification received in foreground:', notification);
             const dedupeKey = buildNotificationDedupeKey({
-                id: notification.request.identifier,
                 title: notification.request.content.title,
                 body: notification.request.content.body,
                 data,

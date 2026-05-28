@@ -37,6 +37,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     Map<number, { userId: number; userName: string; connectionCount: number }>
   >();
   private readonly activeChatViewers = new Map<string, Map<number, number>>();
+  private readonly activeGroupChatViewers = new Map<
+    string,
+    Map<number, number>
+  >();
   private readonly activeLiveLocations = new Map<
     string,
     {
@@ -108,6 +112,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.clearTypingForUser(client.data.userId as number | undefined);
     this.clearPresenceForClient(client);
     this.clearActiveChatViewersForClient(client);
+    this.clearActiveGroupChatViewersForClient(client);
     this.clearLiveLocationForClient(client);
     this.logger.log(`Client disconnected: ${client.id}`);
   }
@@ -313,6 +318,8 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = `group_chat_${groupId}`;
     client.join(room);
 
+    this.setActiveGroupChatViewer(groupId, userId, true);
+
     const joinedGroupChatRooms =
       (client.data.joinedGroupChatRooms as Set<string> | undefined) ??
       new Set<string>();
@@ -338,6 +345,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.data.userName as string | undefined,
         false,
       );
+      this.setActiveGroupChatViewer(groupId, userId, false);
       const joinedGroupChatRooms = client.data.joinedGroupChatRooms as
         | Set<string>
         | undefined;
@@ -528,6 +536,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   isUserActivelyViewingChat(tripDocumentId: string, userId: number) {
     return Boolean(this.activeChatViewers.get(tripDocumentId)?.has(userId));
+  }
+
+  isUserActivelyViewingGroupChat(groupId: string, userId: number) {
+    return Boolean(this.activeGroupChatViewers.get(groupId)?.has(userId));
   }
 
   private async getAuthorizedChatTrip(tripDocumentId: string, userId: number) {
@@ -821,6 +833,64 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.activeChatViewers.delete(tripDocumentId);
       } else {
         this.activeChatViewers.set(tripDocumentId, tripViewers);
+      }
+    }
+  }
+
+  private setActiveGroupChatViewer(
+    groupId: string,
+    userId: number | undefined,
+    isActive: boolean,
+  ) {
+    if (!userId) {
+      return;
+    }
+
+    const groupViewers =
+      this.activeGroupChatViewers.get(groupId) ?? new Map<number, number>();
+    const existingCount = groupViewers.get(userId) ?? 0;
+
+    if (isActive) {
+      groupViewers.set(userId, existingCount + 1);
+      this.activeGroupChatViewers.set(groupId, groupViewers);
+      return;
+    }
+
+    if (existingCount <= 1) {
+      groupViewers.delete(userId);
+    } else {
+      groupViewers.set(userId, existingCount - 1);
+    }
+
+    if (groupViewers.size === 0) {
+      this.activeGroupChatViewers.delete(groupId);
+    } else {
+      this.activeGroupChatViewers.set(groupId, groupViewers);
+    }
+  }
+
+  private clearActiveGroupChatViewersForClient(client: Socket) {
+    const userId = client.data.userId as number | undefined;
+    const joinedGroupChatRooms = client.data.joinedGroupChatRooms as
+      | Set<string>
+      | undefined;
+
+    if (!userId || !joinedGroupChatRooms?.size) {
+      return;
+    }
+
+    for (const groupId of joinedGroupChatRooms) {
+      const groupViewers = this.activeGroupChatViewers.get(groupId);
+      if (!groupViewers?.has(userId)) {
+        continue;
+      }
+
+      groupViewers.delete(userId);
+
+      if (groupViewers.size === 0) {
+        this.activeGroupChatViewers.delete(groupId);
+      } else {
+        this.activeGroupChatViewers.set(groupId, groupViewers);
       }
     }
   }

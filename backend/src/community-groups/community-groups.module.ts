@@ -4,9 +4,10 @@ import { CommunityGroupsController } from './community-groups.controller';
 import { CommunityGroupsService } from './community-groups.service';
 import { CommunityCleanupTask } from './community-cleanup.task';
 import { EventsModule } from '../events/events.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [EventsModule],
+  imports: [EventsModule, NotificationsModule],
   controllers: [CommunityGroupsController],
   providers: [CommunityGroupsService, CommunityCleanupTask, PrismaService],
   exports: [CommunityGroupsService],

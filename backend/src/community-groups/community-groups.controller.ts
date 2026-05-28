@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -89,6 +90,25 @@ export class CommunityGroupsController {
     @Param('userId', ParseIntPipe) userId: number,
   ) {
     return this.service.removeMember(documentId, req.user.id, userId);
+  }
+
+  @Patch(':documentId/members/:userId/promote')
+  @ApiOperation({ summary: 'Promote a member to group admin (admin only)' })
+  async promoteMember(
+    @Req() req: { user: { id: number } },
+    @Param('documentId') documentId: string,
+    @Param('userId', ParseIntPipe) userId: number,
+  ) {
+    return this.service.promoteMember(documentId, req.user.id, userId);
+  }
+
+  @Delete(':documentId')
+  @ApiOperation({ summary: 'Delete a community group (owner only)' })
+  async deleteGroup(
+    @Req() req: { user: { id: number } },
+    @Param('documentId') documentId: string,
+  ) {
+    return this.service.deleteGroup(documentId, req.user.id);
   }
 
   @Get(':documentId/messages')

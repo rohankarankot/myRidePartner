@@ -1,5 +1,4 @@
 type NotificationLike = {
-  id?: string | number;
   title?: string | null;
   body?: string | null;
   data?: Record<string, unknown> | null;
@@ -17,12 +16,12 @@ function normalizeValue(value: unknown) {
 export function buildNotificationDedupeKey(notification: NotificationLike) {
   const data = notification.data ?? {};
   const parts = [
-    normalizeValue(notification.id),
     normalizeValue(data.type),
     normalizeValue(data.relatedId),
     normalizeValue(data.messageDocumentId),
     normalizeValue(data.tripId),
     normalizeValue(data.tripDocumentId),
+    normalizeValue(data.groupDocumentId),
     normalizeValue(data.screen),
     normalizeValue(notification.title),
     normalizeValue(notification.body),

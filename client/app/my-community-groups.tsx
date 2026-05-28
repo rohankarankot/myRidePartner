@@ -41,7 +41,7 @@ export default function MyCommunityGroupsScreen() {
       <Pressable
         className="rounded-[28px] border p-5 mb-4"
         style={{ backgroundColor: cardColor, borderColor }}
-        onPress={() => router.push(`/community-group/${item.documentId}`)}
+        onPress={() => router.push(`/community-group-chat/${item.documentId}`)}
       >
         <HStack className="items-center justify-between">
           <Box

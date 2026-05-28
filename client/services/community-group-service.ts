@@ -55,6 +55,20 @@ class CommunityGroupService {
         return data;
     }
 
+    async deleteGroup(documentId: string): Promise<{ message: string }> {
+        const { data } = await apiClient.delete<{ message: string }>(
+            `/community-groups/${documentId}`
+        );
+        return data;
+    }
+
+    async promoteMember(documentId: string, userId: number): Promise<{ message: string }> {
+        const { data } = await apiClient.patch<{ message: string }>(
+            `/community-groups/${documentId}/members/${userId}/promote`
+        );
+        return data;
+    }
+
     async searchUsers(query: string, page = 1, pageSize = 20): Promise<PaginatedSearchableUsers> {
         const params = new URLSearchParams();
         params.set('q', query);

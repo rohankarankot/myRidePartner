@@ -13,7 +13,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         const source =
-          process.env.NEXT_PUBLIC_LOGIN_SOURCE?.trim() || 'myridepartner';
+          process.env.NEXT_PUBLIC_LOGIN_SOURCE?.trim() || 'interport';
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
           method: 'POST',
           body: JSON.stringify({

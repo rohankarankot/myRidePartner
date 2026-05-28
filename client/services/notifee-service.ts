@@ -172,6 +172,22 @@ class NotifeeService {
   handlePress(data?: NotificationData) {
     if (!data) return;
 
+    if (data.screen === 'community-group' && data.groupDocumentId) {
+      router.push({
+        pathname: '/community-group/[documentId]',
+        params: { documentId: data.groupDocumentId },
+      } as any);
+      return;
+    }
+
+    if (data.screen === 'community-groups' && data.groupDocumentId) {
+      router.push({
+        pathname: '/community-group/[documentId]',
+        params: { documentId: data.groupDocumentId },
+      } as any);
+      return;
+    }
+
     if (data.screen === 'community-group-chat' && data.groupDocumentId) {
       router.push({
         pathname: '/community-group-chat/[documentId]',
@@ -208,7 +224,13 @@ class NotifeeService {
       return;
     }
 
-    if (tripId && data.screen !== 'community-group-chat' && data.screen !== 'community-chat' && data.screen !== 'public-chat') {
+    if (
+      tripId &&
+      data.screen !== 'community-group-chat' &&
+      data.screen !== 'community-groups' &&
+      data.screen !== 'community-chat' &&
+      data.screen !== 'public-chat'
+    ) {
       router.push({
         pathname: '/trip/[id]',
         params: { id: tripId },

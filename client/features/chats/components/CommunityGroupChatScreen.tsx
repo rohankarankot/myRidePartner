@@ -18,6 +18,7 @@ import { analyticsService } from '@/services/analytics-service';
 import { socketService } from '@/services/socket-service';
 import { PaginatedCommunityGroupMessages, CommunityGroupMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
+import { notifeeService } from '@/services/notifee-service';
 import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 import { Box } from '@/components/ui/box';
@@ -396,6 +397,8 @@ export function CommunityGroupChatScreen({ groupDocumentId }: { groupDocumentId:
         if (!groupDocumentId) {
             return;
         }
+
+        void notifeeService.clearCommunityGroupChatNotifications(groupDocumentId);
 
         const handleCreated = (message: CommunityGroupMessage) => {
             queryClient.setQueryData(['group-chat-messages', groupDocumentId], (oldPages: InfiniteData<PaginatedCommunityGroupMessages, string | null> | undefined) =>

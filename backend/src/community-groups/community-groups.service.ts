@@ -8,10 +8,12 @@ import {
 import {
   CommunityGroupRole,
   CommunityGroupStatus,
+  NotificationType,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '@app/common';
 import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateGroupMessageDto, GetGroupMessagesQueryDto } from '@app/common';
 
 const groupMessageSenderSelect = {
@@ -31,6 +33,7 @@ export class CommunityGroupsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createGroup(creatorId: number, name: string, description?: string) {
@@ -231,7 +234,59 @@ export class CommunityGroupsService {
       throw error;
     }
 
+    await this.notificationsService.create({
+      userId: targetUserId,
+      title: 'Added to community group',
+      message: `You were added to a new community group.`,
+      type: NotificationType.SYSTEM,
+      relatedId: documentId,
+      data: {
+        screen: 'community-group',
+        groupDocumentId: documentId,
+      },
+    });
+
     return { message: 'Member added successfully' };
+  }
+
+  async promoteMember(
+    documentId: string,
+    adminUserId: number,
+    targetUserId: number,
+  ) {
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId },
+      select: { id: true, creatorId: true },
+    });
+
+    if (!group) {
+      throw new NotFoundException('Community group not found');
+    }
+
+    await this.assertGroupAdmin(group.id, adminUserId);
+
+    if (targetUserId === group.creatorId) {
+      throw new BadRequestException('The group creator is already an admin');
+    }
+
+    const membership = await this.prisma.communityGroupMember.findUnique({
+      where: { groupId_userId: { groupId: group.id, userId: targetUserId } },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('Member not found');
+    }
+
+    if (membership.role === CommunityGroupRole.ADMIN) {
+      throw new BadRequestException('This member is already an admin');
+    }
+
+    await this.prisma.communityGroupMember.update({
+      where: { groupId_userId: { groupId: group.id, userId: targetUserId } },
+      data: { role: CommunityGroupRole.ADMIN },
+    });
+
+    return { message: 'Member promoted to admin successfully' };
   }
 
   async removeMember(
@@ -267,6 +322,27 @@ export class CommunityGroupsService {
     });
 
     return { message: 'Member removed successfully' };
+  }
+
+  async deleteGroup(documentId: string, userId: number) {
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId },
+      select: { id: true, creatorId: true, name: true },
+    });
+
+    if (!group) {
+      throw new NotFoundException('Community group not found');
+    }
+
+    if (group.creatorId !== userId) {
+      throw new ForbiddenException('Only the group owner can delete this group');
+    }
+
+    await this.prisma.communityGroup.delete({
+      where: { id: group.id },
+    });
+
+    return { message: 'Community group deleted successfully' };
   }
 
   async searchUsers(query: string, page = 1, pageSize = 20) {
@@ -470,6 +546,39 @@ export class CommunityGroupsService {
       payload,
     );
 
+    const recipientIds = group.members
+      .map((member) => member.userId)
+      .filter((memberId) => memberId !== userId);
+
+    await Promise.all(
+      recipientIds.map(async (recipientId) => {
+        if (
+          this.eventsGateway.isUserActivelyViewingGroupChat(
+            documentId,
+            recipientId,
+          )
+        ) {
+          return;
+        }
+
+        await this.notificationsService.sendPushOnly({
+          title:
+            message.sender.userProfile?.fullName ||
+            message.sender.username ||
+            'Community group',
+          message: this.buildGroupMessagePreview(trimmedMessage),
+          userId: recipientId,
+          data: {
+            screen: 'community-group-chat',
+            groupDocumentId: documentId,
+            messageDocumentId: message.documentId,
+          },
+          threadId: documentId,
+          image: message.sender.userProfile?.avatar || undefined,
+        });
+      }),
+    );
+
     return payload;
   }
 
@@ -517,5 +626,10 @@ export class CommunityGroupsService {
     await this.prisma.communityGroupMember.deleteMany({
       where: { userId: userId },
     });
+  }
+
+  private buildGroupMessagePreview(message: string) {
+    const trimmed = message.trim();
+    return trimmed.length > 120 ? `${trimmed.slice(0, 117)}...` : trimmed;
   }
 }
