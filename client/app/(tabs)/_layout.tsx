@@ -88,7 +88,7 @@ export default function TabLayout() {
             Navigation Locked
           </Text>
           <Text className="text-sm font-medium leading-6 text-center" style={{ color: currentColors.subtext }}>
-            My Ride Partner needs your location to find nearby rides and set your pickup points safely.
+            Cab Collab needs your location to find nearby rides and set your pickup points safely.
           </Text>
         </VStack>
       </Box>
@@ -101,7 +101,7 @@ export default function TabLayout() {
     return (
       <NotificationPermissionGate
         title="Notifications Locked"
-        description="My Ride Partner needs notification permissions to alert you when a ride is joined, updated, or when you receive chat messages."
+        description="Cab Collab needs notification permissions to alert you when a ride is joined, updated, or when you receive chat messages."
         onGranted={() => setNotificationReady(true)}
         onDenied={() => undefined}
       />

@@ -1,7 +1,7 @@
-# My Ride Partner - Context for AI Agents
+# Cab Collab - Context for AI Agents
 
 ## Overview
-**My Ride Partner** is a **ride coordination and matchmaking app** — NOT a ride-hailing platform. It connects people who are **heading in the same direction at the same time**, so they can find each other, coordinate a common pickup point, and then **book a shared ride together on platforms like Ola, Uber, or Rapido** to split the cost.
+**Cab Collab** is a **ride coordination and matchmaking app** — NOT a ride-hailing platform. It connects people who are **heading in the same direction at the same time**, so they can find each other, coordinate a common pickup point, and then **book a shared ride together on platforms like Ola, Uber, or Rapido** to split the cost.
 
 Think of it as a **social layer on top of Ola/Uber** — the app handles the "finding your ride buddy" problem; the actual booking happens on third-party platforms.
 

@@ -202,7 +202,7 @@ export default function ProfileScreen() {
         <VStack className="items-center py-12" space="xs">
           <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
           <Text className="text-[8px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
-            Joining since 2026 • My Ride Partner Community
+            Joining since 2026 • Cab Collab Community
           </Text>
         </VStack>
       </ScrollView>

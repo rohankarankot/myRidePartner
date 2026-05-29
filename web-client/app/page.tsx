@@ -73,7 +73,7 @@ export default function Home() {
             className="flex flex-col"
           >
             <span className="text-xl font-bold tracking-tight text-primary">
-              My Ride Partner
+              Cab Collab
             </span>
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
               Shared City Commute
@@ -314,7 +314,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="py-12 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-8">
           <div className="text-center sm:text-left">
-            <p className="font-bold text-foreground mb-1">My Ride Partner</p>
+            <p className="font-bold text-foreground mb-1">Cab Collab</p>
             <p className="text-sm text-muted-foreground">© 2026 MH13 Community. All rights reserved.</p>
           </div>
 

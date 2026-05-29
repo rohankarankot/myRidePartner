@@ -25,7 +25,7 @@ const slides = [
     eyebrow: 'Welcome',
     title: 'Ride sharing made simple',
     text:
-      'My Ride Partner helps you find people going to a similar destination so you can share Ola or Uber ride costs in a simpler way.',
+      'Cab Collab helps you find people going to a similar destination so you can share Ola or Uber ride costs in a simpler way.',
     icon: 'car.fill',
     colors: ['#1D4ED8', '#3B82F6'],
     points: [

@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private googleClient: OAuth2Client;
-  private readonly defaultAuthSource = 'myridepartner';
+  private readonly defaultAuthSource = 'cabcollab';
   private readonly googleAudiences: string[];
   private readonly supportEmail: string;
 

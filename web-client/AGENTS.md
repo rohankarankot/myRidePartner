@@ -20,7 +20,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - The page is both a web fallback and a deep-link handoff surface:
   - It fetches trip data from `${NEXT_PUBLIC_API_URL}/public/trips/:id`.
   - It renders a usable fallback page when the backend request fails.
-  - It currently opens the mobile app with the custom scheme `myridepartner://trip/:id`.
+  - It currently opens the mobile app with the custom scheme `cabcollab://trip/:id`.
 - Verified link association files are served from:
   - `app/.well-known/apple-app-site-association/route.ts`
   - `app/.well-known/assetlinks.json/route.ts`

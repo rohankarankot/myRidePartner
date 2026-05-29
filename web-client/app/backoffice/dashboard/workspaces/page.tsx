@@ -29,7 +29,7 @@ export default function WorkspacesPage() {
           <CardHeader>
             <CardTitle>Active Workspace</CardTitle>
             <CardDescription>
-              Primary MyRidePartner Administrative Workspace
+              Primary CabCollab Administrative Workspace
             </CardDescription>
           </CardHeader>
           <CardContent>

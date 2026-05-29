@@ -80,7 +80,7 @@ export default function UserListingPage() {
         <div className='flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
           <Heading
             title={`Users (${total})`}
-            description='Manage registered users of MyRidePartner.'
+            description='Manage registered users of CabCollab.'
           />
           <div className='relative w-full sm:max-w-xs'>
             <Search className='text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4' />

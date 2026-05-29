@@ -38,7 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
     return {
       ...user,
-      authSource: payload.source ?? 'myridepartner',
+      authSource: payload.source ?? 'cabcollab',
     };
   }
 }

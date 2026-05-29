@@ -50,7 +50,7 @@ export default function NotificationSettingsScreen() {
           Notification Preferences
         </Text>
         <Text className="text-sm font-medium leading-6" style={{ color: subtextColor }}>
-          Configure how My Ride Partner should reach you. More granular push and email
+          Configure how Cab Collab should reach you. More granular push and email
           controls will be available here soon.
         </Text>
       </Box>

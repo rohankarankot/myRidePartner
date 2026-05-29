@@ -13,7 +13,7 @@ import { Divider } from '@/components/ui/divider';
 const SECTIONS = [
   {
     title: '1. Acceptance of Terms',
-    body: 'By using My Ride Partner, you agree to these terms. If you do not agree, please do not use the service.',
+    body: 'By using Cab Collab, you agree to these terms. If you do not agree, please do not use the service.',
     icon: 'checkmark.seal.fill'
   },
   {
@@ -38,7 +38,7 @@ const SECTIONS = [
   },
   {
     title: '6. User Responsibilities',
-    body: "While we strive for a safe community, My Ride Partner is a platform for connection. Users are responsible for their own safety and must verify others' identity before starting a ride.",
+    body: "While we strive for a safe community, Cab Collab is a platform for connection. Users are responsible for their own safety and must verify others' identity before starting a ride.",
     icon: 'shield.fill'
   },
 ];

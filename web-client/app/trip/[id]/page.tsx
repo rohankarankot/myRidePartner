@@ -7,7 +7,7 @@ type TripPageProps = {
   }>;
 };
 
-const APP_SCHEME = "myridepartner://trip";
+const APP_SCHEME = "cabcollab://trip";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api";
 
@@ -67,9 +67,9 @@ export async function generateMetadata({
   const { id } = await params;
 
   return {
-    title: `Trip ${id.slice(0, 8)} | My Ride Partner`,
+    title: `Trip ${id.slice(0, 8)} | Cab Collab`,
     description:
-      "Open this shared ride in My Ride Partner or continue on the web fallback page.",
+      "Open this shared ride in Cab Collab or continue on the web fallback page.",
   };
 }
 

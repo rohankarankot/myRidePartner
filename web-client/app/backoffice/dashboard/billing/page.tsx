@@ -26,7 +26,7 @@ export default function BillingPage() {
         <Alert>
           <Info className='h-4 w-4' />
           <AlertDescription>
-            Billing information for MyRidePartner is managed centrally. 
+            Billing information for CabCollab is managed centrally. 
             Individual workspace billing is not available in the current administrative configuration.
           </AlertDescription>
         </Alert>

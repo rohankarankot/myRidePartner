@@ -16,8 +16,8 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  title: 'My Ride Partner Backoffice',
-  description: 'Backoffice admin dashboard for My Ride Partner',
+  title: 'Cab Collab Backoffice',
+  description: 'Backoffice admin dashboard for Cab Collab',
   robots: {
     index: false,
     follow: false,

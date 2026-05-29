@@ -3,7 +3,7 @@ appId: com.rohanalwayscodes.myridepartner
 - runFlow: ../subflows/open-login-screen.yaml
 - stopApp
 - launchApp
-- assertVisible: "My Ride Partner"
+- assertVisible: "Cab Collab"
 - assertVisible: "Continue with Google"
 - assertNotVisible: "Ride sharing made simple"
 

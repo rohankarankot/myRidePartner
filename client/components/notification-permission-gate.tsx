@@ -92,7 +92,7 @@ export function NotificationPermissionGate({
       <CustomAlert
         visible={showSettingsAlert}
         title="Notifications Disabled"
-        message="Your device will not show the permission prompt again. Please open Settings and allow notifications for My Ride Partner."
+        message="Your device will not show the permission prompt again. Please open Settings and allow notifications for Cab Collab."
         icon="bell.slash.fill"
         primaryButton={{
           text: 'Open Settings',

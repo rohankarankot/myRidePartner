@@ -15,9 +15,12 @@ class SocketService {
     this.socket = io(CONFIG.API_URL, {
       auth: { token },
       autoConnect: false,
-      transports: ['polling', 'websocket'],
+      // React Native tends to surface polling failures as noisy xhr errors,
+      // and our gateway supports websocket directly.
+      transports: ['websocket'],
+      upgrade: false,
       forceNew: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 2,
       timeout: 10000,
     });
 
@@ -30,7 +33,9 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      logger.error('[Socket] Connection error', { error });
+      logger.warn('[Socket] Connection error', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     });
 
     this.socket.connect();

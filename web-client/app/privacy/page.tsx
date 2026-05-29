@@ -10,7 +10,7 @@ export default function PrivacyPage() {
     },
     {
       title: '2. Location Data & Permissions',
-      body: 'My Ride Partner requires access to your location to provide core carpooling features. We use this information to: (a) match you with nearby riders or drivers, (b) help you select accurate pickup and drop-off points, and (c) provide real-time trip tracking for safety. This data is only visible to your trip partners during a live ride.',
+      body: 'Cab Collab requires access to your location to provide core carpooling features. We use this information to: (a) match you with nearby riders or drivers, (b) help you select accurate pickup and drop-off points, and (c) provide real-time trip tracking for safety. This data is only visible to your trip partners during a live ride.',
     },
     {
       title: '3. Data Usage & Advertising',
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
     },
     {
       title: '4. Third-Party Services',
-      body: 'We use Google Firebase for authentication and analytics. These services help us secure your account and understand app stability. By using My Ride Partner, you also agree to the 3rd-party privacy policies of Google and AdMob.',
+      body: 'We use Google Firebase for authentication and analytics. These services help us secure your account and understand app stability. By using Cab Collab, you also agree to the 3rd-party privacy policies of Google and AdMob.',
     },
     {
       title: '5. Account Deletion',
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p className="mt-6 text-lg leading-8 text-muted-foreground">
-            At My Ride Partner, we are committed to protecting your privacy and
+            At Cab Collab, we are committed to protecting your privacy and
             ensuring a safe carpooling experience. This policy explains how we
             collect, use, and safeguard your data.
           </p>
@@ -105,7 +105,7 @@ export default function PrivacyPage() {
             Last Updated: April 2026
           </p>
           <p className="mt-4 text-sm text-muted-foreground/60">
-            &copy; 2026 My Ride Partner. All rights reserved.
+            &copy; 2026 Cab Collab. All rights reserved.
           </p>
         </footer>
       </div>

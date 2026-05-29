@@ -9,7 +9,7 @@ export default function NotificationPermissionScreen() {
   return (
     <NotificationPermissionGate
       title="Notifications Locked"
-      description="My Ride Partner needs notification permissions to alert you when a ride is joined, updated, or when you receive chat messages."
+      description="Cab Collab needs notification permissions to alert you when a ride is joined, updated, or when you receive chat messages."
       onGranted={() => router.replace('/(tabs)')}
     />
   );

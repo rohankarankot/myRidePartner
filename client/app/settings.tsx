@@ -136,7 +136,7 @@ export default function SettingsScreen() {
         />
         <SettingItem
           icon="info.circle.fill"
-          label="About My Ride Partner"
+          label="About Cab Collab"
           onPress={() => router.push('/settings/about')}
           showDivider={false}
         />

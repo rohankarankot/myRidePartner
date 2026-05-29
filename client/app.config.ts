@@ -10,12 +10,12 @@ const shareBaseUrl =
 const shareHost = new URL(shareBaseUrl).host;
 
 const config: ExpoConfig = {
-  name: 'My Ride Partner',
-  slug: 'myridepartner',
+  name: 'Cab Collab',
+  slug: 'cabcollab',
   version: '3.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
-  scheme: 'myridepartner',
+  scheme: 'cabcollab',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   runtimeVersion: {
@@ -129,9 +129,9 @@ const config: ExpoConfig = {
       'expo-location',
       {
         locationAlwaysAndWhenInUsePermission:
-          'Allow My Ride Partner to use your location to help you find your starting point and destination.',
+          'Allow Cab Collab to use your location to help you find your starting point and destination.',
         locationWhenInUsePermission:
-          'Allow My Ride Partner to use your location to help you select pickup and drop-off locations.',
+          'Allow Cab Collab to use your location to help you select pickup and drop-off locations.',
       },
     ],
     [

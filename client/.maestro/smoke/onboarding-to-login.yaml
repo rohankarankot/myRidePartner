@@ -3,9 +3,9 @@ appId: com.rohanalwayscodes.myridepartner
 - launchApp:
     clearState: true
 - assertVisible: "Ride sharing made simple"
-- assertVisible: "My Ride Partner helps you find people going to a similar destination"
+- assertVisible: "Cab Collab helps you find people going to a similar destination"
 - tapOn: "Skip"
-- assertVisible: "My Ride Partner"
+- assertVisible: "Cab Collab"
 - assertVisible: "Join the community of verified travelers."
 - assertVisible: "Continue with Google"
 - assertVisible: "Terms and Privacy Policy."

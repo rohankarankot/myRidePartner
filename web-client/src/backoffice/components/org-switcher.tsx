@@ -29,7 +29,7 @@ export function OrgSwitcher() {
             }`}
           >
             <span className='truncate font-medium'>
-              MyRidePartner
+              CabCollab
             </span>
             <span className='text-muted-foreground truncate text-xs'>
               Admin Backoffice

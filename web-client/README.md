@@ -1,4 +1,4 @@
-This is the main web app for My Ride Partner.
+This is the main web app for Cab Collab.
 
 It includes:
 

@@ -9,7 +9,7 @@ export class GoogleLoginDto {
   @ApiProperty({
     description: 'Client app source identifier',
     required: false,
-    example: 'myridepartner',
+    example: 'cabcollab',
   })
   @IsOptional()
   @IsString()
