@@ -5,10 +5,12 @@ import { socketService } from '@/services/socket-service';
 import Toast from 'react-native-toast-message';
 import { notifeeService } from '@/services/notifee-service';
 import { buildNotificationDedupeKey, shouldSuppressNotification } from '@/shared/lib/notification-dedupe';
+import { useChatStateStore } from '@/store/chat-state-store';
 
 export function useSocketEvents() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const activeTripChatId = useChatStateStore((state) => state.activeTripChatId);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -20,6 +22,12 @@ export function useSocketEvents() {
             console.log('[Socket] Received new_notification:', notification);
             const dedupeKey = buildNotificationDedupeKey(notification);
             if (shouldSuppressNotification(dedupeKey)) {
+                return;
+            }
+
+            const notificationTripId = String(notification?.data?.tripId || notification?.data?.tripDocumentId || notification?.data?.relatedId || '').trim();
+            if (notification?.data?.screen === 'trip-chat' && notificationTripId && activeTripChatId === notificationTripId) {
+                void notifeeService.clearTripChatNotifications(notificationTripId);
                 return;
             }
 
@@ -95,5 +103,5 @@ export function useSocketEvents() {
             socketService.off('trip_updated', handleTripUpdated);
             socketService.off('chat_deleted', handleChatDeleted);
         };
-    }, [user?.id, queryClient]);
+    }, [activeTripChatId, user?.id, queryClient]);
 }

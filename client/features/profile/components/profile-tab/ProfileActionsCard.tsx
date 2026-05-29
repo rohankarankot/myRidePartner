@@ -42,7 +42,7 @@ export function ProfileActionsCard({
         chevronColor={subtextColor}
         onPress={onEditProfile}
       />
-      <ActionRow
+      {/* <ActionRow
         icon="bell.fill"
         label="Notification Preferences"
         iconColor="#F87171"
@@ -50,7 +50,7 @@ export function ProfileActionsCard({
         textColor={textColor}
         chevronColor={subtextColor}
         onPress={onNotifications}
-      />
+      /> */}
       <ActionRow
         icon="rectangle.portrait.and.arrow.right"
         label="Sign Out"

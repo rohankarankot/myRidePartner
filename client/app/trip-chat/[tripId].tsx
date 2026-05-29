@@ -26,6 +26,7 @@ import { userService } from '@/services/user-service';
 import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { pushNotificationService } from '@/services/push-notification-service';
+import { useChatStateStore } from '@/store/chat-state-store';
 import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 import { Box } from '@/components/ui/box';
@@ -278,6 +279,7 @@ export default function TripChatScreen() {
         initialMessageId?: string;
     }>();
     const { user } = useAuth();
+    const setActiveTripChatId = useChatStateStore((state) => state.setActiveTripChatId);
     const router = useRouter();
     const queryClient = useQueryClient();
     const insets = useSafeAreaInsets();
@@ -320,6 +322,15 @@ export default function TripChatScreen() {
 
         void notifeeService.clearTripChatNotifications(tripId);
     }, [tripId]);
+
+    useEffect(() => {
+        if (!tripId) return;
+
+        setActiveTripChatId(tripId);
+        return () => {
+            setActiveTripChatId(null);
+        };
+    }, [setActiveTripChatId, tripId]);
 
     useEffect(() => {
         const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';

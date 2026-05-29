@@ -15,7 +15,7 @@ import {
     View,
 } from 'react-native';
 import { BottomSheetModal, BottomSheetView, BottomSheetTextInput, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -57,6 +57,7 @@ const { width } = Dimensions.get('window');
 export default function TripDetailsScreen() {
     const { id: documentId } = useLocalSearchParams();
     const router = useRouter();
+    const navigation = useNavigation();
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const { profile } = useUserStore();
@@ -109,11 +110,16 @@ export default function TripDetailsScreen() {
                 joinSheetRef.current?.dismiss();
                 return true;
             }
-            return false;
+            if (navigation.canGoBack()) {
+                navigation.goBack();
+                return true;
+            }
+            router.replace('/(tabs)/activity');
+            return true;
         };
         const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
         return () => backHandler.remove();
-    }, [sheetIndex]);
+    }, [navigation, router, sheetIndex]);
 
     const renderBackdrop = useCallback(
         (props: any) => (
@@ -552,6 +558,30 @@ export default function TripDetailsScreen() {
         }
     };
 
+    const openCabService = async (service: 'uber' | 'ola' | 'rapido') => {
+        const urls = {
+            uber: 'https://m.uber.com/ul/',
+            ola: 'https://book.olacabs.com/',
+            rapido: 'https://rapido.bike/',
+        } as const;
+
+        try {
+            await Linking.openURL(urls[service]);
+            void analyticsService.trackEvent('ride_shared', {
+                channel: service,
+                destination: trip.destination,
+                trip_status: trip.status.toLowerCase(),
+            });
+        } catch (error) {
+            console.error(`Failed to open ${service}`, error);
+            Toast.show({
+                type: 'error',
+                text1: 'Unable to open cab app',
+                text2: `Please try opening ${service === 'ola' ? 'Ola' : service === 'uber' ? 'Uber' : 'Rapido'} manually.`,
+            });
+        }
+    };
+
     if (loading) return <TripDetailsSkeleton />;
     if (!trip) return (
         <Box className="flex-1 items-center justify-center" style={{ backgroundColor }}>
@@ -568,6 +598,21 @@ export default function TripDetailsScreen() {
                     title: loading ? 'Trip loading...' : 'Trip Details',
                     headerStyle: { backgroundColor },
                     headerTintColor: textColor,
+                    headerBackTitle: 'Back',
+                    headerLeft: ({ tintColor, canGoBack }) => (
+                        <Pressable
+                            onPress={() => {
+                                if (canGoBack || navigation.canGoBack()) {
+                                    navigation.goBack();
+                                    return;
+                                }
+                                router.replace('/(tabs)/activity');
+                            }}
+                            className="h-10 w-10 items-center justify-center"
+                        >
+                            <IconSymbol name="chevron.left" size={22} color={(tintColor as string) || textColor} />
+                        </Pressable>
+                    ),
                     headerRight: () => isCreator ? (
                         <Pressable onPress={handleShareTrip} className="p-2">
                             <IconSymbol name="square.and.arrow.up" size={20} color={primaryColor} />
@@ -880,6 +925,51 @@ export default function TripDetailsScreen() {
                             </Text>
                         )}
                     </VStack>
+                )}
+
+                {isCreator && trip.status === 'PUBLISHED' && allApprovedPassengersReady && (
+                    <Box className="rounded-3xl p-5 mb-4 shadow-sm" style={{ backgroundColor: cardColor }}>
+                        <VStack space="md">
+                            <VStack space="xs">
+                                <Text className="text-lg font-bold" style={{ color: textColor }}>
+                                    Book a Cab
+                                </Text>
+                                <Text className="text-sm leading-6" style={{ color: subtextColor }}>
+                                    All riders have reached the pickup point. Book a cab for the next leg of the journey.
+                                </Text>
+                            </VStack>
+
+                            <HStack space="sm" className="flex-wrap">
+                                <Pressable
+                                    className="min-w-[96px] flex-1 rounded-2xl border px-4 py-3 items-center justify-center"
+                                    style={{ borderColor, backgroundColor: `${primaryColor}10` }}
+                                    onPress={() => openCabService('uber')}
+                                >
+                                    <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                        Uber
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    className="min-w-[96px] flex-1 rounded-2xl border px-4 py-3 items-center justify-center"
+                                    style={{ borderColor, backgroundColor: `${primaryColor}10` }}
+                                    onPress={() => openCabService('ola')}
+                                >
+                                    <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                        Ola
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    className="min-w-[96px] flex-1 rounded-2xl border px-4 py-3 items-center justify-center"
+                                    style={{ borderColor, backgroundColor: `${primaryColor}10` }}
+                                    onPress={() => openCabService('rapido')}
+                                >
+                                    <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: textColor }}>
+                                        Rapido
+                                    </Text>
+                                </Pressable>
+                            </HStack>
+                        </VStack>
+                    </Box>
                 )}
 
                 {/* Join Requests for Creator */}
