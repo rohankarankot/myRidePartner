@@ -37,11 +37,16 @@ export class SearchUsersQueryDto {
 }
 
 export class GetGroupMessagesQueryDto {
-  @ApiPropertyOptional({ description: 'Number of messages to retrieve', default: 40 })
+  @ApiPropertyOptional({
+    description: 'Number of messages to retrieve',
+    default: 40,
+  })
   @IsOptional()
   limit?: number;
 
-  @ApiPropertyOptional({ description: 'Cursor for pagination (message documentId)' })
+  @ApiPropertyOptional({
+    description: 'Cursor for pagination (message documentId)',
+  })
   @IsOptional()
   cursor?: string;
 }
@@ -52,7 +57,9 @@ export class CreateGroupMessageDto {
   @IsNotEmpty()
   message: string;
 
-  @ApiPropertyOptional({ description: 'Document ID of the message being replied to' })
+  @ApiPropertyOptional({
+    description: 'Document ID of the message being replied to',
+  })
   @IsOptional()
   @IsString()
   replyToDocumentId?: string;

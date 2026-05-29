@@ -5,9 +5,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CommunityGroupRole, CommunityGroupStatus, Prisma } from '@prisma/client';
+import {
+  CommunityGroupRole,
+  CommunityGroupStatus,
+  NotificationType,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '@app/common';
 import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateGroupMessageDto, GetGroupMessagesQueryDto } from '@app/common';
 
 const groupMessageSenderSelect = {
@@ -27,6 +33,7 @@ export class CommunityGroupsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createGroup(creatorId: number, name: string, description?: string) {
@@ -113,10 +120,7 @@ export class CommunityGroupsService {
   async getMyGroups(userId: number) {
     const groups = await this.prisma.communityGroup.findMany({
       where: {
-        OR: [
-          { creatorId: userId },
-          { members: { some: { userId } } },
-        ],
+        OR: [{ creatorId: userId }, { members: { some: { userId } } }],
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -180,7 +184,11 @@ export class CommunityGroupsService {
     return group;
   }
 
-  async addMember(documentId: string, adminUserId: number, targetUserId: number) {
+  async addMember(
+    documentId: string,
+    adminUserId: number,
+    targetUserId: number,
+  ) {
     const group = await this.prisma.communityGroup.findUnique({
       where: { documentId },
       select: { id: true, status: true },
@@ -203,7 +211,9 @@ export class CommunityGroupsService {
     }
 
     if (!targetUser.userProfile?.communityConsent) {
-      throw new BadRequestException('This person had not given consent to join the community. Please ask him for consent and try again.');
+      throw new BadRequestException(
+        'This person had not given consent to join the community. Please ask him for consent and try again.',
+      );
     }
 
     try {
@@ -224,10 +234,66 @@ export class CommunityGroupsService {
       throw error;
     }
 
+    await this.notificationsService.create({
+      userId: targetUserId,
+      title: 'Added to community group',
+      message: `You were added to a new community group.`,
+      type: NotificationType.SYSTEM,
+      relatedId: documentId,
+      data: {
+        screen: 'community-group',
+        groupDocumentId: documentId,
+      },
+    });
+
     return { message: 'Member added successfully' };
   }
 
-  async removeMember(documentId: string, adminUserId: number, targetUserId: number) {
+  async promoteMember(
+    documentId: string,
+    adminUserId: number,
+    targetUserId: number,
+  ) {
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId },
+      select: { id: true, creatorId: true },
+    });
+
+    if (!group) {
+      throw new NotFoundException('Community group not found');
+    }
+
+    await this.assertGroupAdmin(group.id, adminUserId);
+
+    if (targetUserId === group.creatorId) {
+      throw new BadRequestException('The group creator is already an admin');
+    }
+
+    const membership = await this.prisma.communityGroupMember.findUnique({
+      where: { groupId_userId: { groupId: group.id, userId: targetUserId } },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('Member not found');
+    }
+
+    if (membership.role === CommunityGroupRole.ADMIN) {
+      throw new BadRequestException('This member is already an admin');
+    }
+
+    await this.prisma.communityGroupMember.update({
+      where: { groupId_userId: { groupId: group.id, userId: targetUserId } },
+      data: { role: CommunityGroupRole.ADMIN },
+    });
+
+    return { message: 'Member promoted to admin successfully' };
+  }
+
+  async removeMember(
+    documentId: string,
+    adminUserId: number,
+    targetUserId: number,
+  ) {
     const group = await this.prisma.communityGroup.findUnique({
       where: { documentId },
       select: { id: true, creatorId: true },
@@ -258,13 +324,39 @@ export class CommunityGroupsService {
     return { message: 'Member removed successfully' };
   }
 
+  async deleteGroup(documentId: string, userId: number) {
+    const group = await this.prisma.communityGroup.findUnique({
+      where: { documentId },
+      select: { id: true, creatorId: true, name: true },
+    });
+
+    if (!group) {
+      throw new NotFoundException('Community group not found');
+    }
+
+    if (group.creatorId !== userId) {
+      throw new ForbiddenException('Only the group owner can delete this group');
+    }
+
+    await this.prisma.communityGroup.delete({
+      where: { id: group.id },
+    });
+
+    return { message: 'Community group deleted successfully' };
+  }
+
   async searchUsers(query: string, page = 1, pageSize = 20) {
     const take = Math.min(Math.max(pageSize, 1), 50);
     const skip = (Math.max(page, 1) - 1) * take;
     const search = query.trim();
 
     if (!search) {
-      return { data: [], meta: { pagination: { page: 1, pageSize: take, pageCount: 0, total: 0 } } };
+      return {
+        data: [],
+        meta: {
+          pagination: { page: 1, pageSize: take, pageCount: 0, total: 0 },
+        },
+      };
     }
 
     const where: Prisma.UserWhereInput = {
@@ -310,7 +402,11 @@ export class CommunityGroupsService {
     };
   }
 
-  async getGroupMessages(userId: number, documentId: string, query?: GetGroupMessagesQueryDto) {
+  async getGroupMessages(
+    userId: number,
+    documentId: string,
+    query?: GetGroupMessagesQueryDto,
+  ) {
     const group = await this.prisma.communityGroup.findUnique({
       where: { documentId },
       select: { id: true },
@@ -361,7 +457,9 @@ export class CommunityGroupsService {
     });
 
     const hasMore = messages.length > limit;
-    const selectedMessages = (hasMore ? messages.slice(0, limit) : messages).reverse();
+    const selectedMessages = (
+      hasMore ? messages.slice(0, limit) : messages
+    ).reverse();
 
     return {
       messages: selectedMessages.map((message) => ({
@@ -377,10 +475,14 @@ export class CommunityGroupsService {
     };
   }
 
-  async createGroupMessage(userId: number, documentId: string, body: CreateGroupMessageDto) {
+  async createGroupMessage(
+    userId: number,
+    documentId: string,
+    body: CreateGroupMessageDto,
+  ) {
     const group = await this.prisma.communityGroup.findUnique({
       where: { documentId },
-      select: { 
+      select: {
         id: true,
         name: true,
         members: { select: { userId: true } },
@@ -397,10 +499,11 @@ export class CommunityGroupsService {
 
     let replyToId: number | undefined;
     if (body.replyToDocumentId) {
-      const referencedMessage = await this.prisma.communityGroupMessage.findFirst({
-        where: { documentId: body.replyToDocumentId, groupId: group.id },
-        select: { id: true },
-      });
+      const referencedMessage =
+        await this.prisma.communityGroupMessage.findFirst({
+          where: { documentId: body.replyToDocumentId, groupId: group.id },
+          select: { id: true },
+        });
       if (referencedMessage) {
         replyToId = referencedMessage.id;
       }
@@ -437,7 +540,44 @@ export class CommunityGroupsService {
       groupId: documentId,
     };
 
-    this.eventsGateway.emitToGroupChatRoom(documentId, 'group_chat_message_created', payload);
+    this.eventsGateway.emitToGroupChatRoom(
+      documentId,
+      'group_chat_message_created',
+      payload,
+    );
+
+    const recipientIds = group.members
+      .map((member) => member.userId)
+      .filter((memberId) => memberId !== userId);
+
+    await Promise.all(
+      recipientIds.map(async (recipientId) => {
+        if (
+          this.eventsGateway.isUserActivelyViewingGroupChat(
+            documentId,
+            recipientId,
+          )
+        ) {
+          return;
+        }
+
+        await this.notificationsService.sendPushOnly({
+          title:
+            message.sender.userProfile?.fullName ||
+            message.sender.username ||
+            'Community group',
+          message: this.buildGroupMessagePreview(trimmedMessage),
+          userId: recipientId,
+          data: {
+            screen: 'community-group-chat',
+            groupDocumentId: documentId,
+            messageDocumentId: message.documentId,
+          },
+          threadId: documentId,
+          image: message.sender.userProfile?.avatar || undefined,
+        });
+      }),
+    );
 
     return payload;
   }
@@ -448,7 +588,9 @@ export class CommunityGroupsService {
     });
 
     if (!membership || membership.role !== CommunityGroupRole.ADMIN) {
-      throw new ForbiddenException('Only the group admin can perform this action');
+      throw new ForbiddenException(
+        'Only the group admin can perform this action',
+      );
     }
   }
 
@@ -458,7 +600,9 @@ export class CommunityGroupsService {
     });
 
     if (!membership) {
-      throw new ForbiddenException('You must be a member of this group to view or send messages');
+      throw new ForbiddenException(
+        'You must be a member of this group to view or send messages',
+      );
     }
   }
 
@@ -482,5 +626,10 @@ export class CommunityGroupsService {
     await this.prisma.communityGroupMember.deleteMany({
       where: { userId: userId },
     });
+  }
+
+  private buildGroupMessagePreview(message: string) {
+    const trimmed = message.trim();
+    return trimmed.length > 120 ? `${trimmed.slice(0, 117)}...` : trimmed;
   }
 }

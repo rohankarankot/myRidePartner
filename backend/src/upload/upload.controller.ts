@@ -1,6 +1,19 @@
-import { Controller, Post, UseInterceptors, UploadedFiles, UseGuards, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFiles,
+  UseGuards,
+  BadRequestException,
+} from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Express } from 'express';
 import { UploadService } from './upload.service';
@@ -14,7 +27,10 @@ export class UploadController {
 
   @Post()
   @UseInterceptors(FilesInterceptor('files'))
-  @ApiOperation({ summary: 'Upload files', description: 'Upload one or more files to Cloudinary' })
+  @ApiOperation({
+    summary: 'Upload files',
+    description: 'Upload one or more files to Cloudinary',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -33,12 +49,13 @@ export class UploadController {
       throw new BadRequestException('No files uploaded');
     }
 
-    const responses: { id: string; url: string }[] = [];
+    const responses: { id: string; url: string; publicId: string }[] = [];
     for (const file of files) {
       const res = await this.uploadService.uploadFile(file);
       responses.push({
-        id: res.secure_url,
+        id: res.public_id,
         url: res.secure_url,
+        publicId: res.public_id,
       });
     }
 

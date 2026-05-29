@@ -16,7 +16,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       useFactory: async (configService: ConfigService) => {
         const secret = configService.get<string>('JWT_SECRET');
         if (!secret) {
-          throw new Error('CRITICAL ERROR: JWT_SECRET environment variable is missing!');
+          throw new Error(
+            'CRITICAL ERROR: JWT_SECRET environment variable is missing!',
+          );
         }
         return {
           secret,

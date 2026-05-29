@@ -1,9 +1,27 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { UserProfilesService } from './user-profiles.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Gender } from '@prisma/client';
-import { CreateUserProfileDto, UpdateUserProfileDto } from './dto/user-profiles.dto';
+import {
+  CreateUserProfileDto,
+  UpdateUserProfileDto,
+} from './dto/user-profiles.dto';
 
 @ApiTags('User Profiles')
 @ApiBearerAuth()
@@ -15,7 +33,15 @@ export class UserProfilesController {
   @Post()
   @ApiOperation({ summary: 'Create a user profile' })
   @ApiBody({ type: CreateUserProfileDto })
-  create(@Body() createData: { fullName: string; phoneNumber: string; gender: Gender; userId: number }) {
+  create(
+    @Body()
+    createData: {
+      fullName: string;
+      phoneNumber: string;
+      gender: Gender;
+      userId: number;
+    },
+  ) {
     return this.userProfilesService.create(createData);
   }
 

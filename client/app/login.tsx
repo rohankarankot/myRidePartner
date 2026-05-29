@@ -211,7 +211,7 @@ export default function LoginScreen() {
                         <IconSymbol name="car.fill" size={40} color="#fff" />
                     </Animated.View>
                     <Text className="text-3xl font-extrabold tracking-tighter" style={{ color: textColor }}>
-                      My Ride Partner
+                    Cab Collab
                     </Text>
                     <VStack className="items-center mt-2">
                         <Text className="text-base font-medium" style={{ color: subtextColor }}>

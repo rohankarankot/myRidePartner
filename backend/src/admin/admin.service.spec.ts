@@ -12,8 +12,13 @@ describe('AdminService', () => {
       adminAuditLog: { create: jest.fn() },
     };
     const config = { get: jest.fn() };
-    const service = new AdminService(prisma as any, config as any);
-    return { service, prisma, config };
+    const notificationsService = { create: jest.fn() };
+    const service = new AdminService(
+      prisma as any,
+      config as any,
+      notificationsService as any,
+    );
+    return { service, prisma, config, notificationsService };
   };
 
   it('should be defined', () => {

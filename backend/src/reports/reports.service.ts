@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ReportSource, ReportTargetType } from '@prisma/client';
 import { PrismaService } from '@app/common';
 import { CreateReportDto } from './dto/reports.dto';
@@ -49,7 +53,9 @@ export class ReportsService {
 
   private async validateReportedMessage(dto: CreateReportDto) {
     if (!dto.messageDocumentId) {
-      throw new BadRequestException('Message document ID is required for message reports');
+      throw new BadRequestException(
+        'Message document ID is required for message reports',
+      );
     }
 
     if (dto.source === ReportSource.community_chat) {
@@ -67,11 +73,14 @@ export class ReportsService {
       }
 
       if (message.senderId !== dto.reportedUserId) {
-        throw new BadRequestException('Reported message does not belong to the selected user');
+        throw new BadRequestException(
+          'Reported message does not belong to the selected user',
+        );
       }
 
       return {
-        messagePreview: dto.messagePreview?.trim() || message.message.slice(0, 500),
+        messagePreview:
+          dto.messagePreview?.trim() || message.message.slice(0, 500),
       };
     }
 
@@ -99,18 +108,28 @@ export class ReportsService {
       }
 
       if (message.senderId !== dto.reportedUserId) {
-        throw new BadRequestException('Reported message does not belong to the selected user');
+        throw new BadRequestException(
+          'Reported message does not belong to the selected user',
+        );
       }
 
-      if (dto.tripDocumentId && message.chat.trip.documentId !== dto.tripDocumentId) {
-        throw new BadRequestException('Reported message does not belong to this trip chat');
+      if (
+        dto.tripDocumentId &&
+        message.chat.trip.documentId !== dto.tripDocumentId
+      ) {
+        throw new BadRequestException(
+          'Reported message does not belong to this trip chat',
+        );
       }
 
       return {
-        messagePreview: dto.messagePreview?.trim() || message.message.slice(0, 500),
+        messagePreview:
+          dto.messagePreview?.trim() || message.message.slice(0, 500),
       };
     }
 
-    throw new BadRequestException('Message reports are only supported for chat sources');
+    throw new BadRequestException(
+      'Message reports are only supported for chat sources',
+    );
   }
 }

@@ -5,10 +5,13 @@ import { pushNotificationService } from '@/services/push-notification-service';
 import * as Notifications from 'expo-notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { notifeeService } from '@/services/notifee-service';
+import { buildNotificationDedupeKey, shouldSuppressNotification } from '@/shared/lib/notification-dedupe';
+import { useChatStateStore } from '@/store/chat-state-store';
 
 export const PushNotificationHandler = () => {
     const { data: profile } = useUserProfile();
     const queryClient = useQueryClient();
+    const activeTripChatId = useChatStateStore((state) => state.activeTripChatId);
 
     useEffect(() => {
         const syncPushToken = async () => {
@@ -45,6 +48,22 @@ export const PushNotificationHandler = () => {
         const notificationSubscription = Notifications.addNotificationReceivedListener((notification) => {
             const data = notification.request.content.data as any;
             console.log('Notification received in foreground:', notification);
+            if (data?.screen === 'trip-chat') {
+                const tripId = String(data?.tripId || data?.tripDocumentId || data?.relatedId || '').trim();
+                if (tripId && activeTripChatId === tripId) {
+                    void notifeeService.clearTripChatNotifications(tripId);
+                    return;
+                }
+            }
+            const dedupeKey = buildNotificationDedupeKey({
+                title: notification.request.content.title,
+                body: notification.request.content.body,
+                data,
+            });
+
+            if (shouldSuppressNotification(dedupeKey)) {
+                return;
+            }
 
             queryClient.invalidateQueries({ queryKey: ['unread-notifications-count'] });
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -59,7 +78,7 @@ export const PushNotificationHandler = () => {
         return () => {
             notificationSubscription.remove();
         };
-    }, [queryClient]);
+    }, [activeTripChatId, queryClient]);
 
     return null;
 };

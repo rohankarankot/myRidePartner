@@ -33,7 +33,7 @@ const TECH_STACK = [
 ];
 
 export default function AboutScreen() {
-  const appVersion = Constants.expoConfig?.version ?? '2.0.0';
+  const appVersion = Constants.expoConfig?.version ?? '3.0.0';
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
   const subtextColor = useThemeColor({}, 'subtext');
@@ -75,7 +75,7 @@ export default function AboutScreen() {
         </Box>
         <VStack className="items-center" space="xs">
           <Text className="text-3xl font-extrabold" style={{ color: textColor }}>
-            My Ride Partner
+            Cab Collab
           </Text>
           <Box className="px-3 py-1 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
             <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
@@ -91,7 +91,7 @@ export default function AboutScreen() {
         </Text>
         <VStack space="md">
           <Text className="text-sm font-medium leading-7" style={{ color: textColor }}>
-            My Ride Partner is a ridesharing platform designed and developed to simplify
+            Cab Collab is a ridesharing platform designed and developed to simplify
             daily commutes, reduce travel costs, and foster a trusted community.
           </Text>
           <Divider style={{ backgroundColor: borderColor }} />
@@ -176,7 +176,7 @@ export default function AboutScreen() {
         </Pressable>
         <Divider className="w-12 mt-4" style={{ backgroundColor: borderColor }} />
         <Text className="text-[8px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
-          © 2026 My Ride Partner. All rights reserved.
+          © 2026 Cab Collab. All rights reserved.
         </Text>
       </VStack>
     </ScrollView>

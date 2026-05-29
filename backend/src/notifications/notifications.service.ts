@@ -90,8 +90,15 @@ export class NotificationsService {
       },
     });
 
-    // Emit to socket
-    this.eventsGateway.emitToUser(data.userId, 'new_notification', notification);
+    // Emit to socket for in-app sync, but avoid duplicating trip completion alerts
+    // because the push notification listener already surfaces them on the client.
+    if (data.type !== NotificationType.TRIP_COMPLETED) {
+      this.eventsGateway.emitToUser(
+        data.userId,
+        'new_notification',
+        notification,
+      );
+    }
 
     // Send push notification
     try {
@@ -225,7 +232,10 @@ export class NotificationsService {
     }
 
     // 3. Cloudinary optimization (resize for notifications)
-    if (optimized.includes('res.cloudinary.com') && !optimized.includes('/w_')) {
+    if (
+      optimized.includes('res.cloudinary.com') &&
+      !optimized.includes('/w_')
+    ) {
       // Use high-compatibility transformations, avoiding f_auto to ensure standard formats
       optimized = optimized.replace(
         '/upload/',

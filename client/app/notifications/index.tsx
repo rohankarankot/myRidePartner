@@ -94,12 +94,12 @@ export default function NotificationsScreen() {
     const tripId = (data as any).tripId || (notification as any).tripId;
     const relatedId = (data as any).relatedId || (notification as any).relatedId;
 
-    if (tripId) {
-      router.push({ pathname: '/trip/[id]', params: { id: tripId } } as any);
-      return;
-    }
     if (notification.type === 'JOIN_REQUEST' && relatedId) {
       router.push({ pathname: '/requests/[documentId]', params: { documentId: relatedId } } as any);
+      return;
+    }
+    if (tripId) {
+      router.push({ pathname: '/trip/[id]', params: { id: tripId } } as any);
       return;
     }
     if (notification.type === 'TRIP_COMPLETED' || notification.type === 'TRIP_UPDATE') {

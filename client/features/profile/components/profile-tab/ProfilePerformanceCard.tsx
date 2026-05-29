@@ -61,9 +61,9 @@ export function ProfilePerformanceCard({
           </VStack>
         </Pressable>
 
-        <Divider className="h-10 w-px" style={{ backgroundColor: borderColor }} />
+        {/* <Divider className="h-10 w-px" style={{ backgroundColor: borderColor }} /> */}
 
-        <Pressable className="flex-1 items-center" onPress={onOpenAnalytics}>
+        {/* <Pressable className="flex-1 items-center" onPress={onOpenAnalytics}>
           <VStack className="items-center" space="xs">
             <Box className="w-12 h-12 rounded-2xl items-center justify-center" style={{ backgroundColor: `${primaryColor}10` }}>
               <IconSymbol name="chart.bar.fill" size={18} color="#8B5CF6" />
@@ -71,7 +71,7 @@ export function ProfilePerformanceCard({
             <Text className="text-xl font-extrabold" style={{ color: textColor }}>View</Text>
             <Text className="text-[10px] font-bold uppercase tracking-widest" style={{ color: subtextColor }}>Insights</Text>
           </VStack>
-        </Pressable>
+        </Pressable> */}
       </HStack>
     </Box>
   );

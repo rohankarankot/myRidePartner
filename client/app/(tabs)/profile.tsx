@@ -162,6 +162,18 @@ export default function ProfileScreen() {
           textColor={textColor}
         />
 
+
+
+        <ProfileAccountDetailsCard
+          aadhaarNumber={aadhaarNumber ? maskAadhaarNumber(aadhaarNumber) : null}
+          cardColor={cardColor}
+          gender={profileGender}
+          phone={phone}
+          subtextColor={subtextColor}
+          successColor={successColor}
+          textColor={textColor}
+          username={user?.username}
+        />
         <ProfilePerformanceCard
           borderColor={borderColor}
           cardColor={cardColor}
@@ -173,17 +185,6 @@ export default function ProfileScreen() {
           rating={rating}
           subtextColor={subtextColor}
           textColor={textColor}
-        />
-
-        <ProfileAccountDetailsCard
-          aadhaarNumber={aadhaarNumber ? maskAadhaarNumber(aadhaarNumber) : null}
-          cardColor={cardColor}
-          gender={profileGender}
-          phone={phone}
-          subtextColor={subtextColor}
-          successColor={successColor}
-          textColor={textColor}
-          username={user?.username}
         />
 
         <ProfileActionsCard
@@ -202,7 +203,7 @@ export default function ProfileScreen() {
         <VStack className="items-center py-12" space="xs">
           <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
           <Text className="text-[8px] font-extrabold uppercase tracking-widest text-center" style={{ color: subtextColor }}>
-            Joining since 2026 • My Ride Partner Community
+            Joining since 2026 • Cab Collab Community
           </Text>
         </VStack>
       </ScrollView>
@@ -252,7 +253,7 @@ export default function ProfileScreen() {
         visible={showVerificationAlert}
         title="Verify Identity"
         message={
-          selectedAadhaarImageUri 
+          selectedAadhaarImageUri
             ? "Review the image below. Make sure your name and Aadhaar number are clearly visible before submitting."
             : "Please choose a clear Aadhaar image from your files. Ensure your name and the 12-digit Aadhaar number are clearly visible so that we can match your profile information."
         }
@@ -266,27 +267,27 @@ export default function ProfileScreen() {
         primaryButton={
           selectedAadhaarImageUri
             ? {
-                text: 'Verify Now',
-                onPress: () => handleUploadAadhaar(selectedAadhaarImageUri),
-              }
+              text: 'Verify Now',
+              onPress: () => handleUploadAadhaar(selectedAadhaarImageUri),
+            }
             : {
-                text: 'Choose Image',
-                onPress: handlePickAadhaarImage,
-              }
+              text: 'Choose Image',
+              onPress: handlePickAadhaarImage,
+            }
         }
         secondaryButton={
           selectedAadhaarImageUri
             ? {
-                text: 'Retake',
-                onPress: handlePickAadhaarImage,
-              }
+              text: 'Retake',
+              onPress: handlePickAadhaarImage,
+            }
             : {
-                text: 'Cancel',
-                onPress: () => {
-                  setShowVerificationAlert(false);
-                  setSelectedAadhaarImageUri(null);
-                },
-              }
+              text: 'Cancel',
+              onPress: () => {
+                setShowVerificationAlert(false);
+                setSelectedAadhaarImageUri(null);
+              },
+            }
         }
       >
         {selectedAadhaarImageUri ? (

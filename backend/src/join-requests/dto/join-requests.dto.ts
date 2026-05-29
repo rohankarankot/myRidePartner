@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreateJoinRequestDto {
   @ApiProperty({ description: 'Trip document ID' })
@@ -22,14 +29,18 @@ export class CreateJoinRequestDto {
 
   @ApiProperty({
     example: false,
-    description: 'Whether the passenger allows their phone number to be shown to the captain and other approved riders in this trip',
+    description:
+      'Whether the passenger allows their phone number to be shown to the captain and other approved riders in this trip',
   })
   @IsBoolean()
   sharePhoneNumber: boolean;
 }
 
 export class UpdateJoinRequestStatusDto {
-  @ApiProperty({ enum: ['APPROVED', 'REJECTED', 'CANCELLED'], description: 'New status' })
+  @ApiProperty({
+    enum: ['APPROVED', 'REJECTED', 'CANCELLED'],
+    description: 'New status',
+  })
   @IsIn(['APPROVED', 'REJECTED', 'CANCELLED'])
   status: string;
 }

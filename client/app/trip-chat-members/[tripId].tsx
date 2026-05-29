@@ -272,7 +272,7 @@ export default function TripChatMembersScreen() {
                                                 : subtextColor,
                                         }}
                                     >
-                                        {onlineUserIds.includes(item.id) ? 'Online' : 'Away'}
+                                        {onlineUserIds.includes(item.id) ? 'Viewing chat' : 'Not in chat'}
                                     </Text>
                                 </HStack>
 

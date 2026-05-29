@@ -9,7 +9,14 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { JoinRequestsService } from './join-requests.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -27,19 +34,32 @@ export class JoinRequestsController {
 
   @Get()
   @ApiOperation({ summary: 'Get join requests for a trip' })
-  @ApiQuery({ name: 'tripDocumentId', required: true, description: 'Trip document ID' })
+  @ApiQuery({
+    name: 'tripDocumentId',
+    required: true,
+    description: 'Trip document ID',
+  })
   findByTrip(@Query('tripDocumentId') tripDocumentId: string) {
     return this.joinRequestsService.findByTrip(tripDocumentId);
   }
 
   @Get('pending/:captainId')
-  @ApiOperation({ summary: 'Get pending requests for a captain', description: 'Get all pending join requests where the user is the trip captain' })
+  @ApiOperation({
+    summary: 'Get pending requests for a captain',
+    description:
+      'Get all pending join requests where the user is the trip captain',
+  })
   @ApiParam({ name: 'captainId', example: 1 })
   findPendingForCaptain(@Param('captainId') captainId: string) {
-    return this.joinRequestsService.findPendingForCaptain(parseInt(captainId, 10));
+    return this.joinRequestsService.findPendingForCaptain(
+      parseInt(captainId, 10),
+    );
   }
   @Get('user/:userId')
-  @ApiOperation({ summary: 'Get join requests for a passenger', description: 'Get all join requests made by a specific user' })
+  @ApiOperation({
+    summary: 'Get join requests for a passenger',
+    description: 'Get all join requests made by a specific user',
+  })
   @ApiParam({ name: 'userId', example: 1 })
   findByPassenger(@Param('userId') userId: string) {
     return this.joinRequestsService.findByPassenger(parseInt(userId, 10));
@@ -69,14 +89,20 @@ export class JoinRequestsController {
   }
 
   @Put(':documentId/status')
-  @ApiOperation({ summary: 'Update join request status', description: 'Approve, reject, or cancel a join request' })
+  @ApiOperation({
+    summary: 'Update join request status',
+    description: 'Approve, reject, or cancel a join request',
+  })
   @ApiParam({ name: 'documentId' })
   @ApiBody({ type: UpdateJoinRequestStatusDto })
   updateStatus(
     @Param('documentId') documentId: string,
     @Body() body: { status: string },
   ) {
-    return this.joinRequestsService.updateStatus(documentId, body.status as any);
+    return this.joinRequestsService.updateStatus(
+      documentId,
+      body.status as any,
+    );
   }
 
   @Put(':documentId/pickup-status')

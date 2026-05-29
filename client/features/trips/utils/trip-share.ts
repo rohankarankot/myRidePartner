@@ -10,7 +10,7 @@ export const buildTripShareMessage = (trip: Pick<Trip, 'documentId' | 'startingP
   const shareUrl = getTripShareUrl(trip.documentId);
 
   return [
-    `*Ride shared on My Ride Partner*`,
+    `*Ride shared on Cab Collab*`,
     '',
     `*From:* ${trip.startingPoint}`,
     `*To:* ${trip.destination}`,

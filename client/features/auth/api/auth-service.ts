@@ -5,7 +5,7 @@ class AuthService {
   async googleLogin(idToken: string): Promise<AuthResponse> {
     const { data } = await apiClient.post<AuthResponse>('/auth/google', {
       token: idToken,
-      source: 'myridepartner',
+      source: 'cabcollab',
     });
     return data;
   }

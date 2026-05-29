@@ -7,7 +7,10 @@ enum GroupStatusAction {
 }
 
 export class AdminGroupStatusDto {
-  @ApiProperty({ enum: GroupStatusAction, description: 'New status for the group' })
+  @ApiProperty({
+    enum: GroupStatusAction,
+    description: 'New status for the group',
+  })
   @IsNotEmpty()
   @IsEnum(GroupStatusAction)
   status: 'APPROVED' | 'REJECTED';

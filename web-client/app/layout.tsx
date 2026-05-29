@@ -5,7 +5,7 @@ import ThemeProvider from "@/src/backoffice/components/themes/theme-provider";
 import { ActiveThemeProvider } from "@/src/backoffice/components/themes/active-theme";
 
 export const metadata: Metadata = {
-  title: "My Ride Partner",
+  title: "Cab Collab",
   description: "Shared city rides made simpler with easy publishing, trip sharing, and rider coordination.",
 };
 

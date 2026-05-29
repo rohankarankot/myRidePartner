@@ -46,7 +46,9 @@ export class CommunityCleanupTask {
 
     for (const profile of profilesToCleanup) {
       try {
-        await this.communityGroupsService.cleanupUserCommunityData(profile.userId);
+        await this.communityGroupsService.cleanupUserCommunityData(
+          profile.userId,
+        );
 
         // Reset the revocation timestamp to null to mark it as processed
         await this.prisma.userProfile.update({
@@ -54,7 +56,9 @@ export class CommunityCleanupTask {
           data: { communityConsentRevokedAt: null },
         });
 
-        this.logger.log(`Successfully cleaned up community data for user ID: ${profile.userId}`);
+        this.logger.log(
+          `Successfully cleaned up community data for user ID: ${profile.userId}`,
+        );
       } catch (error) {
         this.logger.error(
           `Failed to clean up community data for user ID: ${profile.userId}`,

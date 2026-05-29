@@ -26,6 +26,7 @@ import { userService } from '@/services/user-service';
 import { PaginatedTripChatMessages, TripChatMessage } from '@/types/api';
 import { useAuth } from '@/context/auth-context';
 import { pushNotificationService } from '@/services/push-notification-service';
+import { useChatStateStore } from '@/store/chat-state-store';
 import { ReportModal, ReportPayload } from '@/features/safety/components/ReportModal';
 import { saveReport } from '@/features/safety/report-service';
 import { Box } from '@/components/ui/box';
@@ -46,6 +47,7 @@ type ParsedLocationMessage = {
 
 type ParsedMediaMessage = {
     url: string;
+    publicId?: string;
     caption: string;
 };
 
@@ -83,6 +85,7 @@ const parseMediaMessage = (value: string): ParsedMediaMessage | null => {
 
         return {
             url: parsed.url,
+            publicId: typeof parsed.publicId === 'string' ? parsed.publicId : typeof parsed.public_id === 'string' ? parsed.public_id : undefined,
             caption: typeof parsed.caption === 'string' ? parsed.caption : '',
         };
     } catch {
@@ -276,6 +279,7 @@ export default function TripChatScreen() {
         initialMessageId?: string;
     }>();
     const { user } = useAuth();
+    const setActiveTripChatId = useChatStateStore((state) => state.setActiveTripChatId);
     const router = useRouter();
     const queryClient = useQueryClient();
     const insets = useSafeAreaInsets();
@@ -318,6 +322,15 @@ export default function TripChatScreen() {
 
         void notifeeService.clearTripChatNotifications(tripId);
     }, [tripId]);
+
+    useEffect(() => {
+        if (!tripId) return;
+
+        setActiveTripChatId(tripId);
+        return () => {
+            setActiveTripChatId(null);
+        };
+    }, [setActiveTripChatId, tripId]);
 
     useEffect(() => {
         const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -988,9 +1001,10 @@ export default function TripChatScreen() {
             setPendingMediaDraft(null);
 
             // 4. Perform background upload and server sync
-            const uploadedUrl = await userService.uploadFile(localUri);
+            const uploadedFile = await userService.uploadFile(localUri);
             const serverMediaMessage = buildMediaMessage({
-                url: uploadedUrl,
+                url: uploadedFile.url,
+                publicId: uploadedFile.publicId,
                 caption: mediaCaption,
             });
 

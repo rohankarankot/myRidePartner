@@ -44,6 +44,9 @@ export default function CommunityGroupDetailScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [removeMemberTarget, setRemoveMemberTarget] = useState<CommunityGroupMember | null>(null);
+  const [memberActionTarget, setMemberActionTarget] = useState<CommunityGroupMember | null>(null);
+  const [memberActionLoading, setMemberActionLoading] = useState(false);
+  const [deleteGroupConfirmVisible, setDeleteGroupConfirmVisible] = useState(false);
   const [consentError, setConsentError] = useState<{ show: boolean; userName?: string }>({ show: false });
 
   const groupQuery = useQuery({
@@ -84,15 +87,50 @@ export default function CommunityGroupDetailScreen() {
       Toast.show({ type: 'success', text1: 'Member Removed' });
       void queryClient.invalidateQueries({ queryKey: ['community-group', documentId] });
       setRemoveMemberTarget(null);
+      setMemberActionTarget(null);
+      setMemberActionLoading(false);
     },
     onError: () => {
       Toast.show({ type: 'error', text1: 'Failed', text2: 'Could not remove this member.' });
       setRemoveMemberTarget(null);
+      setMemberActionTarget(null);
+      setMemberActionLoading(false);
+    },
+  });
+
+  const promoteMemberMutation = useMutation({
+    mutationFn: (userId: number) => communityGroupService.promoteMember(documentId!, userId),
+    onSuccess: () => {
+      Toast.show({ type: 'success', text1: 'Member Promoted', text2: 'The member is now an admin.' });
+      void queryClient.invalidateQueries({ queryKey: ['community-group', documentId] });
+      setMemberActionTarget(null);
+      setMemberActionLoading(false);
+    },
+    onError: () => {
+      Toast.show({ type: 'error', text1: 'Failed', text2: 'Could not promote this member.' });
+      setMemberActionTarget(null);
+      setMemberActionLoading(false);
+    },
+  });
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: () => communityGroupService.deleteGroup(documentId!),
+    onSuccess: () => {
+      Toast.show({ type: 'success', text1: 'Group Deleted', text2: 'Community group has been removed.' });
+      setDeleteGroupConfirmVisible(false);
+      router.replace('/my-community-groups');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Could not delete this group.';
+      const errorMessage = Array.isArray(message) ? message[0] : message;
+      Toast.show({ type: 'error', text1: 'Failed', text2: errorMessage });
+      setDeleteGroupConfirmVisible(false);
     },
   });
 
   const group = groupQuery.data;
   const isAdmin = group?.members?.some((m) => m.user.id === user?.id && m.role === 'ADMIN');
+  const isOwner = group?.creator?.id === user?.id;
   const statusConfig = group ? STATUS_CONFIG[group.status] : null;
 
   const existingMemberIds = new Set(group?.members?.map((m) => m.user.id) ?? []);
@@ -109,53 +147,60 @@ export default function CommunityGroupDetailScreen() {
     const canRemove = isAdmin && !isCreator;
 
     return (
-      <HStack className="items-center py-3 px-2" space="md">
-        <Box
-          className="h-11 w-11 rounded-full items-center justify-center"
-          style={{ backgroundColor: `${primaryColor}10` }}
-        >
-          {avatarUrl ? (
-            <Box className="h-11 w-11 rounded-full overflow-hidden">
-              <Image source={{ uri: avatarUrl }} style={{ flex: 1 }} contentFit="cover" />
-            </Box>
-          ) : (
-            <IconSymbol name="person.fill" size={20} color={primaryColor} />
-          )}
-        </Box>
-
-        <VStack className="flex-1" space="xs">
-          <Text className="text-sm font-bold" numberOfLines={1} style={{ color: textColor }}>
-            {item.user.userProfile?.fullName || item.user.email}
-          </Text>
-          <HStack className="items-center" space="xs">
-            {item.user.userProfile?.city && (
-              <Text className="text-xs font-medium" style={{ color: subtextColor }}>
-                {item.user.userProfile.city}
-              </Text>
-            )}
-            {isCreator && (
-              <Box
-                className="rounded-full px-2 py-0.5"
-                style={{ backgroundColor: `${primaryColor}14` }}
-              >
-                <Text className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-                  Admin
-                </Text>
-              </Box>
-            )}
-          </HStack>
-        </VStack>
-
-        {canRemove && (
-          <Pressable
-            onPress={() => setRemoveMemberTarget(item)}
-            className="h-9 w-9 rounded-full items-center justify-center"
-            style={{ backgroundColor: `${dangerColor}10` }}
+      <Pressable
+        onLongPress={() => {
+          if (!isAdmin || isCreator) return;
+          setMemberActionTarget(item);
+        }}
+      >
+        <HStack className="items-center py-3 px-2" space="md">
+          <Box
+            className="h-11 w-11 rounded-full items-center justify-center"
+            style={{ backgroundColor: `${primaryColor}10` }}
           >
-            <IconSymbol name="xmark" size={14} color={dangerColor} />
-          </Pressable>
-        )}
-      </HStack>
+            {avatarUrl ? (
+              <Box className="h-11 w-11 rounded-full overflow-hidden">
+                <Image source={{ uri: avatarUrl }} style={{ flex: 1 }} contentFit="cover" />
+              </Box>
+            ) : (
+              <IconSymbol name="person.fill" size={20} color={primaryColor} />
+            )}
+          </Box>
+
+          <VStack className="flex-1" space="xs">
+            <Text className="text-sm font-bold" numberOfLines={1} style={{ color: textColor }}>
+              {item.user.userProfile?.fullName || item.user.email}
+            </Text>
+            <HStack className="items-center" space="xs">
+              {item.user.userProfile?.city && (
+                <Text className="text-xs font-medium" style={{ color: subtextColor }}>
+                  {item.user.userProfile.city}
+                </Text>
+              )}
+              {isCreator && (
+                <Box
+                  className="rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: `${primaryColor}14` }}
+                >
+                  <Text className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+                    Admin
+                  </Text>
+                </Box>
+              )}
+            </HStack>
+          </VStack>
+
+          {canRemove && (
+            <Pressable
+              onPress={() => setRemoveMemberTarget(item)}
+              className="h-9 w-9 rounded-full items-center justify-center"
+              style={{ backgroundColor: `${dangerColor}10` }}
+            >
+              <IconSymbol name="xmark" size={14} color={dangerColor} />
+            </Pressable>
+          )}
+        </HStack>
+      </Pressable>
     );
   };
 
@@ -326,6 +371,21 @@ export default function CommunityGroupDetailScreen() {
               </Pressable>
             )}
 
+            {isOwner && (
+              <Pressable
+                className="mx-6 mb-6 h-14 rounded-[22px] items-center justify-center border"
+                style={{ borderColor: `${dangerColor}30`, backgroundColor: `${dangerColor}08` }}
+                onPress={() => setDeleteGroupConfirmVisible(true)}
+              >
+                <HStack className="items-center" space="sm">
+                  <IconSymbol name="trash.fill" size={18} color={dangerColor} />
+                  <Text className="text-sm font-extrabold uppercase tracking-widest" style={{ color: dangerColor }}>
+                    Delete Group
+                  </Text>
+                </HStack>
+              </Pressable>
+            )}
+
             {/* Members Section Header */}
             <HStack className="px-6 pb-2 items-center justify-between">
               <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>
@@ -439,6 +499,94 @@ export default function CommunityGroupDetailScreen() {
         secondaryButton={{
           text: 'Cancel',
           onPress: () => setRemoveMemberTarget(null),
+        }}
+      />
+
+      {/* Member Actions */}
+      <CustomAlert
+        visible={!!memberActionTarget}
+        title="Member Actions"
+        message={
+          memberActionTarget
+            ? `${memberActionTarget.user.userProfile?.fullName || memberActionTarget.user.email}`
+            : ''
+        }
+        icon="gearshape.fill"
+        onClose={() => {
+          setMemberActionTarget(null);
+        }}
+        loading={memberActionLoading}
+        dismissible={!memberActionLoading}
+        primaryButton={{
+          text: 'Done',
+          onPress: () => {
+            setMemberActionTarget(null);
+          },
+        }}
+      >
+        <VStack className="w-full" space="sm">
+          <Pressable
+            className="w-full h-14 rounded-2xl border-2 items-center justify-center px-4"
+            style={{ borderColor: `${primaryColor}30`, backgroundColor: `${primaryColor}10` }}
+            onPress={() => {
+              if (!memberActionTarget) return;
+              setMemberActionLoading(true);
+              void promoteMemberMutation.mutateAsync(memberActionTarget.user.id).finally(() => {
+                setMemberActionLoading(false);
+              });
+            }}
+            disabled={memberActionLoading}
+          >
+            <HStack className="items-center justify-start w-full" space="sm">
+              <IconSymbol name="person.badge.plus.fill" size={16} color={primaryColor} />
+              <Text className="flex-1 text-[10px] font-extrabold uppercase tracking-wide" style={{ color: primaryColor }}>
+                Promote to Admin
+              </Text>
+            </HStack>
+          </Pressable>
+
+          <Pressable
+            className="w-full h-14 rounded-2xl border-2 items-center justify-center px-4"
+            style={{ borderColor: `${dangerColor}30`, backgroundColor: `${dangerColor}10` }}
+            onPress={() => {
+              if (!memberActionTarget) return;
+              setMemberActionLoading(true);
+              void removeMemberMutation.mutateAsync(memberActionTarget.user.id).finally(() => {
+                setMemberActionLoading(false);
+              });
+            }}
+            disabled={memberActionLoading}
+          >
+            <HStack className="items-center justify-start w-full" space="sm">
+              <IconSymbol name="person.crop.circle.badge.xmark" size={16} color={dangerColor} />
+              <Text className="flex-1 text-[10px] font-extrabold uppercase tracking-wide" style={{ color: dangerColor }}>
+                Remove from Group
+              </Text>
+            </HStack>
+          </Pressable>
+        </VStack>
+      </CustomAlert>
+
+      <CustomAlert
+        visible={deleteGroupConfirmVisible}
+        title="Delete Group?"
+        message="This will permanently remove the group, all members, and all chat messages."
+        icon="trash.fill"
+        onClose={() => setDeleteGroupConfirmVisible(false)}
+        loading={deleteGroupMutation.isPending}
+        dismissible={!deleteGroupMutation.isPending}
+        primaryButton={{
+          text: deleteGroupMutation.isPending ? 'Deleting...' : 'Delete',
+          onPress: () => {
+            deleteGroupMutation.mutate();
+          },
+          style: { backgroundColor: dangerColor },
+          icon: 'trash.fill',
+        }}
+        secondaryButton={{
+          text: 'Cancel',
+          onPress: () => setDeleteGroupConfirmVisible(false),
+          icon: 'xmark',
         }}
       />
 

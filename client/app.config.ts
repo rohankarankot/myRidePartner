@@ -10,12 +10,12 @@ const shareBaseUrl =
 const shareHost = new URL(shareBaseUrl).host;
 
 const config: ExpoConfig = {
-  name: 'My Ride Partner',
-  slug: 'myridepartner',
-  version: '2.0.0',
+  name: 'Cab Collab',
+  slug: 'cabcollab',
+  version: '3.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
-  scheme: 'myridepartner',
+  scheme: 'cabcollab',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   runtimeVersion: {
@@ -73,6 +73,31 @@ const config: ExpoConfig = {
     [
       'expo-build-properties',
       {
+        android: {
+          enableProguardInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+          extraProguardRules: `
+# react-native-reanimated
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.facebook.react.turbomodule.** { *; }
+
+# React Native / JSI runtime helpers
+-keep class com.facebook.jni.** { *; }
+-keep class com.facebook.react.bridge.** { *; }
+-keep class com.facebook.react.fabric.** { *; }
+-keep class com.facebook.react.uimanager.** { *; }
+-keep class com.swmansion.worklets.** { *; }
+
+# Firebase + notifications
+-keep class com.google.firebase.** { *; }
+-keep class io.invertase.firebase.** { *; }
+-keep class app.notifee.core.** { *; }
+
+# Ads SDK
+-keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.ads.** { *; }
+`,
+        },
         ios: {
           useFrameworks: 'static',
         },
@@ -104,9 +129,9 @@ const config: ExpoConfig = {
       'expo-location',
       {
         locationAlwaysAndWhenInUsePermission:
-          'Allow My Ride Partner to use your location to help you find your starting point and destination.',
+          'Allow Cab Collab to use your location to help you find your starting point and destination.',
         locationWhenInUsePermission:
-          'Allow My Ride Partner to use your location to help you select pickup and drop-off locations.',
+          'Allow Cab Collab to use your location to help you select pickup and drop-off locations.',
       },
     ],
     [
@@ -116,7 +141,9 @@ const config: ExpoConfig = {
         iosAppId,
       },
     ],
-    '@sentry/react-native/expo',
+    ...(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+      ? ['@sentry/react-native/expo']
+      : []),
     withVerificationToken as any,
   ],
   experiments: {

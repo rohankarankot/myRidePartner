@@ -7,7 +7,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function main() {
   const email =
-    process.env.BACKOFFICE_ADMIN_EMAIL?.trim() || 'admin@myridepartner.com';
+    process.env.BACKOFFICE_ADMIN_EMAIL?.trim() || 'admin@cabcollab.com';
   const password =
     process.env.BACKOFFICE_ADMIN_PASSWORD?.trim() || 'AdminPassword123!';
   const hashedPassword = await bcrypt.hash(password, 10);

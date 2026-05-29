@@ -1,6 +1,10 @@
 import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
-import { NestFactory, BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
+import {
+  NestFactory,
+  BaseExceptionFilter,
+  HttpAdapterHost,
+} from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
@@ -15,7 +19,9 @@ Sentry.init({
 });
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
   app.useLogger(app.get(Logger));
   const requestLogger = app.get(Logger);
 
@@ -23,7 +29,8 @@ async function bootstrap() {
     const startedAt = process.hrtime.bigint();
 
     res.on('finish', () => {
-      const durationMs = Number(process.hrtime.bigint() - startedAt) / 1_000_000;
+      const durationMs =
+        Number(process.hrtime.bigint() - startedAt) / 1_000_000;
       if (durationMs >= 500) {
         requestLogger.warn(
           {
@@ -53,8 +60,10 @@ async function bootstrap() {
 
   // Swagger / OpenAPI setup
   const config = new DocumentBuilder()
-    .setTitle('MyRidePartner API')
-    .setDescription('Backend API documentation for the MyRidePartner application')
+    .setTitle('CabCollab API')
+    .setDescription(
+      'Backend API documentation for the CabCollab application',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('Auth', 'Authentication endpoints')

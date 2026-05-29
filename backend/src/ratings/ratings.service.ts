@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '@app/common';
 import { PaginationParams, buildPaginationMeta } from '@app/common';
 
@@ -86,9 +90,21 @@ export class RatingsService {
         where: { rateeId: userId },
         include: {
           rater: {
-            select: { id: true, username: true, userProfile: { select: { fullName: true, avatar: true } } },
+            select: {
+              id: true,
+              username: true,
+              userProfile: { select: { fullName: true, avatar: true } },
+            },
           },
-          trip: { select: { id: true, documentId: true, startingPoint: true, destination: true, date: true } },
+          trip: {
+            select: {
+              id: true,
+              documentId: true,
+              startingPoint: true,
+              destination: true,
+              date: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
         skip: pagination.skip,

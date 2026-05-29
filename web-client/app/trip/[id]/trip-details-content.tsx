@@ -49,7 +49,7 @@ export default function TripDetailsContent({ trip, id, appLink }: TripDetailsCon
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold tracking-tight text-primary">
-                  My Ride Partner
+                  Cab Collab
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
                   Back to Home
@@ -109,7 +109,7 @@ export default function TripDetailsContent({ trip, id, appLink }: TripDetailsCon
                 <p className="text-lg leading-relaxed text-muted-foreground mb-10 max-w-2xl">
                   {trip
                     ? `A ride from ${trip.startingPoint} to ${trip.destination} is available. View the details below and open the app to join this trip.`
-                    : "This link is a shortcut to a trip in My Ride Partner. If the details aren't loading, you can still use the ID below to find it in the app."}
+                    : "This link is a shortcut to a trip in Cab Collab. If the details aren't loading, you can still use the ID below to find it in the app."}
                 </p>
 
                 {/* Info Grid */}
@@ -194,7 +194,7 @@ export default function TripDetailsContent({ trip, id, appLink }: TripDetailsCon
                       <div className="flex-none rounded-full bg-primary/10 p-1 h-6 w-6 flex items-center justify-center">
                         <span className="text-[10px] font-bold text-primary">1</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">Download My Ride Partner</p>
+                      <p className="text-sm text-muted-foreground">Download Cab Collab</p>
                     </div>
                     <div className="flex gap-4">
                       <div className="flex-none rounded-full bg-primary/10 p-1 h-6 w-6 flex items-center justify-center">
@@ -269,7 +269,7 @@ export default function TripDetailsContent({ trip, id, appLink }: TripDetailsCon
         {/* Footer */}
         <footer className="py-12 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-8">
           <div className="text-center sm:text-left">
-            <p className="font-bold text-foreground mb-1">My Ride Partner</p>
+            <p className="font-bold text-foreground mb-1">Cab Collab</p>
             <p className="text-sm text-muted-foreground">© 2026 MH13 Community. All rights reserved.</p>
           </div>
 

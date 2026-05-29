@@ -8,8 +8,8 @@ import { InteractiveGridPattern } from './interactive-grid';
 import UserAuthForm from './user-auth-form';
 
 export const metadata: Metadata = {
-  title: 'Authentication | MyRidePartner',
-  description: 'Admin authentication for MyRidePartner.'
+  title: 'Authentication | CabCollab',
+  description: 'Admin authentication for CabCollab.'
 };
 
 export default function SignInViewPage({ stars }: { stars: number }) {
@@ -30,7 +30,7 @@ export default function SignInViewPage({ stars }: { stars: number }) {
           >
             <path d='M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3' />
           </svg>
-          MyRidePartner Admin
+          CabCollab Admin
         </div>
         <InteractiveGridPattern
           className={cn(

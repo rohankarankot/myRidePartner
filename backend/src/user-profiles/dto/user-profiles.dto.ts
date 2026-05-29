@@ -37,12 +37,18 @@ export class UpdateUserProfileDto {
   @ApiPropertyOptional({ description: 'Push notification token' })
   pushToken?: string;
 
-  @ApiPropertyOptional({ description: 'Whether the government ID has been verified' })
+  @ApiPropertyOptional({
+    description: 'Whether the government ID has been verified',
+  })
   governmentIdVerified?: boolean;
 
-  @ApiPropertyOptional({ description: 'Whether the overall profile is verified' })
+  @ApiPropertyOptional({
+    description: 'Whether the overall profile is verified',
+  })
   isVerified?: boolean;
 
-  @ApiPropertyOptional({ description: 'Whether the user consented to join the community' })
+  @ApiPropertyOptional({
+    description: 'Whether the user consented to join the community',
+  })
   communityConsent?: boolean;
 }

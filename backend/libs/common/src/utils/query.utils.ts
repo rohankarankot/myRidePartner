@@ -30,7 +30,10 @@ export function parsePagination(query: {
   pageSize?: string;
 }): PaginationParams {
   const page = Math.max(1, parseInt(query.page || '1', 10) || 1);
-  const pageSize = Math.min(100, Math.max(1, parseInt(query.pageSize || '25', 10) || 25));
+  const pageSize = Math.min(
+    100,
+    Math.max(1, parseInt(query.pageSize || '25', 10) || 25),
+  );
 
   return {
     page,
