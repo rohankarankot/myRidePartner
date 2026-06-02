@@ -13,7 +13,7 @@ export class ExpoPushService {
     opts?: { threadId?: string; image?: string },
   ) {
     if (!Expo.isExpoPushToken(pushToken)) {
-      throw new Error(`Invalid Expo push token: ${pushToken}`);
+      throw new Error(`Invalid Expo push token: ${pushToken as string}`);
     }
 
     const notifications: ExpoPushMessage[] = [

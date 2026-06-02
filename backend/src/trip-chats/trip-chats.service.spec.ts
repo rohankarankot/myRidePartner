@@ -6,6 +6,10 @@ import {
 import { TripStatus } from '@prisma/client';
 
 import { TripChatsService } from './trip-chats.service';
+import { PrismaService } from '../prisma.service';
+import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
+import { UploadService } from '../upload/upload.service';
 
 describe('TripChatsService', () => {
   const prisma = {
@@ -42,10 +46,10 @@ describe('TripChatsService', () => {
   };
 
   const service = new TripChatsService(
-    prisma as any,
-    eventsGateway as any,
-    notificationsService as any,
-    uploadService as any,
+    prisma as unknown as PrismaService,
+    eventsGateway as unknown as EventsGateway,
+    notificationsService as unknown as NotificationsService,
+    uploadService as unknown as UploadService,
   );
 
   /**

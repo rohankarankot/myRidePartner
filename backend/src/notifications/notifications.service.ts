@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { ExpoPushService } from './expo-push.service';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import {
   PaginationParams,
   buildPaginationMeta,
@@ -12,6 +12,12 @@ import {
 export interface NotificationFilters {
   userId?: number;
   read?: boolean;
+}
+
+export interface NotificationDataPayload {
+  image?: string;
+  threadId?: string;
+  [key: string]: unknown;
 }
 
 @Injectable()
@@ -28,8 +34,8 @@ export class NotificationsService {
   async findAll(
     pagination: PaginationParams,
     filters: NotificationFilters = {},
-  ): Promise<{ data: any[]; meta: PaginatedMeta }> {
-    const where: any = {};
+  ): Promise<{ data: unknown[]; meta: PaginatedMeta }> {
+    const where: Prisma.NotificationWhereInput = {};
 
     if (filters.userId) {
       where.userId = filters.userId;
@@ -76,7 +82,7 @@ export class NotificationsService {
     message: string;
     type: NotificationType;
     userId: number;
-    data?: any;
+    data?: NotificationDataPayload;
     relatedId?: string;
   }) {
     const notification = await this.prisma.notification.create({
@@ -84,7 +90,7 @@ export class NotificationsService {
         title: data.title,
         message: data.message,
         type: data.type,
-        data: data.data,
+        data: (data.data ?? undefined) as Prisma.InputJsonValue | undefined,
         relatedId: data.relatedId,
         user: { connect: { id: data.userId } },
       },
@@ -116,12 +122,12 @@ export class NotificationsService {
           {
             type: data.type,
             relatedId: data.relatedId,
-            ...data.data,
+            ...(data.data as Record<string, unknown> | undefined),
             image: optimizedImage, // Also include in data for client-side handling
             icon: optimizedImage, // Redundancy for Android handlers
           },
           {
-            threadId: data.data?.threadId,
+            threadId: data.data?.threadId ?? undefined,
             image: optimizedImage,
           },
         );
@@ -138,7 +144,7 @@ export class NotificationsService {
     title: string;
     message: string;
     userId: number;
-    data?: any;
+    data?: NotificationDataPayload;
     threadId?: string;
     image?: string;
   }) {
@@ -155,7 +161,7 @@ export class NotificationsService {
           data.title,
           data.message,
           {
-            ...data.data,
+            ...(data.data as Record<string, unknown> | undefined),
             image: optimizedImage, // Also include in data
             icon: optimizedImage, // Redundancy for Android handlers
           },
@@ -174,7 +180,7 @@ export class NotificationsService {
     title: string;
     message: string;
     userIds: number[];
-    data?: any;
+    data?: NotificationDataPayload;
     threadId?: string;
     image?: string;
   }) {
@@ -202,7 +208,7 @@ export class NotificationsService {
         data.title,
         data.message,
         {
-          ...data.data,
+          ...(data.data as Record<string, unknown> | undefined),
           image: optimizedImage,
           icon: optimizedImage,
         },
@@ -223,7 +229,7 @@ export class NotificationsService {
       message: string;
       type: NotificationType;
       relatedId?: string;
-      data?: any;
+      data?: NotificationDataPayload;
     }>,
   ) {
     if (notifications.length === 0) {
@@ -236,7 +242,7 @@ export class NotificationsService {
         message: n.message,
         type: n.type,
         relatedId: n.relatedId,
-        data: n.data,
+        data: (n.data ?? undefined) as Prisma.InputJsonValue | undefined,
         userId: n.userId,
       })),
     });
@@ -281,7 +287,7 @@ export class NotificationsService {
           {
             type: firstNotif.type,
             relatedId: firstNotif.relatedId,
-            ...firstNotif.data,
+            ...(firstNotif.data as Record<string, unknown> | undefined),
             image: optimizedImage,
             icon: optimizedImage,
           },
