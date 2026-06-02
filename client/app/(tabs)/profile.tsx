@@ -20,6 +20,7 @@ import { useProfileScreen } from '@/features/profile/hooks/use-profile-screen';
 import { getProfileAvatarUrl, maskAadhaarNumber } from '@/features/profile/utils/profile-screen';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { FullScreenImageViewer } from '@/components/FullScreenImageViewer';
+import { ProfileBannerAd } from '@/features/ads/components/profile-banner-ad';
 
 export default function ProfileScreen() {
   const {
@@ -161,19 +162,6 @@ export default function ProfileScreen() {
           subtextColor={subtextColor}
           textColor={textColor}
         />
-
-
-
-        <ProfileAccountDetailsCard
-          aadhaarNumber={aadhaarNumber ? maskAadhaarNumber(aadhaarNumber) : null}
-          cardColor={cardColor}
-          gender={profileGender}
-          phone={phone}
-          subtextColor={subtextColor}
-          successColor={successColor}
-          textColor={textColor}
-          username={user?.username}
-        />
         <ProfilePerformanceCard
           borderColor={borderColor}
           cardColor={cardColor}
@@ -187,6 +175,19 @@ export default function ProfileScreen() {
           textColor={textColor}
         />
 
+
+        <ProfileAccountDetailsCard
+          aadhaarNumber={aadhaarNumber ? maskAadhaarNumber(aadhaarNumber) : null}
+          cardColor={cardColor}
+          gender={profileGender}
+          phone={phone}
+          subtextColor={subtextColor}
+          successColor={successColor}
+          textColor={textColor}
+          username={user?.username}
+        />
+
+
         <ProfileActionsCard
           borderColor={borderColor}
           cardColor={cardColor}
@@ -199,6 +200,7 @@ export default function ProfileScreen() {
           subtextColor={subtextColor}
           textColor={textColor}
         />
+        <ProfileBannerAd />
 
         <VStack className="items-center py-12" space="xs">
           <Divider className="w-12 mb-4" style={{ backgroundColor: borderColor }} />
