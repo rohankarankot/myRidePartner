@@ -902,7 +902,10 @@ export class AdminService {
 
     await this.notificationsService.create({
       userId: group.creatorId,
-      title: status === 'APPROVED' ? 'Community group approved' : 'Community group rejected',
+      title:
+        status === 'APPROVED'
+          ? 'Community group approved'
+          : 'Community group rejected',
       message:
         status === 'APPROVED'
           ? `Your community group "${updated.name}" has been approved and is now visible.`

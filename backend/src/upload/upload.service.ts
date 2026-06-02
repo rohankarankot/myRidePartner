@@ -6,8 +6,8 @@ import { Readable } from 'stream';
 export class UploadService {
   private readonly cloudinaryConfigured = Boolean(
     process.env.CLOUDINARY_NAME &&
-      process.env.CLOUDINARY_KEY &&
-      process.env.CLOUDINARY_SECRET,
+    process.env.CLOUDINARY_KEY &&
+    process.env.CLOUDINARY_SECRET,
   );
 
   constructor() {
@@ -28,24 +28,33 @@ export class UploadService {
       );
     }
 
-    const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'myridepartner/trip-chat',
-          resource_type: 'image',
-        },
-        (error, uploadResult) => {
-          if (error || !uploadResult?.secure_url || !uploadResult?.public_id) {
-            reject(error || new Error('Cloudinary upload failed'));
-            return;
-          }
+    const result = await new Promise<{ secure_url: string; public_id: string }>(
+      (resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'myridepartner/trip-chat',
+            resource_type: 'image',
+          },
+          (error, uploadResult) => {
+            if (
+              error ||
+              !uploadResult?.secure_url ||
+              !uploadResult?.public_id
+            ) {
+              reject(error || new Error('Cloudinary upload failed'));
+              return;
+            }
 
-          resolve({ secure_url: uploadResult.secure_url, public_id: uploadResult.public_id });
-        },
-      );
+            resolve({
+              secure_url: uploadResult.secure_url,
+              public_id: uploadResult.public_id,
+            });
+          },
+        );
 
-      Readable.from(file.buffer).pipe(uploadStream);
-    });
+        Readable.from(file.buffer).pipe(uploadStream);
+      },
+    );
 
     return result;
   }

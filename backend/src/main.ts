@@ -61,9 +61,7 @@ async function bootstrap() {
   // Swagger / OpenAPI setup
   const config = new DocumentBuilder()
     .setTitle('CabCollab API')
-    .setDescription(
-      'Backend API documentation for the CabCollab application',
-    )
+    .setDescription('Backend API documentation for the CabCollab application')
     .setVersion('1.0')
     .addBearerAuth()
     .addTag('Auth', 'Authentication endpoints')

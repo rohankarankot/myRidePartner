@@ -88,7 +88,17 @@ export function useSocketEvents() {
             queryClient.invalidateQueries({ queryKey: ['trip-chat-access', data.tripDocumentId] });
         };
 
+        const handleConnect = () => {
+            console.log('[Socket] Socket connected or reconnected. Running heartbeat recovery...');
+            if (activeTripChatId) {
+                console.log('[Socket] Re-joining and sync-invalidating messages for trip chat:', activeTripChatId);
+                socketService.joinChat(activeTripChatId);
+                queryClient.invalidateQueries({ queryKey: ['trip-chat-messages', activeTripChatId] });
+            }
+        };
+
         // Register listeners
+        socketService.on('connect', handleConnect);
         socketService.on('new_notification', handleNewNotification);
         socketService.on('join_request_created', handleJoinRequestCreated);
         socketService.on('join_request_updated', handleJoinRequestUpdated);
@@ -97,6 +107,7 @@ export function useSocketEvents() {
 
         return () => {
             console.log('[Socket] Cleaning up event listeners');
+            socketService.off('connect', handleConnect);
             socketService.off('new_notification', handleNewNotification);
             socketService.off('join_request_created', handleJoinRequestCreated);
             socketService.off('join_request_updated', handleJoinRequestUpdated);
