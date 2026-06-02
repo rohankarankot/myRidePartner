@@ -3,7 +3,8 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { JoinRequestStatus, TripStatus } from '@prisma/client';
+import { TripStatus } from '@prisma/client';
+
 import { TripChatsService } from './trip-chats.service';
 
 describe('TripChatsService', () => {
@@ -22,40 +23,52 @@ describe('TripChatsService', () => {
       findUnique: jest.fn(),
     },
     userBlock: { findFirst: jest.fn() },
-  } as any;
+  };
 
   const eventsGateway = {
     emitToChatRoom: jest.fn(),
     isUserActivelyViewingChat: jest.fn().mockReturnValue(false),
-  } as any;
+  };
 
   const notificationsService = {
     create: jest.fn(),
     sendPushOnly: jest.fn(),
-  } as any;
+    sendBatchPushOnly: jest.fn(),
+  };
 
   const uploadService = {
     deleteFileByUrl: jest.fn(),
-  } as any;
+    deleteFileByPublicId: jest.fn(),
+  };
 
   const service = new TripChatsService(
-    prisma,
-    eventsGateway,
-    notificationsService,
-    uploadService,
+    prisma as any,
+    eventsGateway as any,
+    notificationsService as any,
+    uploadService as any,
   );
 
-  const baseTrip = {
+  /**
+   * The consolidated assertChatAccess query now fetches everything from
+   * prisma.trip.findUnique with nested includes for chat, joinRequests,
+   * and creator block lists.
+   */
+  const baseTripWithRelations = {
     id: 99,
     documentId: 'trip-123',
     status: TripStatus.PUBLISHED,
     creatorId: 10,
-    chat: null,
+    chat: null, // no pre-created chat
+    joinRequests: [], // no approved join requests for the queried user
+    creator: {
+      blockedUsers: [],
+      blockedByUsers: [],
+    },
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    prisma.trip.findUnique.mockResolvedValue(baseTrip);
+    prisma.trip.findUnique.mockResolvedValue(baseTripWithRelations);
     prisma.joinRequest.findFirst.mockResolvedValue(null);
     prisma.joinRequest.findMany.mockResolvedValue([]);
     prisma.tripChat.findUnique.mockResolvedValue(null);
@@ -73,9 +86,9 @@ describe('TripChatsService', () => {
   });
 
   it('allows an approved passenger to access the trip chat', async () => {
-    prisma.joinRequest.findFirst.mockResolvedValueOnce({
-      id: 1,
-      status: JoinRequestStatus.APPROVED,
+    prisma.trip.findUnique.mockResolvedValueOnce({
+      ...baseTripWithRelations,
+      joinRequests: [{ id: 1 }], // has an approved join request
     });
 
     await expect(service.getChatAccess('trip-123', 22)).resolves.toEqual({
@@ -94,7 +107,7 @@ describe('TripChatsService', () => {
 
   it('blocks access when the trip is completed', async () => {
     prisma.trip.findUnique.mockResolvedValueOnce({
-      ...baseTrip,
+      ...baseTripWithRelations,
       status: TripStatus.COMPLETED,
     });
 
@@ -104,13 +117,11 @@ describe('TripChatsService', () => {
   });
 
   it('creates a message for an approved passenger and emits a realtime event', async () => {
-    prisma.joinRequest.findFirst.mockResolvedValueOnce({
-      id: 1,
-      status: JoinRequestStatus.APPROVED,
-    });
-    prisma.tripChat.create.mockResolvedValueOnce({
-      id: 5,
-      documentId: 'chat-1',
+    // Return trip with approved join request for user 22
+    prisma.trip.findUnique.mockResolvedValueOnce({
+      ...baseTripWithRelations,
+      chat: { id: 5, documentId: 'chat-1' },
+      joinRequests: [{ id: 1 }],
     });
     prisma.tripChatMessage.create.mockResolvedValueOnce({
       id: 7,
@@ -120,9 +131,9 @@ describe('TripChatsService', () => {
       sender: {
         id: 22,
         username: 'rider',
-        email: 'rider@example.com',
         userProfile: null,
       },
+      replyTo: null,
     });
 
     const result = await service.createMessage('trip-123', 22, {
@@ -148,10 +159,11 @@ describe('TripChatsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('sends chat notifications only to recipients not actively viewing the trip chat', async () => {
-    prisma.tripChat.create.mockResolvedValueOnce({
-      id: 5,
-      documentId: 'chat-1',
+  it('sends batch push notifications only to recipients not actively viewing the trip chat', async () => {
+    // Trip with a pre-created chat, captain is the sender
+    prisma.trip.findUnique.mockResolvedValueOnce({
+      ...baseTripWithRelations,
+      chat: { id: 5, documentId: 'chat-1' },
     });
     prisma.tripChatMessage.create.mockResolvedValueOnce({
       id: 7,
@@ -161,32 +173,31 @@ describe('TripChatsService', () => {
       sender: {
         id: 10,
         username: 'captain',
-        email: 'captain@example.com',
-        userProfile: { fullName: 'Captain' },
+        userProfile: { fullName: 'Captain', avatar: null },
       },
+      replyTo: null,
     });
+    // notifyTripChatRecipients fetches approved passengers
     prisma.joinRequest.findMany.mockResolvedValueOnce([
       { passengerId: 22 },
       { passengerId: 33 },
     ]);
-    eventsGateway.isUserActivelyViewingChat.mockImplementation(
-      (_tripId: string, userId: number) => userId === 22,
-    );
 
     await service.createMessage('trip-123', 10, { message: 'Hello there' });
 
-    expect(notificationsService.sendPushOnly).toHaveBeenCalledTimes(1);
-    expect(notificationsService.sendPushOnly).toHaveBeenCalledWith(
+    // Now uses sendBatchPushOnly with all recipient IDs (sender excluded)
+    expect(notificationsService.sendBatchPushOnly).toHaveBeenCalledTimes(1);
+    expect(notificationsService.sendBatchPushOnly).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Captain',
         message: 'Hello there',
-        userId: 33,
+        userIds: expect.arrayContaining([22, 33]) as unknown as number[],
         threadId: 'trip-123',
         data: expect.objectContaining({
           tripId: 'trip-123',
           screen: 'trip-chat',
           messageDocumentId: 'msg-1',
-        }),
+        }) as unknown as Record<string, unknown>,
       }),
     );
   });
@@ -244,9 +255,10 @@ describe('TripChatsService', () => {
   });
 
   it('attaches the replied-to message when sending a reply', async () => {
-    prisma.tripChat.create.mockResolvedValueOnce({
-      id: 5,
-      documentId: 'chat-1',
+    // Trip with pre-created chat for captain
+    prisma.trip.findUnique.mockResolvedValueOnce({
+      ...baseTripWithRelations,
+      chat: { id: 5, documentId: 'chat-1' },
     });
     prisma.tripChatMessage.findUnique.mockResolvedValueOnce({
       id: 3,
@@ -257,7 +269,6 @@ describe('TripChatsService', () => {
       sender: {
         id: 10,
         username: 'captain',
-        email: 'captain@example.com',
         userProfile: null,
       },
     });
@@ -269,7 +280,6 @@ describe('TripChatsService', () => {
       sender: {
         id: 10,
         username: 'captain',
-        email: 'captain@example.com',
         userProfile: null,
       },
       replyTo: {
@@ -279,7 +289,6 @@ describe('TripChatsService', () => {
         sender: {
           id: 10,
           username: 'captain',
-          email: 'captain@example.com',
           userProfile: null,
         },
       },
@@ -294,7 +303,7 @@ describe('TripChatsService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           replyToId: 3,
-        }),
+        }) as unknown as Record<string, unknown>,
       }),
     );
     expect(result.replyTo).toEqual(
@@ -303,5 +312,54 @@ describe('TripChatsService', () => {
         message: 'Original message',
       }),
     );
+  });
+
+  it('blocks access when the user is blocked by the trip creator', async () => {
+    prisma.trip.findUnique.mockResolvedValueOnce({
+      ...baseTripWithRelations,
+      creator: {
+        blockedUsers: [],
+        blockedByUsers: [{ id: 1 }], // user 22 blocked the creator
+      },
+    });
+
+    await expect(service.getChatAccess('trip-123', 22)).resolves.toEqual(
+      expect.objectContaining({
+        canAccess: false,
+      }),
+    );
+  });
+
+  it('creates a fallback chat when trip.chat is null (pre-creation missed)', async () => {
+    // Trip without a pre-created chat
+    prisma.trip.findUnique.mockResolvedValueOnce({
+      ...baseTripWithRelations,
+      chat: null,
+    });
+    prisma.tripChat.create.mockResolvedValueOnce({
+      id: 5,
+    });
+    prisma.tripChatMessage.create.mockResolvedValueOnce({
+      id: 7,
+      documentId: 'msg-1',
+      message: 'Hello',
+      createdAt: new Date('2026-03-21T10:00:00.000Z'),
+      sender: {
+        id: 10,
+        username: 'captain',
+        userProfile: null,
+      },
+      replyTo: null,
+    });
+
+    const result = await service.createMessage('trip-123', 10, {
+      message: 'Hello',
+    });
+
+    expect(prisma.tripChat.create).toHaveBeenCalledWith({
+      data: { tripId: 99 },
+      select: { id: true },
+    });
+    expect(result.documentId).toBe('msg-1');
   });
 });

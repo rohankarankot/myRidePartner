@@ -170,6 +170,136 @@ export class NotificationsService {
     }
   }
 
+  async sendBatchPushOnly(data: {
+    title: string;
+    message: string;
+    userIds: number[];
+    data?: any;
+    threadId?: string;
+    image?: string;
+  }) {
+    if (!data.userIds || data.userIds.length === 0) {
+      return;
+    }
+
+    try {
+      const userProfiles = await this.prisma.userProfile.findMany({
+        where: { userId: { in: data.userIds } },
+        select: { userId: true, pushToken: true },
+      });
+
+      const tokens = userProfiles
+        .map((profile) => profile.pushToken)
+        .filter((token): token is string => Boolean(token));
+
+      if (tokens.length === 0) {
+        return;
+      }
+
+      const optimizedImage = this.optimizeImageUrl(data.image);
+      await this.expoPushService.sendBatchNotifications(
+        tokens,
+        data.title,
+        data.message,
+        {
+          ...data.data,
+          image: optimizedImage,
+          icon: optimizedImage,
+        },
+        {
+          threadId: data.threadId,
+          image: optimizedImage,
+        },
+      );
+    } catch (error) {
+      console.error('Failed to send batch push-only notifications:', error);
+    }
+  }
+
+  async createMany(
+    notifications: Array<{
+      userId: number;
+      title: string;
+      message: string;
+      type: NotificationType;
+      relatedId?: string;
+      data?: any;
+    }>,
+  ) {
+    if (notifications.length === 0) {
+      return;
+    }
+
+    await this.prisma.notification.createMany({
+      data: notifications.map((n) => ({
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        relatedId: n.relatedId,
+        data: n.data,
+        userId: n.userId,
+      })),
+    });
+
+    const createdNotifications = await this.prisma.notification.findMany({
+      where: {
+        userId: { in: notifications.map((n) => n.userId) },
+        relatedId: notifications[0].relatedId || undefined,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: notifications.length,
+    });
+
+    for (const notification of createdNotifications) {
+      if (notification.type !== NotificationType.TRIP_COMPLETED) {
+        this.eventsGateway.emitToUser(
+          notification.userId,
+          'new_notification',
+          notification,
+        );
+      }
+    }
+
+    try {
+      const userProfiles = await this.prisma.userProfile.findMany({
+        where: { userId: { in: notifications.map((n) => n.userId) } },
+        select: { userId: true, pushToken: true },
+      });
+
+      const tokens = userProfiles
+        .map((p) => p.pushToken)
+        .filter((token): token is string => Boolean(token));
+
+      if (tokens.length > 0) {
+        const firstNotif = notifications[0];
+        const optimizedImage = this.optimizeImageUrl(firstNotif.data?.image);
+
+        await this.expoPushService.sendBatchNotifications(
+          tokens,
+          firstNotif.title,
+          firstNotif.message,
+          {
+            type: firstNotif.type,
+            relatedId: firstNotif.relatedId,
+            ...firstNotif.data,
+            image: optimizedImage,
+            icon: optimizedImage,
+          },
+          {
+            threadId:
+              firstNotif.data?.threadId || firstNotif.relatedId || undefined,
+            image: optimizedImage,
+          },
+        );
+      }
+    } catch (error) {
+      console.error(
+        'Failed to send batch push notifications in createMany:',
+        error,
+      );
+    }
+  }
+
   /**
    * Mark a single notification as read.
    */

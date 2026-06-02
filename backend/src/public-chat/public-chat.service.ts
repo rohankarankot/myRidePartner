@@ -11,7 +11,6 @@ import { normalizePublicChatCity } from './public-chat-room.util';
 const publicChatSenderSelect = {
   id: true,
   username: true,
-  email: true,
   userProfile: {
     select: {
       avatar: true,

@@ -19,7 +19,6 @@ import { CreateGroupMessageDto, GetGroupMessagesQueryDto } from '@app/common';
 const groupMessageSenderSelect = {
   id: true,
   username: true,
-  email: true,
   userProfile: {
     select: {
       avatar: true,
@@ -335,7 +334,9 @@ export class CommunityGroupsService {
     }
 
     if (group.creatorId !== userId) {
-      throw new ForbiddenException('Only the group owner can delete this group');
+      throw new ForbiddenException(
+        'Only the group owner can delete this group',
+      );
     }
 
     await this.prisma.communityGroup.delete({
@@ -550,34 +551,31 @@ export class CommunityGroupsService {
       .map((member) => member.userId)
       .filter((memberId) => memberId !== userId);
 
-    await Promise.all(
-      recipientIds.map(async (recipientId) => {
-        if (
-          this.eventsGateway.isUserActivelyViewingGroupChat(
-            documentId,
-            recipientId,
-          )
-        ) {
-          return;
-        }
-
-        await this.notificationsService.sendPushOnly({
-          title:
-            message.sender.userProfile?.fullName ||
-            message.sender.username ||
-            'Community group',
-          message: this.buildGroupMessagePreview(trimmedMessage),
-          userId: recipientId,
-          data: {
-            screen: 'community-group-chat',
-            groupDocumentId: documentId,
-            messageDocumentId: message.documentId,
-          },
-          threadId: documentId,
-          image: message.sender.userProfile?.avatar || undefined,
-        });
-      }),
+    const activeViewersFilteredRecipientIds = recipientIds.filter(
+      (recipientId) =>
+        !this.eventsGateway.isUserActivelyViewingGroupChat(
+          documentId,
+          recipientId,
+        ),
     );
+
+    if (activeViewersFilteredRecipientIds.length > 0) {
+      await this.notificationsService.sendBatchPushOnly({
+        title:
+          message.sender.userProfile?.fullName ||
+          message.sender.username ||
+          'Community group',
+        message: this.buildGroupMessagePreview(trimmedMessage),
+        userIds: activeViewersFilteredRecipientIds,
+        data: {
+          screen: 'community-group-chat',
+          groupDocumentId: documentId,
+          messageDocumentId: message.documentId,
+        },
+        threadId: documentId,
+        image: message.sender.userProfile?.avatar || undefined,
+      });
+    }
 
     return payload;
   }
