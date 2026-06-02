@@ -6,12 +6,12 @@ const androidAppId =
 const iosAppId =
   process.env.EXPO_PUBLIC_ADMOB_APP_ID_IOS || 'ca-app-pub-3940256099942544~1458002511';
 const shareBaseUrl =
-  process.env.EXPO_PUBLIC_SHARE_BASE_URL || 'https://my-ride-partner.vercel.app';
+  process.env.EXPO_PUBLIC_SHARE_BASE_URL || 'https://cab-collab.vercel.app';
 const shareHost = new URL(shareBaseUrl).host;
 
 const config: ExpoConfig = {
   name: 'Cab Collab',
-  slug: 'cabcollab',
+  slug: 'myridepartner',
   version: '3.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',

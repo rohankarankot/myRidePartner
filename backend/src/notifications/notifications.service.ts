@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { ExpoPushService } from './expo-push.service';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import {
   PaginationParams,
   buildPaginationMeta,
@@ -12,6 +12,12 @@ import {
 export interface NotificationFilters {
   userId?: number;
   read?: boolean;
+}
+
+export interface NotificationDataPayload {
+  image?: string;
+  threadId?: string;
+  [key: string]: unknown;
 }
 
 @Injectable()
@@ -28,8 +34,8 @@ export class NotificationsService {
   async findAll(
     pagination: PaginationParams,
     filters: NotificationFilters = {},
-  ): Promise<{ data: any[]; meta: PaginatedMeta }> {
-    const where: any = {};
+  ): Promise<{ data: unknown[]; meta: PaginatedMeta }> {
+    const where: Prisma.NotificationWhereInput = {};
 
     if (filters.userId) {
       where.userId = filters.userId;
@@ -76,7 +82,7 @@ export class NotificationsService {
     message: string;
     type: NotificationType;
     userId: number;
-    data?: any;
+    data?: NotificationDataPayload;
     relatedId?: string;
   }) {
     const notification = await this.prisma.notification.create({
@@ -84,7 +90,7 @@ export class NotificationsService {
         title: data.title,
         message: data.message,
         type: data.type,
-        data: data.data,
+        data: (data.data ?? undefined) as Prisma.InputJsonValue | undefined,
         relatedId: data.relatedId,
         user: { connect: { id: data.userId } },
       },
@@ -116,12 +122,12 @@ export class NotificationsService {
           {
             type: data.type,
             relatedId: data.relatedId,
-            ...data.data,
+            ...(data.data as Record<string, unknown> | undefined),
             image: optimizedImage, // Also include in data for client-side handling
             icon: optimizedImage, // Redundancy for Android handlers
           },
           {
-            threadId: data.data?.threadId,
+            threadId: data.data?.threadId ?? undefined,
             image: optimizedImage,
           },
         );
@@ -138,7 +144,7 @@ export class NotificationsService {
     title: string;
     message: string;
     userId: number;
-    data?: any;
+    data?: NotificationDataPayload;
     threadId?: string;
     image?: string;
   }) {
@@ -155,7 +161,7 @@ export class NotificationsService {
           data.title,
           data.message,
           {
-            ...data.data,
+            ...(data.data as Record<string, unknown> | undefined),
             image: optimizedImage, // Also include in data
             icon: optimizedImage, // Redundancy for Android handlers
           },
@@ -167,6 +173,136 @@ export class NotificationsService {
       }
     } catch (error) {
       console.error('Failed to send push-only notification:', error);
+    }
+  }
+
+  async sendBatchPushOnly(data: {
+    title: string;
+    message: string;
+    userIds: number[];
+    data?: NotificationDataPayload;
+    threadId?: string;
+    image?: string;
+  }) {
+    if (!data.userIds || data.userIds.length === 0) {
+      return;
+    }
+
+    try {
+      const userProfiles = await this.prisma.userProfile.findMany({
+        where: { userId: { in: data.userIds } },
+        select: { userId: true, pushToken: true },
+      });
+
+      const tokens = userProfiles
+        .map((profile) => profile.pushToken)
+        .filter((token): token is string => Boolean(token));
+
+      if (tokens.length === 0) {
+        return;
+      }
+
+      const optimizedImage = this.optimizeImageUrl(data.image);
+      await this.expoPushService.sendBatchNotifications(
+        tokens,
+        data.title,
+        data.message,
+        {
+          ...(data.data as Record<string, unknown> | undefined),
+          image: optimizedImage,
+          icon: optimizedImage,
+        },
+        {
+          threadId: data.threadId,
+          image: optimizedImage,
+        },
+      );
+    } catch (error) {
+      console.error('Failed to send batch push-only notifications:', error);
+    }
+  }
+
+  async createMany(
+    notifications: Array<{
+      userId: number;
+      title: string;
+      message: string;
+      type: NotificationType;
+      relatedId?: string;
+      data?: NotificationDataPayload;
+    }>,
+  ) {
+    if (notifications.length === 0) {
+      return;
+    }
+
+    await this.prisma.notification.createMany({
+      data: notifications.map((n) => ({
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        relatedId: n.relatedId,
+        data: (n.data ?? undefined) as Prisma.InputJsonValue | undefined,
+        userId: n.userId,
+      })),
+    });
+
+    const createdNotifications = await this.prisma.notification.findMany({
+      where: {
+        userId: { in: notifications.map((n) => n.userId) },
+        relatedId: notifications[0].relatedId || undefined,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: notifications.length,
+    });
+
+    for (const notification of createdNotifications) {
+      if (notification.type !== NotificationType.TRIP_COMPLETED) {
+        this.eventsGateway.emitToUser(
+          notification.userId,
+          'new_notification',
+          notification,
+        );
+      }
+    }
+
+    try {
+      const userProfiles = await this.prisma.userProfile.findMany({
+        where: { userId: { in: notifications.map((n) => n.userId) } },
+        select: { userId: true, pushToken: true },
+      });
+
+      const tokens = userProfiles
+        .map((p) => p.pushToken)
+        .filter((token): token is string => Boolean(token));
+
+      if (tokens.length > 0) {
+        const firstNotif = notifications[0];
+        const optimizedImage = this.optimizeImageUrl(firstNotif.data?.image);
+
+        await this.expoPushService.sendBatchNotifications(
+          tokens,
+          firstNotif.title,
+          firstNotif.message,
+          {
+            type: firstNotif.type,
+            relatedId: firstNotif.relatedId,
+            ...(firstNotif.data as Record<string, unknown> | undefined),
+            image: optimizedImage,
+            icon: optimizedImage,
+          },
+          {
+            threadId:
+              firstNotif.data?.threadId || firstNotif.relatedId || undefined,
+            image: optimizedImage,
+          },
+        );
+      }
+    } catch (error) {
+      console.error(
+        'Failed to send batch push notifications in createMany:',
+        error,
+      );
     }
   }
 

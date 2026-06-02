@@ -485,7 +485,7 @@ export class JoinRequestsService {
       const passengerName =
         updatedRequest.passenger.userProfile?.fullName ||
         updatedRequest.passenger.username;
-      
+
       await this.notificationsService.create({
         userId: updatedRequest.trip.creatorId,
         title: 'Rider Arrived',

@@ -19,17 +19,9 @@ import { UploadService } from '../upload/upload.service';
 const MEDIA_MESSAGE_PREFIX = '__ride_media__::';
 const LOCATION_MESSAGE_PREFIX = '__ride_location__::';
 
-type TripWithRelations = {
-  id: number;
-  documentId: string;
-  status: TripStatus;
-  creatorId: number;
-};
-
 const tripChatMessageSenderSelect = {
   id: true,
   username: true,
-  email: true,
   userProfile: {
     select: {
       avatar: true,
@@ -71,15 +63,29 @@ export class TripChatsService {
   ) {}
 
   async getChatAccess(tripDocumentId: string, userId: number) {
-    const trip = await this.getTripOrThrow(tripDocumentId);
-    const canAccess = await this.canAccessTripChat(trip, userId);
-
-    return {
-      tripDocumentId: trip.documentId,
-      canAccess,
-      tripStatus: trip.status,
-      isCaptain: trip.creatorId === userId,
-    };
+    try {
+      const trip = await this.assertChatAccess(tripDocumentId, userId);
+      return {
+        tripDocumentId: trip.documentId,
+        canAccess: true,
+        tripStatus: trip.status,
+        isCaptain: trip.creatorId === userId,
+      };
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        const trip = await this.prisma.trip.findUnique({
+          where: { documentId: tripDocumentId },
+          select: { status: true, creatorId: true },
+        });
+        return {
+          tripDocumentId,
+          canAccess: false,
+          tripStatus: trip?.status || TripStatus.PUBLISHED,
+          isCaptain: trip?.creatorId === userId,
+        };
+      }
+      throw error;
+    }
   }
 
   async getMessages(
@@ -88,7 +94,17 @@ export class TripChatsService {
     query?: GetTripChatMessagesQueryDto,
   ) {
     const trip = await this.assertChatAccess(tripDocumentId, userId);
-    const chat = await this.findOrCreateChat(trip);
+    let chatId = trip.chat?.id;
+    if (!chatId) {
+      const newChat = await this.runWithChatTableGuard(() =>
+        this.prisma.tripChat.create({
+          data: { tripId: trip.id },
+          select: { id: true },
+        }),
+      );
+      chatId = newChat!.id;
+    }
+
     const limit = Math.min(Math.max(Number(query?.limit ?? 40), 1), 100);
     const cursor = query?.cursor;
     const cursorMessage = cursor
@@ -103,8 +119,8 @@ export class TripChatsService {
     const messages = await this.runWithChatTableGuard(() =>
       this.prisma.tripChatMessage.findMany({
         where: {
-          chatId: chat.id,
-          ...(cursorMessage && cursorMessage.chatId === chat.id
+          chatId,
+          ...(cursorMessage && cursorMessage.chatId === chatId
             ? {
                 OR: [
                   { createdAt: { lt: cursorMessage.createdAt } },
@@ -169,7 +185,17 @@ export class TripChatsService {
       throw new BadRequestException('Message cannot be empty');
     }
 
-    const chat = await this.findOrCreateChat(trip);
+    let chatId = trip.chat?.id;
+    if (!chatId) {
+      const newChat = await this.runWithChatTableGuard(() =>
+        this.prisma.tripChat.create({
+          data: { tripId: trip.id },
+          select: { id: true },
+        }),
+      );
+      chatId = newChat!.id;
+    }
+
     let replyToMessage: Awaited<
       ReturnType<typeof this.prisma.tripChatMessage.findUnique>
     > | null = null;
@@ -182,7 +208,7 @@ export class TripChatsService {
         }),
       );
 
-      if (!replyToMessage || replyToMessage.chatId !== chat.id) {
+      if (!replyToMessage || replyToMessage.chatId !== chatId) {
         throw new BadRequestException(
           'Reply target was not found in this chat',
         );
@@ -192,7 +218,7 @@ export class TripChatsService {
     const message = await this.runWithChatTableGuard(() =>
       this.prisma.tripChatMessage.create({
         data: {
-          chatId: chat.id,
+          chatId,
           senderId: userId,
           message: trimmedMessage,
           replyToId: replyToMessage?.id,
@@ -290,8 +316,12 @@ export class TripChatsService {
   }
 
   async canJoinSocketRoom(tripDocumentId: string, userId: number) {
-    const trip = await this.getTripOrThrow(tripDocumentId);
-    return this.canAccessTripChat(trip, userId);
+    try {
+      await this.assertChatAccess(tripDocumentId, userId);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private extractMediaUrl(message: string): string | null {
@@ -330,91 +360,74 @@ export class TripChatsService {
   }
 
   private async assertChatAccess(tripDocumentId: string, userId: number) {
-    const trip = await this.getTripOrThrow(tripDocumentId);
-    const canAccess = await this.canAccessTripChat(trip, userId);
+    const trip = await this.prisma.trip.findUnique({
+      where: { documentId: tripDocumentId },
+      select: {
+        id: true,
+        documentId: true,
+        status: true,
+        creatorId: true,
+        chat: {
+          select: {
+            id: true,
+            documentId: true,
+          },
+        },
+        joinRequests: {
+          where: {
+            passengerId: userId,
+            status: JoinRequestStatus.APPROVED,
+          },
+          select: {
+            id: true,
+          },
+        },
+        creator: {
+          select: {
+            blockedUsers: {
+              where: {
+                blockedUserId: userId,
+              },
+              select: {
+                id: true,
+              },
+            },
+            blockedByUsers: {
+              where: {
+                blockerId: userId,
+              },
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-    if (!canAccess) {
-      throw new ForbiddenException('You do not have access to this trip chat');
+    if (!trip) {
+      throw new NotFoundException('Trip not found');
     }
 
     if (trip.status === 'COMPLETED' || trip.status === 'CANCELLED') {
       throw new ForbiddenException('This trip chat is no longer available');
     }
 
+    const hasBlock =
+      trip.creator.blockedUsers.length > 0 ||
+      trip.creator.blockedByUsers.length > 0;
+    const isCreator = trip.creatorId === userId;
+    const isApprovedPassenger = trip.joinRequests.length > 0;
+
+    if (hasBlock || (!isCreator && !isApprovedPassenger)) {
+      throw new ForbiddenException('You do not have access to this trip chat');
+    }
+
     return trip;
   }
 
-  private async canAccessTripChat(trip: TripWithRelations, userId: number) {
-    if (trip.status === 'COMPLETED' || trip.status === 'CANCELLED') {
-      return false;
-    }
-
-    const isBlocked = await this.prisma.userBlock.findFirst({
-      where: {
-        OR: [
-          {
-            blockerId: userId,
-            blockedUserId: trip.creatorId,
-          },
-          {
-            blockerId: trip.creatorId,
-            blockedUserId: userId,
-          },
-        ],
-      },
-      select: { id: true },
-    });
-
-    if (isBlocked) {
-      return false;
-    }
-
-    if (trip.creatorId === userId) {
-      return true;
-    }
-
-    const approvedRequest = await this.prisma.joinRequest.findFirst({
-      where: {
-        tripId: trip.id,
-        passengerId: userId,
-        status: JoinRequestStatus.APPROVED,
-      },
-      select: { id: true },
-    });
-
-    return Boolean(approvedRequest);
-  }
-
-  private async findOrCreateChat(trip: TripWithRelations) {
-    const existingChat = await this.runWithChatTableGuard(() =>
-      this.prisma.tripChat.findUnique({
-        where: { tripId: trip.id },
-        select: {
-          id: true,
-          documentId: true,
-        },
-      }),
-    );
-
-    if (existingChat) {
-      return existingChat;
-    }
-
-    return (await this.runWithChatTableGuard(() =>
-      this.prisma.tripChat.create({
-        data: {
-          tripId: trip.id,
-        },
-        select: {
-          id: true,
-          documentId: true,
-        },
-      }),
-    ))!;
-  }
-
   private async notifyTripChatRecipients(
-    trip: TripWithRelations,
+    trip: { id: number; documentId: string; creatorId: number },
     message: {
       documentId: string;
       message: string;
@@ -456,29 +469,22 @@ export class TripChatsService {
     const messagePreview = this.buildChatNotificationPreview(message.message);
 
     this.logger.log(
-      `Notifying ${recipientIds.length} recipients. Sender: ${senderName}, Avatar: ${message.sender.userProfile?.avatar}`,
+      `Notifying ${recipientIds.length} recipients. Sender: ${senderName}`,
     );
 
-    await Promise.all(
-      recipientIds.map(async (recipientId) => {
-        this.logger.log(
-          `Sending ride chat push to user ${recipientId} for trip ${trip.documentId}`,
-        );
-        await this.notificationsService.sendPushOnly({
-          title: senderName,
-          message: messagePreview,
-          userId: recipientId,
-          data: {
-            tripId: trip.documentId,
-            screen: 'trip-chat',
-            messageDocumentId: message.documentId,
-            image: message.sender.userProfile?.avatar || undefined,
-          },
-          threadId: trip.documentId,
-          image: message.sender.userProfile?.avatar || undefined,
-        });
-      }),
-    );
+    await this.notificationsService.sendBatchPushOnly({
+      title: senderName,
+      message: messagePreview,
+      userIds: recipientIds,
+      data: {
+        tripId: trip.documentId,
+        screen: 'trip-chat',
+        messageDocumentId: message.documentId,
+        image: message.sender.userProfile?.avatar || undefined,
+      },
+      threadId: trip.documentId,
+      image: message.sender.userProfile?.avatar || undefined,
+    });
   }
 
   private buildChatNotificationPreview(message: string) {
@@ -491,26 +497,6 @@ export class TripChatsService {
     }
 
     return message.length > 120 ? `${message.slice(0, 117)}...` : message;
-  }
-
-  private async getTripOrThrow(
-    tripDocumentId: string,
-  ): Promise<TripWithRelations> {
-    const trip = await this.prisma.trip.findUnique({
-      where: { documentId: tripDocumentId },
-      select: {
-        id: true,
-        documentId: true,
-        status: true,
-        creatorId: true,
-      },
-    });
-
-    if (!trip) {
-      throw new NotFoundException('Trip not found');
-    }
-
-    return trip;
   }
 
   private async runWithChatTableGuard<T>(

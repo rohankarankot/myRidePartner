@@ -12,6 +12,7 @@ import {
   TripStatus,
   GenderPreference,
   NotificationType,
+  Trip,
 } from '@prisma/client';
 import {
   PaginationParams,
@@ -19,11 +20,7 @@ import {
   PaginatedMeta,
 } from '../common/utils/query.utils';
 import { TripChatsService } from '../trip-chats/trip-chats.service';
-import {
-  buildTripStartDateTime,
-  getTodayDateString,
-  isTripInFuture,
-} from './trip-time.utils';
+import { getTodayDateString, isTripInFuture } from './trip-time.utils';
 
 export interface TripFilters {
   status?: TripStatus;
@@ -391,6 +388,9 @@ export class TripsService {
         isPriceCalculated: data.isPriceCalculated,
         genderPreference: data.genderPreference as GenderPreference,
         creator: { connect: { id: data.creator } },
+        chat: {
+          create: {},
+        },
       },
       include: {
         creator: {
@@ -498,11 +498,11 @@ export class TripsService {
 
     // 4. Send notifications to all approved passengers if status changed
     if (data.status && data.status !== oldTrip.status) {
-      this.notifyPassengersOfStatusChange(trip);
+      await this.notifyPassengersOfStatusChange(trip);
 
       // 5. Increment completed trips count if status is COMPLETED
       if (data.status === 'COMPLETED') {
-        this.incrementCompletedTripsStats(trip);
+        await this.incrementCompletedTripsStats(trip);
         await this.tripChatsService.deleteChatForCompletedTrip(documentId);
       }
     }
@@ -513,14 +513,14 @@ export class TripsService {
   /**
    * Helper to increment completedTripsCount for creator and passengers.
    */
-  private async incrementCompletedTripsStats(trip: any) {
+  private async incrementCompletedTripsStats(trip: Trip) {
     // 1. Increment for creator (Captain)
     await this.prisma.userProfile.update({
       where: { userId: trip.creatorId },
       data: { completedTripsCount: { increment: 1 } },
     });
 
-    // 2. Increment for approved passengers
+    // 2. Increment for approved passengers in one single updateMany call
     const passengers = await this.prisma.joinRequest.findMany({
       where: {
         tripId: trip.id,
@@ -531,18 +531,15 @@ export class TripsService {
       },
     });
 
-    for (const p of passengers) {
-      await this.prisma.userProfile.update({
-        where: { userId: p.passengerId },
+    if (passengers.length > 0) {
+      await this.prisma.userProfile.updateMany({
+        where: { userId: { in: passengers.map((p) => p.passengerId) } },
         data: { completedTripsCount: { increment: 1 } },
       });
     }
   }
 
-  /**
-   * Helper to notify all approved passengers of a trip status change.
-   */
-  private async notifyPassengersOfStatusChange(trip: any) {
+  private async notifyPassengersOfStatusChange(trip: Trip) {
     const passengers = await this.prisma.joinRequest.findMany({
       where: {
         tripId: trip.id,
@@ -552,6 +549,10 @@ export class TripsService {
         passengerId: true,
       },
     });
+
+    if (passengers.length === 0) {
+      return;
+    }
 
     const statusLabels: Record<string, string> = {
       STARTED: 'started',
@@ -561,19 +562,19 @@ export class TripsService {
 
     const label = statusLabels[trip.status] || trip.status.toLowerCase();
 
-    for (const p of passengers) {
-      await this.notificationsService.create({
-        userId: p.passengerId,
-        title: `Trip ${label}`,
-        message: `The trip from ${trip.startingPoint} to ${trip.destination} has been ${label}.`,
-        type:
-          trip.status === 'COMPLETED'
-            ? NotificationType.TRIP_COMPLETED
-            : NotificationType.TRIP_UPDATE,
-        relatedId: trip.documentId,
-        data: { tripId: trip.documentId },
-      });
-    }
+    const notifications = passengers.map((p) => ({
+      userId: p.passengerId,
+      title: `Trip ${label}`,
+      message: `The trip from ${trip.startingPoint} to ${trip.destination} has been ${label}.`,
+      type:
+        trip.status === 'COMPLETED'
+          ? NotificationType.TRIP_COMPLETED
+          : NotificationType.TRIP_UPDATE,
+      relatedId: trip.documentId,
+      data: { tripId: trip.documentId },
+    }));
+
+    await this.notificationsService.createMany(notifications);
   }
 
   /**
