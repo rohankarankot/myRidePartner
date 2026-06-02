@@ -11,7 +11,7 @@ const shareHost = new URL(shareBaseUrl).host;
 
 const config: ExpoConfig = {
   name: 'Cab Collab',
-  slug: 'cabcollab',
+  slug: 'myridepartner',
   version: '3.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
