@@ -92,7 +92,9 @@ export default function TripDetailsScreen() {
     const [showNoSeatsAlert, setShowNoSeatsAlert] = useState(false);
     const [showStartAlert, setShowStartAlert] = useState(false);
     const [showCompleteAlert, setShowCompleteAlert] = useState(false);
+    const [showCancelJoinRequestAlert, setShowCancelJoinRequestAlert] = useState(false);
     const [updatingJoinRequestId, setUpdatingJoinRequestId] = useState<string | null>(null);
+    const [isCancellingJoinRequest, setIsCancellingJoinRequest] = useState(false);
     const [isUpdatingPickupStatus, setIsUpdatingPickupStatus] = useState(false);
     const [selectedJoinRequest, setSelectedJoinRequest] = useState<JoinRequest | null>(null);
     const [showJoinRequestAlert, setShowJoinRequestAlert] = useState(false);
@@ -201,9 +203,6 @@ export default function TripDetailsScreen() {
         setIsRefreshing(false);
     }, [refetch]);
 
-    const approvedJoinRequest = user ? tripDetails?.requests?.find(r => r.passenger.id === user.id && r.status === 'APPROVED') : null;
-    const isPassenger = Boolean(approvedJoinRequest);
-
     useEffect(() => {
         const viewedTrip = tripDetails?.trip;
         if (!viewedTrip?.documentId || lastTrackedViewedTripRef.current === viewedTrip.documentId) {
@@ -235,9 +234,13 @@ export default function TripDetailsScreen() {
     const trip = tripDetails?.trip || null;
     const creatorProfile = tripDetails?.creatorProfile || null;
     const joinRequests = tripDetails?.requests || [];
+    const approvedJoinRequest = user ? joinRequests.find((request) => request.passenger.id === user.id && request.status === 'APPROVED') || null : null;
+    const isPassenger = Boolean(approvedJoinRequest);
+    const pendingJoinRequest = user ? joinRequests.find((request) => request.passenger.id === user.id && request.status === 'PENDING') || null : null;
+    const activeJoinRequest = user ? joinRequests.find((request) => request.passenger.id === user.id && request.status !== 'CANCELLED') || null : null;
     const approvedJoinRequests = joinRequests.filter((request) => request.status === 'APPROVED');
     const approvedPassengerCount = joinRequests.filter((request) => request.status === 'APPROVED').length;
-    const userJoinRequest = user ? joinRequests.find(r => r.passenger.id === user.id) || null : null;
+    const userJoinRequest = activeJoinRequest;
     const isApprovedPassengerReady = Boolean(approvedJoinRequest?.arrivedAtPickupAt);
     const allApprovedPassengersReady = approvedJoinRequests.every((request) => Boolean(request.arrivedAtPickupAt));
     const pendingPickupConfirmationsCount = approvedJoinRequests.filter((request) => !request.arrivedAtPickupAt).length;
@@ -354,6 +357,35 @@ export default function TripDetailsScreen() {
     const openJoinRequestAlert = (request: JoinRequest) => {
         setSelectedJoinRequest(request);
         setShowJoinRequestAlert(true);
+    };
+
+    const handleCancelJoinRequest = async () => {
+        if (!pendingJoinRequest) return;
+
+        try {
+            setIsCancellingJoinRequest(true);
+            await joinRequestService.updateJoinRequestStatus(pendingJoinRequest.documentId, 'CANCELLED');
+            await Promise.all([
+                refetch(),
+                queryClient.invalidateQueries({ queryKey: ['join-requests', user?.id] }),
+                queryClient.invalidateQueries({ queryKey: ['trip-details', documentId, user?.id] }),
+                queryClient.invalidateQueries({ queryKey: ['trips', user?.id] }),
+            ]);
+            Toast.show({
+                type: 'success',
+                text1: 'Request cancelled',
+                text2: 'Your join request has been cancelled and the ride has been refreshed.',
+            });
+        } catch (error) {
+            const message =
+                (error as any)?.response?.data?.message ||
+                (error as any)?.response?.data?.error?.message ||
+                'Unable to cancel your join request right now.';
+            Toast.show({ type: 'error', text1: 'Error', text2: Array.isArray(message) ? message[0] : message });
+        } finally {
+            setIsCancellingJoinRequest(false);
+            setShowCancelJoinRequestAlert(false);
+        }
     };
 
     const handleUpdateJoinStatus = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
@@ -1035,10 +1067,33 @@ export default function TripDetailsScreen() {
                 )}
 
                 {/* Bottom Actions */}
-                {!isCreator && !userJoinRequest && (
+                {!isCreator && !activeJoinRequest && (
                     <Button onPress={handleInitiateJoin} className="rounded-2xl h-14" style={{ backgroundColor: primaryColor }}>
                         <ButtonText className="font-bold text-white">Join Ride</ButtonText>
                     </Button>
+                )}
+
+                {!isCreator && pendingJoinRequest && (
+                    <Box className="rounded-2xl border p-4" style={{ backgroundColor: cardColor, borderColor }}>
+                        <HStack className="items-center justify-between" space="md">
+                            <VStack className="flex-1" space="xs">
+                                <Text className="text-sm font-bold" style={{ color: textColor }}>
+                                    Join request pending
+                                </Text>
+                                <Text className="text-xs leading-5" style={{ color: subtextColor }}>
+                                    You can cancel this request anytime before it is approved.
+                                </Text>
+                            </VStack>
+                            <Button
+                                className="rounded-xl px-4 h-11"
+                                variant="outline"
+                                style={{ borderColor: dangerColor }}
+                                onPress={() => setShowCancelJoinRequestAlert(true)}
+                            >
+                                <ButtonText style={{ color: dangerColor }}>Cancel Request</ButtonText>
+                            </Button>
+                        </HStack>
+                    </Box>
                 )}
             </ScrollView>
 
@@ -1156,6 +1211,22 @@ export default function TripDetailsScreen() {
                     </VStack>
                 ) : null}
             </CustomAlert>
+
+            <CustomAlert
+                visible={showCancelJoinRequestAlert}
+                title="Cancel Request?"
+                message="Do you want to withdraw your join request for this ride?"
+                primaryButton={{
+                    text: isCancellingJoinRequest ? 'Cancelling...' : 'Yes, Cancel',
+                    onPress: handleCancelJoinRequest,
+                    style: { backgroundColor: dangerColor },
+                }}
+                secondaryButton={{
+                    text: 'Go back',
+                    onPress: () => setShowCancelJoinRequestAlert(false),
+                }}
+                onClose={() => setShowCancelJoinRequestAlert(false)}
+            />
 
             {/* Price Completion Modal */}
             <Modal
