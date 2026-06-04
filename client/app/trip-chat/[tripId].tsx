@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, AppState, FlatList, Image, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, TextInput, useWindowDimensions } from 'react-native';
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetView } from '@gorhom/bottom-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
@@ -459,6 +460,7 @@ export default function TripChatScreen() {
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
+        refetch: refetchMessages,
     } = useInfiniteQuery({
         queryKey: ['trip-chat-messages', tripId],
         queryFn: ({ pageParam }) => tripChatService.getMessages(tripId!, { cursor: pageParam, limit: MESSAGE_PAGE_SIZE }),
@@ -470,6 +472,18 @@ export default function TripChatScreen() {
     const messages = useMemo(
         () => mergeUniqueMessages(paginatedMessages?.pages.flatMap((page) => page.messages) ?? []),
         [paginatedMessages]
+    );
+
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!tripId || !chatAccess?.canAccess) {
+                return;
+            }
+
+            void refetchMessages();
+            void queryClient.invalidateQueries({ queryKey: ['trip-chat-messages', tripId] });
+            void queryClient.invalidateQueries({ queryKey: ['trip-chat-access', tripId] });
+        }, [chatAccess?.canAccess, queryClient, refetchMessages, tripId])
     );
 
     useEffect(() => {

@@ -78,6 +78,7 @@ export function useSocketEvents() {
             console.log('[Socket] Received trip_updated:', data);
             queryClient.invalidateQueries({ queryKey: ['trip-details', data.documentId] });
             queryClient.invalidateQueries({ queryKey: ['trips', user.id] });
+            queryClient.invalidateQueries({ queryKey: ['join-requests', user.id] });
             queryClient.invalidateQueries({ queryKey: ['trip-chat-access', data.documentId] });
             queryClient.invalidateQueries({ queryKey: ['trip-chat-messages', data.documentId] });
         };
