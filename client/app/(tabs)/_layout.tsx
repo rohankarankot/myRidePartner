@@ -1,26 +1,21 @@
-import { Tabs, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { getThemeColors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuth } from '@/context/auth-context';
-import { HeaderRight } from '@/components/ui/HeaderRight';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUserStore } from '@/store/user-store';
 import { useThemeStore } from '@/store/theme-store';
+import { getThemeColors } from '@/constants/theme';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationPermissionGate } from '@/components/notification-permission-gate';
 
-import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
-import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { TabsShell } from './tabs-shell';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -34,18 +29,15 @@ export default function TabLayout() {
   const [notificationReady, setNotificationReady] = useState(false);
   const mode = colorScheme === 'dark' ? 'dark' : 'light';
   const currentColors = getThemeColors(palette)[mode];
-  const tabBarBaseHeight = Platform.OS === 'ios' ? 60 : 60;
-  const tabBarBottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 16);
+  const tabBarBaseHeight = 60;
+  const tabBarBottomPadding = Math.max(insets.bottom, 8);
   const tabBarHeight = tabBarBaseHeight + tabBarBottomPadding;
 
-  const profileAvatarUrl =
-    typeof profile?.avatar === 'string'
-      ? profile.avatar
-      : profile?.avatar?.url;
+  const profileAvatarUrl = typeof profile?.avatar === 'string' ? profile.avatar : profile?.avatar?.url;
   const profileInitial = (profile?.fullName || user?.username || 'U').charAt(0).toUpperCase();
 
   React.useEffect(() => {
-    AsyncStorage.getItem('hasSeenOnboarding').then(value => {
+    AsyncStorage.getItem('hasSeenOnboarding').then((value) => {
       setIsFirstLaunch(value !== 'true');
     });
   }, []);
@@ -70,7 +62,6 @@ export default function TabLayout() {
       setLocationPermission(status);
       if (status !== 'granted') {
         console.log('Permission to access location was denied');
-        return;
       }
     })();
   }, [showContent]);
@@ -116,147 +107,5 @@ export default function TabLayout() {
       profileAvatarUrl={profileAvatarUrl}
       profileInitial={profileInitial}
     />
-  );
-}
-
-function TabsShell({
-  currentColors,
-  tabBarHeight,
-  tabBarBottomPadding,
-  profileAvatarUrl,
-  profileInitial,
-}: {
-  currentColors: ReturnType<typeof getThemeColors>['light'];
-  tabBarHeight: number;
-  tabBarBottomPadding: number;
-  profileAvatarUrl?: string;
-  profileInitial: string;
-}) {
-  return (
-    <Tabs
-      screenOptions={() => ({
-        tabBarActiveTintColor: currentColors.tint,
-        tabBarInactiveTintColor: currentColors.subtext,
-        tabBarShowLabel: true,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '700',
-          marginTop: 4,
-          marginBottom: Platform.OS === 'ios' ? 0 : 4,
-        },
-        tabBarItemStyle: {
-          paddingVertical: 2,
-        },
-        tabBarHideOnKeyboard: true,
-        headerShown: true,
-        headerStyle: {
-          backgroundColor: currentColors.card,
-          elevation: 0,
-          shadowOpacity: 0,
-          borderBottomWidth: 1,
-          borderBottomColor: currentColors.border,
-        },
-        headerTitleStyle: {
-          fontWeight: '800',
-          textTransform: 'uppercase',
-          letterSpacing: 1.5,
-          fontSize: 16,
-          fontFamily: 'Plus Jakarta Sans',
-        },
-        headerTintColor: currentColors.text,
-        tabBarButton: HapticTab,
-        headerTitleAlign: 'center',
-        headerRight: () => <HeaderRight type="notifications" />,
-        headerBackTitleVisible: false,
-        headerLeft: () => null,
-        tabBarStyle: {
-          backgroundColor: currentColors.card,
-          borderTopWidth: 1,
-          borderTopColor: currentColors.border,
-          height: tabBarHeight,
-          paddingTop: Platform.OS === 'ios' ? 10 : 2,
-          paddingBottom: tabBarBottomPadding,
-        }
-      })}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          headerTitle: 'FIND RIDES',
-          title: 'Explore',
-          tabBarIcon: ({ color, focused }) =>
-            focused
-              ? <MaterialIcons name="route" size={26} color={color} />
-              : <MaterialIcons name="route" size={26} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="activity"
-        options={{
-          headerTitle: 'ACTIVITY',
-          title: 'Activity',
-          headerRight: () => <HeaderRight type="chats" />,
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="list.bullet" size={26} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="create"
-        options={{
-          headerTitle: 'PUBLISH',
-          title: 'Publish',
-          tabBarIcon: ({ color, focused }) =>
-            focused
-              ? <PublishFilledIcon width={28} height={28} color={color} />
-              : <PublishOutlineIcon width={28} height={28} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="community"
-        options={{
-          headerTitle: 'COMMUNITY',
-          title: 'Community',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="person.2.fill" size={26} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          headerShown: true,
-          headerTitle: 'PROFILE',
-          headerRight: () => <HeaderRight type="settings" />,
-          tabBarIcon: ({ focused, color }) => (
-            profileAvatarUrl ? (
-              <Box
-                className="w-8 h-8 rounded-full border-2 overflow-hidden shadow-sm"
-                style={{ borderColor: focused ? currentColors.tint : `${currentColors.border}` }}
-              >
-                <Image
-                  source={{ uri: profileAvatarUrl }}
-                  className="w-full h-full"
-                />
-              </Box>
-            ) : (
-              <Box
-                className="w-8 h-8 rounded-full items-center justify-center border shadow-sm"
-                style={{
-                  backgroundColor: focused ? currentColors.tint : currentColors.background,
-                  borderColor: focused ? currentColors.tint : `${currentColors.border}`,
-                }}>
-                <Text
-                  className="text-[10px] font-extrabold uppercase"
-                  style={{ color: focused ? '#fff' : color }}
-                >
-                  {profileInitial}
-                </Text>
-              </Box>
-            )
-          ),
-        }}
-      />
-    </Tabs>
   );
 }

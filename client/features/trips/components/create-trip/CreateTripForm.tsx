@@ -11,6 +11,7 @@ import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import { CreateTripFormErrors, CREATE_TRIP_GENDER_OPTIONS } from '@/features/trips/utils/create-trip';
 import { CreateTripFormField } from '@/features/trips/components/create-trip/CreateTripFormField';
+import { PublishRideBannerAd } from '@/features/ads/components/publish-ride-banner-ad';
 
 type CreateTripFormProps = {
   backgroundColor: string;
@@ -367,6 +368,8 @@ export function CreateTripForm({
             )}
           </Box>
         </Box>
+
+        {step === 1 ? <PublishRideBannerAd /> : null}
 
         {step === 2 ? (
           <>
