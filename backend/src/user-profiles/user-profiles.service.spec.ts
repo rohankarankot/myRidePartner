@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { UserProfilesService } from './user-profiles.service';
 
 describe('UserProfilesService', () => {
@@ -14,9 +15,16 @@ describe('UserProfilesService', () => {
   beforeEach(() => {
     prismaMock.userProfile.findUnique.mockReset();
     prismaMock.userProfile.update.mockReset();
-    process.env.EMAIL_USER = '';
-    process.env.EMAIL_APP_PASSWORD = '';
-    service = new UserProfilesService(prismaMock as any);
+    service = new UserProfilesService(
+      prismaMock as any,
+      {
+        get: jest.fn((key: string) => {
+          if (key === 'EMAIL_USER') return '';
+          if (key === 'EMAIL_APP_PASSWORD') return '';
+          return undefined;
+        }),
+      } as unknown as ConfigService,
+    );
   });
 
   it('normalizes org emails before storing and sending OTPs', async () => {

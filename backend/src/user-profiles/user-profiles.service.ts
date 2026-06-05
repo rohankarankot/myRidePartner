@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '@app/common';
 import { Gender } from '@prisma/client';
 import * as nodemailer from 'nodemailer';
@@ -14,13 +15,23 @@ const PUBLIC_EMAIL_DOMAINS = [
 export class UserProfilesService {
   private readonly logger = new Logger(UserProfilesService.name);
   private transporter: nodemailer.Transporter;
+  private readonly emailUser?: string;
+  private readonly emailAppPassword?: string;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {
+    this.emailUser = this.configService.get<string>('EMAIL_USER')?.trim();
+    this.emailAppPassword = this.configService
+      .get<string>('EMAIL_APP_PASSWORD')
+      ?.trim();
+
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_APP_PASSWORD,
+        user: this.emailUser,
+        pass: this.emailAppPassword,
       },
     });
   }
@@ -133,11 +144,11 @@ export class UserProfilesService {
     });
 
     try {
-      if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+      if (this.emailUser && this.emailAppPassword) {
         await this.transporter.sendMail({
-          from: `"myRidePartner" <${process.env.EMAIL_USER}>`,
+          from: `"Cab Collab Community" <${this.emailUser}>`,
           to: normalizedEmail,
-          subject: 'Your Organization Verification Code',
+          subject: 'Cab Collab Community - Your Organization Verification Code',
           text: `Your verification code is: ${otp}. It will expire in 15 minutes.`,
         });
         this.logger.log(`Verification OTP sent to ${normalizedEmail}`);

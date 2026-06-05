@@ -14,7 +14,6 @@ type ProfileHeaderCardProps = {
   cardColor: string;
   dangerBgColor: string;
   dangerColor: string;
-  email?: string;
   hasProfile: boolean;
   initials: string;
   isOrganizationVerified: boolean;
@@ -28,7 +27,6 @@ type ProfileHeaderCardProps = {
   onViewImage: () => void;
   onVerifyNow: () => void;
   primaryColor: string;
-  profileCity?: string;
   successBgColor: string;
   successColor: string;
   subtextColor: string;
@@ -40,7 +38,6 @@ export function ProfileHeaderCard({
   cardColor,
   dangerBgColor,
   dangerColor,
-  email,
   hasProfile,
   initials,
   isOrganizationVerified,
@@ -54,7 +51,6 @@ export function ProfileHeaderCard({
   onViewImage,
   onVerifyNow,
   primaryColor,
-  profileCity,
   successBgColor,
   successColor,
   subtextColor,
@@ -91,18 +87,6 @@ export function ProfileHeaderCard({
         <Text className="text-3xl font-extrabold text-center" style={{ color: textColor }}>
           {name}
         </Text>
-        {profileCity ? (
-          <HStack space="xs" className="items-center px-3 py-1 rounded-full border border-dashed" style={{ borderColor: primaryColor }}>
-            <IconSymbol name="mappin.circle.fill" size={12} color={primaryColor} />
-            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-              {profileCity}
-            </Text>
-          </HStack>
-        ) : (
-          <Text className="text-sm font-medium" style={{ color: subtextColor }}>
-            {email}
-          </Text>
-        )}
       </VStack>
 
       {!hasProfile ? (

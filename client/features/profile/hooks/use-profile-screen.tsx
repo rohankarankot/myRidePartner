@@ -392,6 +392,18 @@ export function useProfileScreen() {
     setShowVerificationAlert(true);
   };
 
+  const resetVerificationFlow = useCallback(() => {
+    setShowVerificationAlert(false);
+    setOrgEmailInput('');
+    setOtpInput('');
+    setVerificationStep('email');
+  }, []);
+
+  const handleChangeVerificationEmail = useCallback(() => {
+    setVerificationStep('email');
+    setOtpInput('');
+  }, []);
+
   const handleRequestOrgVerification = async () => {
     if (!orgEmailInput.trim()) {
       Toast.show({ type: 'error', text1: 'Email required', text2: 'Please enter your work or college email.' });
@@ -422,10 +434,7 @@ export function useProfileScreen() {
       await userService.confirmOrgVerification(orgEmailInput.trim(), otpInput.trim());
 
       Toast.show({ type: 'success', text1: 'Verified!', text2: 'Your organization has been verified successfully.' });
-      setShowVerificationAlert(false);
-      setOrgEmailInput('');
-      setOtpInput('');
-      setVerificationStep('email');
+      resetVerificationFlow();
 
       // Refresh profile to pull the new badge details
       queryClient.invalidateQueries({ queryKey: ['user-profile', authUser?.id] });
@@ -470,6 +479,8 @@ export function useProfileScreen() {
     handleVerifyNowClick,
     handleRequestOrgVerification,
     handleConfirmOrgVerification,
+    handleChangeVerificationEmail,
+    resetVerificationFlow,
     isLoading,
     isPending: createProfileMutation.isPending || updateProfileMutation.isPending,
     isRefreshing,

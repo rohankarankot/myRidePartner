@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControl, ScrollView, Image, TextInput } from 'react-native';
+import { RefreshControl, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { ProfileSkeleton } from '@/features/profile/components/ProfileSkeleton';
@@ -15,6 +15,7 @@ import {
   ProfileEditorSheet,
   ProfileHeaderCard,
   ProfilePerformanceCard,
+  WorkspaceVerificationModal,
 } from '@/features/profile/components/profile-tab';
 import { useProfileScreen } from '@/features/profile/hooks/use-profile-screen';
 import { getProfileAvatarUrl } from '@/features/profile/utils/profile-screen';
@@ -42,6 +43,8 @@ export default function ProfileScreen() {
     handleVerifyNowClick,
     handleRequestOrgVerification,
     handleConfirmOrgVerification,
+    handleChangeVerificationEmail,
+    resetVerificationFlow,
     isLoading,
     isPending,
     isRefreshing,
@@ -62,7 +65,6 @@ export default function ProfileScreen() {
     setShowConsentAlert,
     setShowSignOutModal,
     showVerificationAlert,
-    setShowVerificationAlert,
     orgEmailInput,
     setOrgEmailInput,
     otpInput,
@@ -149,7 +151,6 @@ export default function ProfileScreen() {
           cardColor={cardColor}
           dangerBgColor={dangerBgColor}
           dangerColor={dangerColor}
-          email={user?.email}
           hasProfile={Boolean(profile)}
           initials={initials}
           isOrganizationVerified={isOrganizationVerified}
@@ -163,7 +164,6 @@ export default function ProfileScreen() {
           onViewImage={() => setShowFullImage(true)}
           onVerifyNow={handleVerifyNowClick}
           primaryColor={primaryColor}
-          profileCity={profile?.city}
           successBgColor={successBgColor}
           successColor={successColor}
           subtextColor={subtextColor}
@@ -186,6 +186,7 @@ export default function ProfileScreen() {
         <ProfileAccountDetailsCard
           isOrganizationVerified={isOrganizationVerified}
           isOrganizationVerificationPending={isOrganizationVerificationPending}
+          city={profile?.city}
           organizationName={organizationName}
           organizationEmail={organizationEmail}
           cardColor={cardColor}
@@ -261,114 +262,19 @@ export default function ProfileScreen() {
         }}
       />
 
-      <CustomAlert
+      <WorkspaceVerificationModal
         visible={showVerificationAlert}
-        title="Verify Workspace"
-        message={
-          verificationStep === 'email'
-            ? "Enter your work or college email. We'll send you a 6-digit verification code."
-            : `Enter the 6-digit code sent to ${orgEmailInput}. If that email was wrong, go back and change it.`
-        }
-        icon="briefcase.fill"
-        onClose={() => {
-          setShowVerificationAlert(false);
-          setOrgEmailInput('');
-          setOtpInput('');
-          setVerificationStep('email');
-        }}
-        loading={isVerifyingOrg}
-        disabled={isVerifyingOrg}
-        primaryButton={
-          verificationStep === 'email'
-            ? {
-              text: 'Send Code',
-              onPress: handleRequestOrgVerification,
-            }
-            : {
-              text: 'Verify',
-              onPress: handleConfirmOrgVerification,
-            }
-        }
-        tertiaryButton={
-          verificationStep === 'otp'
-            ? {
-                text: 'Change email',
-                onPress: () => {
-                  setVerificationStep('email');
-                  setOtpInput('');
-                },
-              }
-            : undefined
-        }
-        secondaryButton={{
-          text: 'Cancel',
-          onPress: () => {
-            setShowVerificationAlert(false);
-            setOrgEmailInput('');
-            setOtpInput('');
-            setVerificationStep('email');
-          },
-        }}
-      >
-        <Box className="w-full mt-4">
-          {verificationStep === 'email' ? (
-            <TextInput
-              placeholder="e.g. yourname@university.edu"
-              value={orgEmailInput}
-              onChangeText={setOrgEmailInput}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              style={{
-                width: '100%',
-                padding: 12,
-                borderRadius: 8,
-                borderWidth: 1,
-                borderColor,
-                color: textColor,
-                backgroundColor: `${cardColor}80`
-              }}
-            />
-          ) : (
-            <VStack space="md">
-              <TextInput
-                value={orgEmailInput}
-                onChangeText={setOrgEmailInput}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={{
-                  width: '100%',
-                  padding: 12,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor,
-                  color: textColor,
-                  backgroundColor: `${cardColor}80`,
-                }}
-              />
-              <TextInput
-                placeholder="123456"
-                value={otpInput}
-                onChangeText={setOtpInput}
-                keyboardType="number-pad"
-                maxLength={6}
-                style={{
-                  width: '100%',
-                  padding: 12,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor,
-                  color: textColor,
-                  backgroundColor: `${cardColor}80`,
-                  textAlign: 'center',
-                  letterSpacing: 8,
-                  fontSize: 24,
-                  fontWeight: 'bold'
-                }}
-              />
-            </VStack>
-          )}
-        </Box>
-      </CustomAlert>
+        email={orgEmailInput}
+        otp={otpInput}
+        step={verificationStep}
+        isPending={isVerifyingOrg}
+        onClose={resetVerificationFlow}
+        onChangeEmail={setOrgEmailInput}
+        onChangeOtp={setOtpInput}
+        onRequestOtp={handleRequestOrgVerification}
+        onConfirmOtp={handleConfirmOrgVerification}
+        onBackToEmail={handleChangeVerificationEmail}
+      />
 
       <ProfileEditorSheet
         backgroundColor={backgroundColor}
