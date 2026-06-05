@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControl, ScrollView, Image } from 'react-native';
+import { RefreshControl, ScrollView, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { ProfileSkeleton } from '@/features/profile/components/ProfileSkeleton';
@@ -17,7 +17,7 @@ import {
   ProfilePerformanceCard,
 } from '@/features/profile/components/profile-tab';
 import { useProfileScreen } from '@/features/profile/hooks/use-profile-screen';
-import { getProfileAvatarUrl, maskAadhaarNumber } from '@/features/profile/utils/profile-screen';
+import { getProfileAvatarUrl } from '@/features/profile/utils/profile-screen';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { FullScreenImageViewer } from '@/components/FullScreenImageViewer';
 import { ProfileBannerAd } from '@/features/ads/components/profile-banner-ad';
@@ -40,13 +40,13 @@ export default function ProfileScreen() {
     handleRefresh,
     handleSubmit,
     handleVerifyNowClick,
-    handlePickAadhaarImage,
-    handleUploadAadhaar,
+    handleRequestOrgVerification,
+    handleConfirmOrgVerification,
     isLoading,
     isPending,
     isRefreshing,
     isUploadingAvatar,
-    isVerifyingGovernmentId,
+    isVerifyingOrg,
     phoneNumber,
     profile,
     refetch,
@@ -63,14 +63,19 @@ export default function ProfileScreen() {
     setShowSignOutModal,
     showVerificationAlert,
     setShowVerificationAlert,
-    selectedAadhaarImageUri,
-    setSelectedAadhaarImageUri,
+    orgEmailInput,
+    setOrgEmailInput,
+    otpInput,
+    setOtpInput,
+    verificationStep,
+    setVerificationStep,
     showCityPicker,
     showConsentAlert,
     handleConsentToggle,
     showSignOutModal,
     signOut,
     snapPoints,
+    isOrganizationVerificationPending,
   } = useProfileScreen();
 
   const [showFullImage, setShowFullImage] = React.useState(false);
@@ -113,11 +118,12 @@ export default function ProfileScreen() {
   const name = profile?.fullName || 'No Name Set';
   const phone = profile?.phoneNumber || 'N/A';
   const profileGender = profile?.gender;
-  const aadhaarNumber = profile?.aadhaarNumber;
   const rating = profile?.rating || 0;
   const completedTripsCount = profile?.completedTripsCount || 0;
   const isVerified = profile?.isVerified || false;
-  const isGovernmentIdVerified = profile?.governmentIdVerified || false;
+  const isOrganizationVerified = profile?.isOrganizationVerified || false;
+  const organizationName = profile?.organizationName || null;
+  const organizationEmail = profile?.organizationEmail || null;
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -146,10 +152,11 @@ export default function ProfileScreen() {
           email={user?.email}
           hasProfile={Boolean(profile)}
           initials={initials}
-          isGovernmentIdVerified={isGovernmentIdVerified}
+          isOrganizationVerified={isOrganizationVerified}
+          isOrganizationVerificationPending={isOrganizationVerificationPending}
           isUploadingAvatar={isUploadingAvatar}
           isVerified={isVerified}
-          isVerifyingGovernmentId={isVerifyingGovernmentId}
+          isVerifyingOrg={isVerifyingOrg}
           name={name}
           onCompleteProfile={handlePresentModalPress}
           onPickImage={handlePickImage}
@@ -177,7 +184,10 @@ export default function ProfileScreen() {
 
 
         <ProfileAccountDetailsCard
-          aadhaarNumber={aadhaarNumber ? maskAadhaarNumber(aadhaarNumber) : null}
+          isOrganizationVerified={isOrganizationVerified}
+          isOrganizationVerificationPending={isOrganizationVerificationPending}
+          organizationName={organizationName}
+          organizationEmail={organizationEmail}
           cardColor={cardColor}
           gender={profileGender}
           phone={phone}
@@ -253,54 +263,111 @@ export default function ProfileScreen() {
 
       <CustomAlert
         visible={showVerificationAlert}
-        title="Verify Identity"
+        title="Verify Workspace"
         message={
-          selectedAadhaarImageUri
-            ? "Review the image below. Make sure your name and Aadhaar number are clearly visible before submitting."
-            : "Please choose a clear Aadhaar image from your files. Ensure your name and the 12-digit Aadhaar number are clearly visible so that we can match your profile information."
+          verificationStep === 'email'
+            ? "Enter your work or college email. We'll send you a 6-digit verification code."
+            : `Enter the 6-digit code sent to ${orgEmailInput}. If that email was wrong, go back and change it.`
         }
-        icon="person.text.rectangle"
+        icon="briefcase.fill"
         onClose={() => {
           setShowVerificationAlert(false);
-          setSelectedAadhaarImageUri(null);
+          setOrgEmailInput('');
+          setOtpInput('');
+          setVerificationStep('email');
         }}
-        loading={isVerifyingGovernmentId}
-        disabled={isVerifyingGovernmentId}
+        loading={isVerifyingOrg}
+        disabled={isVerifyingOrg}
         primaryButton={
-          selectedAadhaarImageUri
+          verificationStep === 'email'
             ? {
-              text: 'Verify Now',
-              onPress: () => handleUploadAadhaar(selectedAadhaarImageUri),
+              text: 'Send Code',
+              onPress: handleRequestOrgVerification,
             }
             : {
-              text: 'Choose Image',
-              onPress: handlePickAadhaarImage,
+              text: 'Verify',
+              onPress: handleConfirmOrgVerification,
             }
         }
-        secondaryButton={
-          selectedAadhaarImageUri
+        tertiaryButton={
+          verificationStep === 'otp'
             ? {
-              text: 'Retake',
-              onPress: handlePickAadhaarImage,
-            }
-            : {
-              text: 'Cancel',
-              onPress: () => {
-                setShowVerificationAlert(false);
-                setSelectedAadhaarImageUri(null);
-              },
-            }
+                text: 'Change email',
+                onPress: () => {
+                  setVerificationStep('email');
+                  setOtpInput('');
+                },
+              }
+            : undefined
         }
+        secondaryButton={{
+          text: 'Cancel',
+          onPress: () => {
+            setShowVerificationAlert(false);
+            setOrgEmailInput('');
+            setOtpInput('');
+            setVerificationStep('email');
+          },
+        }}
       >
-        {selectedAadhaarImageUri ? (
-          <Box className="w-full items-center">
-            <Image
-              source={{ uri: selectedAadhaarImageUri }}
-              style={{ width: 320, height: 200, borderRadius: 16 }}
-              resizeMode="contain"
+        <Box className="w-full mt-4">
+          {verificationStep === 'email' ? (
+            <TextInput
+              placeholder="e.g. yourname@university.edu"
+              value={orgEmailInput}
+              onChangeText={setOrgEmailInput}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={{
+                width: '100%',
+                padding: 12,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor,
+                color: textColor,
+                backgroundColor: `${cardColor}80`
+              }}
             />
-          </Box>
-        ) : null}
+          ) : (
+            <VStack space="md">
+              <TextInput
+                value={orgEmailInput}
+                onChangeText={setOrgEmailInput}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor,
+                  color: textColor,
+                  backgroundColor: `${cardColor}80`,
+                }}
+              />
+              <TextInput
+                placeholder="123456"
+                value={otpInput}
+                onChangeText={setOtpInput}
+                keyboardType="number-pad"
+                maxLength={6}
+                style={{
+                  width: '100%',
+                  padding: 12,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor,
+                  color: textColor,
+                  backgroundColor: `${cardColor}80`,
+                  textAlign: 'center',
+                  letterSpacing: 8,
+                  fontSize: 24,
+                  fontWeight: 'bold'
+                }}
+              />
+            </VStack>
+          )}
+        </Box>
       </CustomAlert>
 
       <ProfileEditorSheet

@@ -167,26 +167,31 @@ model UserBlock {
 }
 
 model UserProfile {
-  id                   Int      @id @default(autoincrement())
-  fullName             String?
-  phoneNumber          String?
-  avatar               String?
-  governmentIdDocument String?
-  aadhaarNumber        String?
-  rating               Decimal? @db.Decimal(3, 2)
-  completedTripsCount  Int      @default(0)
-  ratingsCount         Int      @default(0)
-  isVerified           Boolean  @default(false)
-  governmentIdVerified Boolean  @default(false)
-  communityConsent     Boolean  @default(false)
+  id                        Int       @id @default(autoincrement())
+  fullName                  String?
+  phoneNumber               String?
+  avatar                    String?
+  rating                    Decimal?  @db.Decimal(3, 2)
+  completedTripsCount       Int       @default(0)
+  ratingsCount              Int       @default(0)
+  isVerified                Boolean   @default(false)
+  communityConsent          Boolean   @default(false)
   communityConsentRevokedAt DateTime?
-  gender               Gender?
-  city                 String?
-  pushToken            String?
-  userId               Int      @unique
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  gender                    Gender?
+  city                      String?
+  pushToken                 String?
+
+  // Workplace / University Verification
+  organizationEmail         String?
+  organizationName          String?
+  isOrganizationVerified    Boolean   @default(false)
+  organizationOtpToken      String?
+  organizationOtpExpires    DateTime?
+
+  userId                    Int       @unique
+  user                      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 }
 
 // --- 30-trips.prisma ---

@@ -17,10 +17,11 @@ type ProfileHeaderCardProps = {
   email?: string;
   hasProfile: boolean;
   initials: string;
-  isGovernmentIdVerified: boolean;
+  isOrganizationVerified: boolean;
+  isOrganizationVerificationPending: boolean;
   isUploadingAvatar: boolean;
   isVerified: boolean;
-  isVerifyingGovernmentId: boolean;
+  isVerifyingOrg: boolean;
   name: string;
   onCompleteProfile: () => void;
   onPickImage: () => void;
@@ -42,10 +43,11 @@ export function ProfileHeaderCard({
   email,
   hasProfile,
   initials,
-  isGovernmentIdVerified,
+  isOrganizationVerified,
+  isOrganizationVerificationPending,
   isUploadingAvatar,
   isVerified,
-  isVerifyingGovernmentId,
+  isVerifyingOrg,
   name,
   onCompleteProfile,
   onPickImage,
@@ -113,6 +115,24 @@ export function ProfileHeaderCard({
             Complete profile →
           </Text>
         </Pressable>
+      ) : isOrganizationVerified ? (
+        <VStack className="items-center" space="sm">
+          <Box className="rounded-full px-5 py-1.5 border shadow-sm" style={{ backgroundColor: successBgColor, borderColor: `${successColor}20` }}>
+            <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: successColor }}>
+              Workspace Verified
+            </Text>
+          </Box>
+          <HStack
+            space="xs"
+            className="items-center rounded-full px-4 py-1.5 border shadow-sm"
+            style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}20` }}
+          >
+            <IconSymbol name="briefcase.fill" size={12} color={primaryColor} />
+            <Text className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
+              Workspace badge active
+            </Text>
+          </HStack>
+        </VStack>
       ) : isVerified ? (
         <VStack className="items-center" space="sm">
           <Box className="rounded-full px-5 py-1.5 border shadow-sm" style={{ backgroundColor: successBgColor, borderColor: `${successColor}20` }}>
@@ -120,15 +140,15 @@ export function ProfileHeaderCard({
               Verified Account
             </Text>
           </Box>
-          {isGovernmentIdVerified ? (
+          {isOrganizationVerificationPending ? (
             <HStack
               space="xs"
               className="items-center rounded-full px-4 py-1.5 border shadow-sm"
-              style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}20` }}
+              style={{ backgroundColor: `${dangerColor}10`, borderColor: `${dangerColor}20` }}
             >
-              <IconSymbol name="checkmark.shield.fill" size={12} color={primaryColor} />
-              <Text className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: primaryColor }}>
-                Government ID confirmed
+              <IconSymbol name="clock.fill" size={12} color={dangerColor} />
+              <Text className="text-[9px] font-extrabold uppercase tracking-widest" style={{ color: dangerColor }}>
+                Workspace Verification Pending
               </Text>
             </HStack>
           ) : null}
@@ -144,18 +164,18 @@ export function ProfileHeaderCard({
             className="px-6 py-2.5 rounded-2xl border-2 border-dashed"
             style={{ borderColor: primaryColor }}
             onPress={onVerifyNow}
-            disabled={isVerifyingGovernmentId}
+            disabled={isVerifyingOrg}
           >
-            {isVerifyingGovernmentId ? (
+            {isVerifyingOrg ? (
               <HStack space="sm" className="items-center px-2">
                 <Spinner size="small" color={primaryColor} />
                 <Text className="text-xs font-bold uppercase tracking-tight" style={{ color: primaryColor }}>
-                  Processing ID...
+                  Sending OTP...
                 </Text>
               </HStack>
             ) : (
               <Text className="text-xs font-bold uppercase tracking-tight" style={{ color: primaryColor }}>
-                Verify Identity now?
+                {isOrganizationVerificationPending ? 'Continue Workspace Verification' : 'Verify Workspace now?'}
               </Text>
             )}
           </Pressable>

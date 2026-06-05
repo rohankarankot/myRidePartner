@@ -6,7 +6,10 @@ import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 
 type ProfileAccountDetailsCardProps = {
-  aadhaarNumber?: string | null;
+  isOrganizationVerified?: boolean;
+  isOrganizationVerificationPending?: boolean;
+  organizationName?: string | null;
+  organizationEmail?: string | null;
   cardColor: string;
   gender?: 'men' | 'women';
   phone: string;
@@ -17,7 +20,10 @@ type ProfileAccountDetailsCardProps = {
 };
 
 export function ProfileAccountDetailsCard({
-  aadhaarNumber,
+  isOrganizationVerified,
+  isOrganizationVerificationPending,
+  organizationName,
+  organizationEmail,
   cardColor,
   gender,
   phone,
@@ -73,15 +79,30 @@ export function ProfileAccountDetailsCard({
           </HStack>
         </HStack>
 
-        {aadhaarNumber ? (
+        {isOrganizationVerified && organizationName ? (
           <HStack className="justify-between items-center">
             <HStack space="md" className="items-center">
               <Box className="w-10 h-10 rounded-full bg-gray-50 items-center justify-center shadow-sm">
-                <IconSymbol name="checkmark.shield.fill" size={16} color={successColor} />
+                <IconSymbol name="briefcase.fill" size={16} color={successColor} />
               </Box>
               <VStack>
-                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Government ID</Text>
-                <Text className="text-base font-bold" style={{ color: textColor }}>{aadhaarNumber}</Text>
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Verified Workspace</Text>
+                <Text className="text-base font-bold uppercase" style={{ color: textColor }}>{organizationName}</Text>
+                {organizationEmail && (
+                  <Text className="text-xs" style={{ color: subtextColor }}>{organizationEmail}</Text>
+                )}
+              </VStack>
+            </HStack>
+          </HStack>
+        ) : isOrganizationVerificationPending && organizationEmail ? (
+          <HStack className="justify-between items-center">
+            <HStack space="md" className="items-center">
+              <Box className="w-10 h-10 rounded-full bg-gray-50 items-center justify-center shadow-sm">
+                <IconSymbol name="clock.fill" size={16} color={successColor} />
+              </Box>
+              <VStack>
+                <Text className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: subtextColor }}>Workspace Verification Pending</Text>
+                <Text className="text-base font-bold" style={{ color: textColor }}>{organizationEmail}</Text>
               </VStack>
             </HStack>
           </HStack>

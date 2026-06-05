@@ -255,7 +255,7 @@ export class TripsService {
                 rating: true,
                 ratingsCount: true,
                 completedTripsCount: true,
-                governmentIdVerified: true,
+                isOrganizationVerified: true,
               },
             },
           },
@@ -308,8 +308,8 @@ export class TripsService {
           ratingsCount: trip.creator.userProfile?.ratingsCount ?? 0,
           completedTripsCount:
             trip.creator.userProfile?.completedTripsCount ?? 0,
-          governmentIdVerified:
-            trip.creator.userProfile?.governmentIdVerified ?? false,
+          isOrganizationVerified:
+            trip.creator.userProfile?.isOrganizationVerified ?? false,
         },
       },
     };

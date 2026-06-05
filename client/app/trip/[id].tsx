@@ -218,9 +218,15 @@ export default function TripDetailsScreen() {
         });
     }, [tripDetails?.trip, user?.id]);
 
+    const trip = tripDetails?.trip || null;
+    const creatorProfile = tripDetails?.creatorProfile || null;
+    const joinRequests = tripDetails?.requests || [];
+    const approvedJoinRequest = user ? joinRequests.find((request) => request.passenger.id === user.id && request.status === 'APPROVED') || null : null;
+    const isPassenger = Boolean(approvedJoinRequest);
+
     useEffect(() => {
         if (
-            tripDetails?.trip?.status === 'COMPLETED' &&
+            trip?.status === 'COMPLETED' &&
             isPassenger &&
             !userRating &&
             !loading &&
@@ -229,13 +235,8 @@ export default function TripDetailsScreen() {
         ) {
             setShowRatingModal(true);
         }
-    }, [tripDetails?.trip?.status, isPassenger, userRating, loading, isUserRatingLoading, isSubmittingRating]);
+    }, [trip?.status, isPassenger, userRating, loading, isUserRatingLoading, isSubmittingRating]);
 
-    const trip = tripDetails?.trip || null;
-    const creatorProfile = tripDetails?.creatorProfile || null;
-    const joinRequests = tripDetails?.requests || [];
-    const approvedJoinRequest = user ? joinRequests.find((request) => request.passenger.id === user.id && request.status === 'APPROVED') || null : null;
-    const isPassenger = Boolean(approvedJoinRequest);
     const pendingJoinRequest = user ? joinRequests.find((request) => request.passenger.id === user.id && request.status === 'PENDING') || null : null;
     const activeJoinRequest = user ? joinRequests.find((request) => request.passenger.id === user.id && request.status !== 'CANCELLED') || null : null;
     const approvedJoinRequests = joinRequests.filter((request) => request.status === 'APPROVED');
@@ -591,6 +592,8 @@ export default function TripDetailsScreen() {
     };
 
     const openCabService = async (service: 'uber' | 'ola' | 'rapido') => {
+        if (!trip) return;
+
         const urls = {
             uber: 'https://m.uber.com/ul/',
             ola: 'https://book.olacabs.com/',
