@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList } from 'react-native';
+import { FlatList, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import {

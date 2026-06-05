@@ -15,9 +15,10 @@ import {
   ProfileEditorSheet,
   ProfileHeaderCard,
   ProfilePerformanceCard,
+  WorkspaceVerificationModal,
 } from '@/features/profile/components/profile-tab';
 import { useProfileScreen } from '@/features/profile/hooks/use-profile-screen';
-import { getProfileAvatarUrl, maskAadhaarNumber } from '@/features/profile/utils/profile-screen';
+import { getProfileAvatarUrl } from '@/features/profile/utils/profile-screen';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { FullScreenImageViewer } from '@/components/FullScreenImageViewer';
 import { ProfileBannerAd } from '@/features/ads/components/profile-banner-ad';
@@ -40,13 +41,15 @@ export default function ProfileScreen() {
     handleRefresh,
     handleSubmit,
     handleVerifyNowClick,
-    handlePickAadhaarImage,
-    handleUploadAadhaar,
+    handleRequestOrgVerification,
+    handleConfirmOrgVerification,
+    handleChangeVerificationEmail,
+    resetVerificationFlow,
     isLoading,
     isPending,
     isRefreshing,
     isUploadingAvatar,
-    isVerifyingGovernmentId,
+    isVerifyingOrg,
     phoneNumber,
     profile,
     refetch,
@@ -62,15 +65,19 @@ export default function ProfileScreen() {
     setShowConsentAlert,
     setShowSignOutModal,
     showVerificationAlert,
-    setShowVerificationAlert,
-    selectedAadhaarImageUri,
-    setSelectedAadhaarImageUri,
+    orgEmailInput,
+    setOrgEmailInput,
+    otpInput,
+    setOtpInput,
+    verificationStep,
+    setVerificationStep,
     showCityPicker,
     showConsentAlert,
     handleConsentToggle,
     showSignOutModal,
     signOut,
     snapPoints,
+    isOrganizationVerificationPending,
   } = useProfileScreen();
 
   const [showFullImage, setShowFullImage] = React.useState(false);
@@ -113,11 +120,12 @@ export default function ProfileScreen() {
   const name = profile?.fullName || 'No Name Set';
   const phone = profile?.phoneNumber || 'N/A';
   const profileGender = profile?.gender;
-  const aadhaarNumber = profile?.aadhaarNumber;
   const rating = profile?.rating || 0;
   const completedTripsCount = profile?.completedTripsCount || 0;
   const isVerified = profile?.isVerified || false;
-  const isGovernmentIdVerified = profile?.governmentIdVerified || false;
+  const isOrganizationVerified = profile?.isOrganizationVerified || false;
+  const organizationName = profile?.organizationName || null;
+  const organizationEmail = profile?.organizationEmail || null;
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -143,20 +151,19 @@ export default function ProfileScreen() {
           cardColor={cardColor}
           dangerBgColor={dangerBgColor}
           dangerColor={dangerColor}
-          email={user?.email}
           hasProfile={Boolean(profile)}
           initials={initials}
-          isGovernmentIdVerified={isGovernmentIdVerified}
+          isOrganizationVerified={isOrganizationVerified}
+          isOrganizationVerificationPending={isOrganizationVerificationPending}
           isUploadingAvatar={isUploadingAvatar}
           isVerified={isVerified}
-          isVerifyingGovernmentId={isVerifyingGovernmentId}
+          isVerifyingOrg={isVerifyingOrg}
           name={name}
           onCompleteProfile={handlePresentModalPress}
           onPickImage={handlePickImage}
           onViewImage={() => setShowFullImage(true)}
           onVerifyNow={handleVerifyNowClick}
           primaryColor={primaryColor}
-          profileCity={profile?.city}
           successBgColor={successBgColor}
           successColor={successColor}
           subtextColor={subtextColor}
@@ -177,7 +184,11 @@ export default function ProfileScreen() {
 
 
         <ProfileAccountDetailsCard
-          aadhaarNumber={aadhaarNumber ? maskAadhaarNumber(aadhaarNumber) : null}
+          isOrganizationVerified={isOrganizationVerified}
+          isOrganizationVerificationPending={isOrganizationVerificationPending}
+          city={profile?.city}
+          organizationName={organizationName}
+          organizationEmail={organizationEmail}
           cardColor={cardColor}
           gender={profileGender}
           phone={phone}
@@ -251,57 +262,19 @@ export default function ProfileScreen() {
         }}
       />
 
-      <CustomAlert
+      <WorkspaceVerificationModal
         visible={showVerificationAlert}
-        title="Verify Identity"
-        message={
-          selectedAadhaarImageUri
-            ? "Review the image below. Make sure your name and Aadhaar number are clearly visible before submitting."
-            : "Please choose a clear Aadhaar image from your files. Ensure your name and the 12-digit Aadhaar number are clearly visible so that we can match your profile information."
-        }
-        icon="person.text.rectangle"
-        onClose={() => {
-          setShowVerificationAlert(false);
-          setSelectedAadhaarImageUri(null);
-        }}
-        loading={isVerifyingGovernmentId}
-        disabled={isVerifyingGovernmentId}
-        primaryButton={
-          selectedAadhaarImageUri
-            ? {
-              text: 'Verify Now',
-              onPress: () => handleUploadAadhaar(selectedAadhaarImageUri),
-            }
-            : {
-              text: 'Choose Image',
-              onPress: handlePickAadhaarImage,
-            }
-        }
-        secondaryButton={
-          selectedAadhaarImageUri
-            ? {
-              text: 'Retake',
-              onPress: handlePickAadhaarImage,
-            }
-            : {
-              text: 'Cancel',
-              onPress: () => {
-                setShowVerificationAlert(false);
-                setSelectedAadhaarImageUri(null);
-              },
-            }
-        }
-      >
-        {selectedAadhaarImageUri ? (
-          <Box className="w-full items-center">
-            <Image
-              source={{ uri: selectedAadhaarImageUri }}
-              style={{ width: 320, height: 200, borderRadius: 16 }}
-              resizeMode="contain"
-            />
-          </Box>
-        ) : null}
-      </CustomAlert>
+        email={orgEmailInput}
+        otp={otpInput}
+        step={verificationStep}
+        isPending={isVerifyingOrg}
+        onClose={resetVerificationFlow}
+        onChangeEmail={setOrgEmailInput}
+        onChangeOtp={setOtpInput}
+        onRequestOtp={handleRequestOrgVerification}
+        onConfirmOtp={handleConfirmOrgVerification}
+        onBackToEmail={handleChangeVerificationEmail}
+      />
 
       <ProfileEditorSheet
         backgroundColor={backgroundColor}

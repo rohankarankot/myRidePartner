@@ -4,3 +4,4 @@ export * from './ProfileActionsCard';
 export * from './ProfileEditorSheet';
 export * from './ProfileHeaderCard';
 export * from './ProfilePerformanceCard';
+export * from './WorkspaceVerificationModal';

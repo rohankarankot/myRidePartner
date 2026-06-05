@@ -41,15 +41,15 @@ export function AnalyticsHandler() {
     void analyticsService.setUserProperty('profile_complete', isProfileComplete ? 'true' : 'false');
     void analyticsService.setUserProperty('city', profile?.city ?? null);
     void analyticsService.setUserProperty(
-      'government_id_verified',
-      profile?.governmentIdVerified ? 'true' : 'false',
+      'organization_verified',
+      profile?.isOrganizationVerified ? 'true' : 'false',
     );
 
     if (isProfileComplete && !hasTrackedProfileCompletedRef.current) {
       hasTrackedProfileCompletedRef.current = true;
       void analyticsService.trackEvent('profile_completed', {
         city: profile?.city ?? undefined,
-        government_id_verified: Boolean(profile?.governmentIdVerified),
+        organization_verified: Boolean(profile?.isOrganizationVerified),
       });
     }
 
@@ -60,7 +60,7 @@ export function AnalyticsHandler() {
     profile?.city,
     profile?.fullName,
     profile?.gender,
-    profile?.governmentIdVerified,
+    profile?.isOrganizationVerified,
     profile?.phoneNumber,
   ]);
 

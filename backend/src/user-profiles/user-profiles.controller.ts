@@ -21,6 +21,8 @@ import { Gender } from '@prisma/client';
 import {
   CreateUserProfileDto,
   UpdateUserProfileDto,
+  RequestOrgVerificationDto,
+  ConfirmOrgVerificationDto,
 } from './dto/user-profiles.dto';
 
 @ApiTags('User Profiles')
@@ -58,5 +60,32 @@ export class UserProfilesController {
   @ApiBody({ type: UpdateUserProfileDto })
   update(@Param('id') id: string, @Body() updateData: any) {
     return this.userProfilesService.update(+id, updateData);
+  }
+
+  @Post('me/request-org-verification')
+  @ApiOperation({ summary: 'Request organization email verification' })
+  @ApiBody({ type: RequestOrgVerificationDto })
+  requestOrgVerification(
+    @Request() req,
+    @Body() body: RequestOrgVerificationDto,
+  ) {
+    return this.userProfilesService.requestOrgVerification(
+      req.user.id,
+      body.email,
+    );
+  }
+
+  @Post('me/confirm-org-verification')
+  @ApiOperation({ summary: 'Confirm organization email verification' })
+  @ApiBody({ type: ConfirmOrgVerificationDto })
+  confirmOrgVerification(
+    @Request() req,
+    @Body() body: ConfirmOrgVerificationDto,
+  ) {
+    return this.userProfilesService.confirmOrgVerification(
+      req.user.id,
+      body.email,
+      body.otp,
+    );
   }
 }
