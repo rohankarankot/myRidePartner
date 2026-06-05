@@ -92,10 +92,8 @@ class UserService {
       gender?: 'men' | 'women';
       city?: string;
       avatar?: number | string;
-      governmentIdDocument?: string;
-      aadhaarNumber?: string;
-      governmentIdVerified?: boolean;
       isVerified?: boolean;
+      isOrganizationVerified?: boolean;
       communityConsent?: boolean;
       pushToken?: string;
     }
@@ -107,6 +105,16 @@ class UserService {
 
   async updatePushToken(documentId: string, pushToken: string): Promise<UserProfile> {
     return this.updateProfile(documentId, { pushToken });
+  }
+
+  async requestOrgVerification(email: string): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>('/user-profiles/me/request-org-verification', { email });
+    return data;
+  }
+
+  async confirmOrgVerification(email: string, otp: string): Promise<{ message: string }> {
+    const { data } = await apiClient.post<{ message: string }>('/user-profiles/me/confirm-org-verification', { email, otp });
+    return data;
   }
 
   async uploadFile(fileUri: string): Promise<{ url: string; publicId: string }> {

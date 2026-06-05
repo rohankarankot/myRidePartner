@@ -14,26 +14,12 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { useAuth } from '@/context/auth-context';
 import { useUserStore } from '@/store/user-store';
 import { userService } from '@/services/user-service';
-import { extractAadhaarNumber } from '@/features/profile/utils/profile-screen';
 
 type ProfileFieldName = 'fullName' | 'phoneNumber' | 'city';
 
 type ProfileFieldErrors = Partial<Record<ProfileFieldName, string>>;
 
-function getAadhaarVerificationErrorMessage(error: unknown) {
-  const rawMessage = error instanceof Error ? error.message : String(error ?? '');
-  const normalizedMessage = rawMessage.toLowerCase();
 
-  if (
-    normalizedMessage.includes('com/google/mlkit') ||
-    normalizedMessage.includes('failed resolution') ||
-    normalizedMessage.includes('hostfunction')
-  ) {
-    return 'We could not scan this Aadhaar image right now. Please try again with a clearer photo or update the app and try once more.';
-  }
-
-  return 'We could not verify this Aadhaar image right now. Please try again in a moment.';
-}
 
 function getErrorMessages(error: any): string[] {
   const message = error?.response?.data?.message;
@@ -113,14 +99,16 @@ export function useProfileScreen() {
   const [gender, setGender] = useState<'men' | 'women'>('men');
   const [city, setCity] = useState('');
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [isVerifyingGovernmentId, setIsVerifyingGovernmentId] = useState(false);
+  const [orgEmailInput, setOrgEmailInput] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [verificationStep, setVerificationStep] = useState<'email' | 'otp'>('email');
+  const [isVerifyingOrg, setIsVerifyingOrg] = useState(false);
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showCityPicker, setShowCityPicker] = useState(false);
   const [citySearch, setCitySearch] = useState('');
   const [communityConsent, setCommunityConsent] = useState(false);
   const [showConsentAlert, setShowConsentAlert] = useState(false);
   const [showVerificationAlert, setShowVerificationAlert] = useState(false);
-  const [selectedAadhaarImageUri, setSelectedAadhaarImageUri] = useState<string | null>(null);
   const [isEditorSheetOpen, setIsEditorSheetOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({});
 
@@ -137,6 +125,8 @@ export function useProfileScreen() {
   }, [refetch]);
 
   const profile = storedProfile || profileData;
+  const isOrganizationVerificationPending =
+    Boolean(profile?.organizationEmail) && !profile?.isOrganizationVerified;
   const isLoading = isStoreLoading || (isQueryLoading && !storedProfile && !error);
 
   const createProfileMutation = useMutation({
@@ -186,9 +176,8 @@ export function useProfileScreen() {
       city: string;
       avatar?: string;
       governmentIdDocument?: string;
-      aadhaarNumber?: string;
-      governmentIdVerified?: boolean;
       isVerified?: boolean;
+      isOrganizationVerified?: boolean;
       communityConsent?: boolean;
     }) =>
       userService.updateProfile(data.documentId, {
@@ -197,10 +186,8 @@ export function useProfileScreen() {
         gender: data.gender,
         city: data.city,
         avatar: data.avatar,
-        governmentIdDocument: data.governmentIdDocument,
-        aadhaarNumber: data.aadhaarNumber,
-        governmentIdVerified: data.governmentIdVerified,
         isVerified: data.isVerified,
+        isOrganizationVerified: data.isOrganizationVerified,
         communityConsent: data.communityConsent,
       }),
     onSuccess: (data) => {
@@ -282,7 +269,7 @@ export function useProfileScreen() {
   const uploadAvatar = async (uri: string) => {
     setIsUploadingAvatar(true);
     try {
-      const fileId = await userService.uploadFile(uri);
+      const uploaded = await userService.uploadFile(uri);
       updateProfileMutation.mutate({
         documentId: profile!.documentId,
         fullName: profile!.fullName,
@@ -290,7 +277,7 @@ export function useProfileScreen() {
         gender: profile!.gender!,
         city: profile!.city!,
         communityConsent: profile!.communityConsent!,
-        avatar: fileId,
+        avatar: uploaded.url,
       });
     } catch (uploadError) {
       console.error('Upload avatar error:', uploadError);
@@ -399,98 +386,64 @@ export function useProfileScreen() {
       handlePresentModalPress();
       return;
     }
-    setSelectedAadhaarImageUri(null);
+    setOrgEmailInput(profile.organizationEmail || '');
+    setOtpInput('');
+    setVerificationStep(profile.organizationEmail && !profile.isOrganizationVerified ? 'otp' : 'email');
     setShowVerificationAlert(true);
   };
 
-  const handlePickAadhaarImage = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: ['image/*'],
-      copyToCacheDirectory: true,
-    });
+  const resetVerificationFlow = useCallback(() => {
+    setShowVerificationAlert(false);
+    setOrgEmailInput('');
+    setOtpInput('');
+    setVerificationStep('email');
+  }, []);
 
-    if (!result.canceled && result.assets[0]?.uri) {
-      setSelectedAadhaarImageUri(result.assets[0].uri);
+  const handleChangeVerificationEmail = useCallback(() => {
+    setVerificationStep('email');
+    setOtpInput('');
+  }, []);
+
+  const handleRequestOrgVerification = async () => {
+    if (!orgEmailInput.trim()) {
+      Toast.show({ type: 'error', text1: 'Email required', text2: 'Please enter your work or college email.' });
+      return;
+    }
+
+    setIsVerifyingOrg(true);
+    try {
+      await userService.requestOrgVerification(orgEmailInput.trim());
+      setVerificationStep('otp');
+      Toast.show({ type: 'success', text1: 'OTP Sent', text2: 'Check your email for the verification code.' });
+    } catch (error) {
+      console.error(error);
+      Toast.show({ type: 'error', text1: 'Failed', text2: getErrorMessages(error)[0] ?? 'Could not send OTP.' });
+    } finally {
+      setIsVerifyingOrg(false);
     }
   };
 
-  const handleUploadAadhaar = async (imageUri?: string) => {
-    const verificationImageUri = imageUri ?? selectedAadhaarImageUri;
-    if (!profile || !verificationImageUri) return;
+  const handleConfirmOrgVerification = async () => {
+    if (!otpInput.trim() || otpInput.trim().length !== 6) {
+      Toast.show({ type: 'error', text1: 'Invalid OTP', text2: 'Please enter the 6-digit code.' });
+      return;
+    }
 
+    setIsVerifyingOrg(true);
     try {
-      setIsVerifyingGovernmentId(true);
-      const recognizedText = await TextRecognition.recognize(verificationImageUri);
-      const aadhaarNumber = extractAadhaarNumber(recognizedText);
+      await userService.confirmOrgVerification(orgEmailInput.trim(), otpInput.trim());
 
-      if (!aadhaarNumber) {
-        Toast.show({
-          type: 'error',
-          text1: 'Aadhaar not detected',
-          text2: 'We could not find a valid 12-digit Aadhaar number in that image.',
-        });
-        setShowVerificationAlert(false);
-        setSelectedAadhaarImageUri(null);
-        setIsVerifyingGovernmentId(false);
-        return;
-      }
+      Toast.show({ type: 'success', text1: 'Verified!', text2: 'Your organization has been verified successfully.' });
+      resetVerificationFlow();
 
-      const fullText = recognizedText.join(' ').toLowerCase();
-      const userNameParts = profile.fullName.toLowerCase().split(' ').filter(p => p.length > 2);
-      
-      let isNameMatched = false;
-      if (userNameParts.length > 0) {
-        isNameMatched = userNameParts.some(part => fullText.includes(part));
-      } else {
-        isNameMatched = profile.fullName.toLowerCase().split(' ').some((part: string) => fullText.includes(part));
-      }
-
-      if (!isNameMatched) {
-        Toast.show({
-          type: 'error',
-          text1: 'Name mismatch',
-          text2: 'The name on the Aadhaar card does not match your profile name.',
-        });
-        setShowVerificationAlert(false);
-        setSelectedAadhaarImageUri(null);
-        setIsVerifyingGovernmentId(false);
-        return;
-      }
-
-      const governmentIdDocument = await userService.uploadFile(verificationImageUri);
-      await updateProfileMutation.mutateAsync({
-        documentId: profile.documentId,
-        fullName: profile.fullName,
-        phoneNumber: profile.phoneNumber,
-        gender: profile.gender!,
-        city: profile.city!,
-        governmentIdDocument,
-        aadhaarNumber,
-        governmentIdVerified: true,
-        isVerified: true,
-        communityConsent,
-      });
-
-      const maskedAadhaarSuffix = aadhaarNumber.replace(/\D/g, '').slice(-4);
-
-      Toast.show({
-        type: 'success',
-        text1: 'Verification submitted',
-        text2: `Aadhaar ending ${maskedAadhaarSuffix} verified successfully.`,
-      });
-      setShowVerificationAlert(false);
-      setSelectedAadhaarImageUri(null);
-    } catch (verificationError) {
-      console.error('Aadhaar verification error:', verificationError);
-      Toast.show({
-        type: 'error',
-        text1: 'Verification Failed',
-        text2: getAadhaarVerificationErrorMessage(verificationError),
-      });
-      setShowVerificationAlert(false);
-      setSelectedAadhaarImageUri(null);
+      // Refresh profile to pull the new badge details
+      queryClient.invalidateQueries({ queryKey: ['user-profile', authUser?.id] });
+      refetch();
+    } catch (error) {
+      console.error(error);
+      Toast.show({ type: 'error', text1: 'Failed', text2: getErrorMessages(error)[0] ?? 'Verification failed.' });
     } finally {
-      setIsVerifyingGovernmentId(false);
+      setIsVerifyingOrg(false);
     }
   };
 
@@ -524,13 +477,15 @@ export function useProfileScreen() {
     handleRefresh,
     handleSubmit,
     handleVerifyNowClick,
-    handlePickAadhaarImage,
-    handleUploadAadhaar,
+    handleRequestOrgVerification,
+    handleConfirmOrgVerification,
+    handleChangeVerificationEmail,
+    resetVerificationFlow,
     isLoading,
     isPending: createProfileMutation.isPending || updateProfileMutation.isPending,
     isRefreshing,
     isUploadingAvatar,
-    isVerifyingGovernmentId,
+    isVerifyingOrg,
     phoneNumber,
     profile,
     refetch,
@@ -546,8 +501,12 @@ export function useProfileScreen() {
     setShowConsentAlert,
     showVerificationAlert,
     setShowVerificationAlert,
-    selectedAadhaarImageUri,
-    setSelectedAadhaarImageUri,
+    orgEmailInput,
+    setOrgEmailInput,
+    otpInput,
+    setOtpInput,
+    verificationStep,
+    setVerificationStep,
     setShowSignOutModal,
     showCityPicker,
     showConsentAlert,
@@ -555,5 +514,6 @@ export function useProfileScreen() {
     showSignOutModal,
     signOut,
     snapPoints,
+    isOrganizationVerificationPending,
   };
 }

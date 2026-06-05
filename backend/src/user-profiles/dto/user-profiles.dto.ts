@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Gender } from '@prisma/client';
+import { IsOptional, IsString, IsBoolean, IsEnum, IsEmail } from 'class-validator';
 
 export class CreateUserProfileDto {
   @ApiProperty({ example: 'John Doe' })
@@ -16,39 +17,61 @@ export class CreateUserProfileDto {
 }
 
 export class UpdateUserProfileDto {
-  @ApiPropertyOptional({ example: 'John Doe' })
+  @ApiPropertyOptional({ description: 'Full name' })
+  @IsOptional()
+  @IsString()
   fullName?: string;
 
-  @ApiPropertyOptional({ example: '+1234567890' })
+  @ApiPropertyOptional({ description: 'Phone number' })
+  @IsOptional()
+  @IsString()
   phoneNumber?: string;
 
+  @ApiPropertyOptional({ description: 'City location' })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
   @ApiPropertyOptional({ description: 'Avatar URL' })
+  @IsOptional()
+  @IsString()
   avatar?: string;
 
-  @ApiPropertyOptional({ description: 'Uploaded government ID document URL' })
-  governmentIdDocument?: string;
-
-  @ApiPropertyOptional({ description: 'Extracted Aadhaar number' })
-  aadhaarNumber?: string;
-
   @ApiPropertyOptional({ enum: Gender })
+  @IsOptional()
+  @IsEnum(Gender)
   gender?: Gender;
 
-  @ApiPropertyOptional({ description: 'Push notification token' })
+  @ApiPropertyOptional({ description: 'Expo push token' })
+  @IsOptional()
+  @IsString()
   pushToken?: string;
-
-  @ApiPropertyOptional({
-    description: 'Whether the government ID has been verified',
-  })
-  governmentIdVerified?: boolean;
 
   @ApiPropertyOptional({
     description: 'Whether the overall profile is verified',
   })
+  @IsOptional()
+  @IsBoolean()
   isVerified?: boolean;
 
-  @ApiPropertyOptional({
-    description: 'Whether the user consented to join the community',
-  })
+  @ApiPropertyOptional({ description: 'Community consent status' })
+  @IsOptional()
+  @IsBoolean()
   communityConsent?: boolean;
+}
+
+export class RequestOrgVerificationDto {
+  @ApiProperty({ description: 'Workspace or University Email' })
+  @IsEmail()
+  email: string;
+}
+
+export class ConfirmOrgVerificationDto {
+  @ApiProperty({ description: 'Workspace or University Email' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ description: '6-digit OTP' })
+  @IsString()
+  otp: string;
 }

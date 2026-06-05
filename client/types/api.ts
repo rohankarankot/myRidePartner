@@ -44,10 +44,10 @@ export interface UserProfile {
     completedTripsCount?: number;
     ratingsCount?: number;
     isVerified?: boolean;
-    governmentIdVerified?: boolean;
+    isOrganizationVerified?: boolean;
+    organizationEmail?: string;
+    organizationName?: string;
     communityConsent?: boolean;
-    governmentIdDocument?: string;
-    aadhaarNumber?: string;
     userId: number;
     user?: User;
     avatar?: Media | string;

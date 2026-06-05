@@ -23,7 +23,7 @@ export class UsersService {
         include: { userProfile: true },
       });
     } catch (error) {
-      if (!this.isMissingAccountStatusColumnError(error)) {
+      if (!this.isLegacyUserReadError(error)) {
         throw error;
       }
 
@@ -38,7 +38,7 @@ export class UsersService {
         include: { userProfile: true },
       });
     } catch (error) {
-      if (!this.isMissingAccountStatusColumnError(error)) {
+      if (!this.isLegacyUserReadError(error)) {
         throw error;
       }
 
@@ -65,7 +65,7 @@ export class UsersService {
         include: { userProfile: true },
       });
     } catch (error) {
-      if (this.isMissingAccountStatusColumnError(error)) {
+      if (this.isLegacyUserReadError(error)) {
         throw new ServiceUnavailableException(
           'Account pause is not ready yet. Please run the database update for account status fields.',
         );
@@ -86,7 +86,7 @@ export class UsersService {
         include: { userProfile: true },
       });
     } catch (error) {
-      if (this.isMissingAccountStatusColumnError(error)) {
+      if (this.isLegacyUserReadError(error)) {
         const legacyUser = await this.findByIdLegacy(id);
         if (!legacyUser) {
           throw error;
@@ -449,7 +449,7 @@ export class UsersService {
         },
       });
     } catch (error) {
-      if (!this.isMissingAccountStatusColumnError(error)) {
+      if (!this.isLegacyUserReadError(error)) {
         throw error;
       }
 
@@ -563,7 +563,7 @@ export class UsersService {
         up."completedTripsCount" AS "profileCompletedTripsCount",
         up."ratingsCount" AS "profileRatingsCount",
         up."isVerified" AS "profileIsVerified",
-        up."governmentIdVerified" AS "profileGovernmentIdVerified",
+        up."isOrganizationVerified" AS "profileIsOrganizationVerified",
         up.gender AS "profileGender",
         up.city AS "profileCity",
         up."pushToken" AS "profilePushToken",
@@ -604,7 +604,7 @@ export class UsersService {
         up."completedTripsCount" AS "profileCompletedTripsCount",
         up."ratingsCount" AS "profileRatingsCount",
         up."isVerified" AS "profileIsVerified",
-        up."governmentIdVerified" AS "profileGovernmentIdVerified",
+        up."isOrganizationVerified" AS "profileIsOrganizationVerified",
         up.gender AS "profileGender",
         up.city AS "profileCity",
         up."pushToken" AS "profilePushToken",
@@ -650,7 +650,7 @@ export class UsersService {
             completedTripsCount: row.profileCompletedTripsCount,
             ratingsCount: row.profileRatingsCount,
             isVerified: row.profileIsVerified,
-            governmentIdVerified: row.profileGovernmentIdVerified,
+            isOrganizationVerified: row.profileIsOrganizationVerified,
             gender: row.profileGender,
             city: row.profileCity,
             pushToken: row.profilePushToken,
@@ -662,13 +662,10 @@ export class UsersService {
     };
   }
 
-  private isMissingAccountStatusColumnError(error: unknown) {
+  private isLegacyUserReadError(error: unknown) {
     return (
       error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2022' &&
-      typeof error.message === 'string' &&
-      (error.message.includes('User.accountStatus') ||
-        error.message.includes('User.pausedAt'))
+      error.code === 'P2022'
     );
   }
 
