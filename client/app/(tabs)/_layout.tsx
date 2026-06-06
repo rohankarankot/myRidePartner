@@ -15,7 +15,7 @@ import { VStack } from '@/components/ui/vstack';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { NotificationPermissionGate } from '@/components/notification-permission-gate';
 
-import { TabsShell } from './tabs-shell';
+import { TabsShell } from '@/components/tabs-shell';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
