@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { ThemeModeToggle } from "@/src/backoffice/components/themes/theme-mode-toggle";
-import { ThemeSelector } from "@/src/backoffice/components/themes/theme-selector";
 
 export default function PrivacyPage() {
   const sections = [
@@ -22,7 +21,7 @@ export default function PrivacyPage() {
     },
     {
       title: '5. Account Deletion',
-      body: 'You have the right to access, update, or delete your account information at any time. To request full deletion of your account and associated data, please contact us at rohan.alwayscodes@gmail.com. We will process your request within 48 hours.',
+      body: 'You have the right to access, update, or delete your account information at any time. To request full deletion of your account and associated data, please visit our Account Deletion page or contact us at rohan.alwayscodes@gmail.com.',
     },
     {
       title: '6. Contact Us',
@@ -31,82 +30,80 @@ export default function PrivacyPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30">
+    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30 flex flex-col justify-between">
       {/* Background Glows */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[120px] animate-pulse" />
         <div className="absolute top-[40%] -right-[10%] w-[30%] h-[30%] rounded-full bg-blue-500/10 blur-[100px]" />
       </div>
 
-      <div className="mx-auto max-w-4xl px-6 py-12 sm:px-10 lg:px-12 lg:py-20">
-        <header className="flex items-center justify-between">
-          <Link href="/" className="group flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-all group-hover:border-primary/50 group-hover:bg-primary/5">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-muted-foreground transition-colors group-hover:text-primary"
-              >
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </div>
-            <span className="text-sm font-semibold uppercase tracking-widest text-muted-foreground transition-colors group-hover:text-primary">
-              Back to Home
+      <div className="mx-auto w-full max-w-7xl px-6 lg:px-8 flex-1 flex flex-col justify-between">
+        {/* Header/Navbar */}
+        <nav className="flex items-center justify-between py-8">
+          <Link href="/" className="flex flex-col hover:opacity-95 transition-all">
+            <span className="text-xl font-bold tracking-tight text-primary">
+              Cab Collab
+            </span>
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
+              Shared City Commute
             </span>
           </Link>
+
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2">
-              <ThemeModeToggle />
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.32em] text-primary">
-                Legal
-              </p>
-            </div>
-          </div>
-        </header>
-
-        <div className="mt-16 sm:mt-24">
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Privacy Policy
-          </h1>
-          <p className="mt-6 text-lg leading-8 text-muted-foreground">
-            At Cab Collab, we are committed to protecting your privacy and
-            ensuring a safe carpooling experience. This policy explains how we
-            collect, use, and safeguard your data.
-          </p>
-        </div>
-
-        <div className="mt-16 space-y-8 lg:mt-24">
-          {sections.map((section) => (
-            <section
-              key={section.title}
-              className="rounded-[2.5rem] border border-border bg-card/60 p-8 shadow-md backdrop-blur-md transition-all hover:shadow-lg lg:p-12"
+            <ThemeModeToggle />
+            <a
+              href="https://play.google.com/store/apps/details?id=com.rohanalwayscodes.myridepartner"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90 transition-all hover:scale-105 active:scale-95"
             >
-              <h2 className="text-xl font-semibold text-foreground lg:text-2xl">
-                {section.title}
-              </h2>
-              <p className="mt-6 text-base leading-8 text-muted-foreground lg:text-lg">
-                {section.body}
-              </p>
-            </section>
-          ))}
+              Get Started
+            </a>
+          </div>
+        </nav>
+
+        {/* Content Area */}
+        <div className="max-w-4xl mx-auto py-12 sm:py-16">
+          <div className="text-center sm:text-left mb-16">
+            <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+              Privacy Policy
+            </h1>
+            <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+              At Cab Collab, we are committed to protecting your privacy and
+              ensuring a safe carpooling experience. This policy explains how we
+              collect, use, and safeguard your data.
+            </p>
+          </div>
+
+          <div className="space-y-8">
+            {sections.map((section) => (
+              <section
+                key={section.title}
+                className="rounded-[2.5rem] border border-border bg-card/60 p-8 shadow-md backdrop-blur-md transition-all hover:shadow-lg lg:p-12"
+              >
+                <h2 className="text-xl font-semibold text-foreground lg:text-2xl">
+                  {section.title}
+                </h2>
+                <p className="mt-6 text-base leading-relaxed text-muted-foreground lg:text-lg">
+                  {section.body}
+                </p>
+              </section>
+            ))}
+          </div>
         </div>
 
-        <footer className="mt-20 border-t border-border pt-10 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Last Updated: April 2026
-          </p>
-          <p className="mt-4 text-sm text-muted-foreground/60">
-            &copy; 2026 Cab Collab. All rights reserved.
-          </p>
+        {/* Footer */}
+        <footer className="py-12 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-8">
+          <div className="text-center sm:text-left">
+            <p className="font-bold text-foreground mb-1">Cab Collab</p>
+            <p className="text-sm text-muted-foreground">© 2026 MH13 Community. All rights reserved.</p>
+          </div>
+
+          <div className="flex gap-8 text-sm font-medium text-muted-foreground">
+            <Link href="/delete-account" className="hover:text-primary transition-colors">Delete Account</Link>
+            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+            <a href="mailto:rohan.alwayscodes@gmail.com" className="hover:text-primary transition-colors">Contact Support</a>
+          </div>
         </footer>
       </div>
 
