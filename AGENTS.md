@@ -93,6 +93,15 @@
 - Start the production server: `npm run start`
 - Lint web-client files: `npm run lint`
 
+## Web Trip Sharing And Deep Links
+- Public trip sharing is implemented in `web-client/app/trip/[id]/page.tsx`.
+- The page fetches `${NEXT_PUBLIC_API_URL}/public/trips/:id`, falls back to `http://localhost:3000/api` when unset, and still renders a usable fallback if the request fails.
+- The mobile handoff uses the custom scheme `cabcollab://trip/:id`, matching `client/app.config.ts`.
+- Verified link association files are served from `web-client/app/.well-known/apple-app-site-association/route.ts` and `web-client/app/.well-known/assetlinks.json/route.ts`.
+- `APPLE_TEAM_ID` is required for the iOS association route; `IOS_BUNDLE_ID` defaults to `com.rohanalwayscodes.myridepartner`.
+- The Android association route currently hardcodes package `com.rohanalwayscodes.myridepartner` and its SHA-256 fingerprint.
+- TODO: add a checked-in env example for the web/mobile deep-link variables before expanding this workflow further.
+
 ## Expectations For Future Agents
 - Preserve the shared-user model unless explicitly asked to separate users per app.
 - Prefer app registration through `AppSource` data, not schema enums.
