@@ -18,11 +18,13 @@ import {
   NotificationsConfirmModal,
   NotificationsEmptyState,
 } from '@/features/notifications/components';
+import { useInterstitialAd } from '@/features/ads/hooks/use-interstitial-ad';
 
 export default function NotificationsScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { showAdWithCallback } = useInterstitialAd(1);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -99,7 +101,7 @@ export default function NotificationsScreen() {
       return;
     }
     if (tripId) {
-      router.push({ pathname: '/trip/[id]', params: { id: tripId } } as any);
+      showAdWithCallback(() => router.push({ pathname: '/trip/[id]', params: { id: tripId } } as any));
       return;
     }
     if (notification.type === 'TRIP_COMPLETED' || notification.type === 'TRIP_UPDATE') {

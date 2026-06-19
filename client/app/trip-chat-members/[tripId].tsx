@@ -20,6 +20,7 @@ import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Divider } from '@/components/ui/divider';
 import { ListPageSkeleton } from '@/components/skeleton/page-skeletons';
+import { useInterstitialAd } from '@/features/ads/hooks/use-interstitial-ad';
 
 type MemberRow = {
     id: number;
@@ -32,6 +33,7 @@ type MemberRow = {
 export default function TripChatMembersScreen() {
     const { tripId } = useLocalSearchParams<{ tripId: string }>();
     const router = useRouter();
+    const { showAdWithCallback } = useInterstitialAd(1);
 
     const backgroundColor = useThemeColor({}, 'background');
     const textColor = useThemeColor({}, 'text');
@@ -187,7 +189,7 @@ export default function TripChatMembersScreen() {
                             <Pressable
                                 className="mt-6 rounded-[32px] border-2 p-5 flex-row items-center shadow-xl"
                                 style={{ backgroundColor: cardColor, borderColor: `${primaryColor}30` }}
-                                onPress={() => router.push(`/trip/${tripId}`)}
+                                onPress={() => showAdWithCallback(() => router.push(`/trip/${tripId}`))}
                             >
                                 <Box className="w-12 h-12 rounded-2xl items-center justify-center border shadow-sm" style={{ backgroundColor: `${primaryColor}10`, borderColor: primaryColor + '20' }}>
                                     <IconSymbol name="car.fill" size={20} color={primaryColor} />

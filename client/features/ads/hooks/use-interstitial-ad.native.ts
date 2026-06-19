@@ -7,11 +7,22 @@ const DEFAULT_AD_UNIT_ID = Platform.select({
 }) || TestIds.INTERSTITIAL;
 
 const DEFAULT_FREQUENCY = 2;
+const DEFAULT_COOLDOWN_MS = 60000;
 
-export function useInterstitialAd(frequency = DEFAULT_FREQUENCY, customAdUnitId?: string) {
+type UseInterstitialAdOptions = {
+  cooldownMs?: number;
+};
+
+export function useInterstitialAd(
+  frequency = DEFAULT_FREQUENCY,
+  customAdUnitId?: string,
+  options?: UseInterstitialAdOptions
+) {
   const [interstitial, setInterstitial] = useState<InterstitialAd | null>(null);
   const [loaded, setLoaded] = useState(false);
   const clickCount = useRef(0);
+  const lastShownAt = useRef(0);
+  const cooldownMs = options?.cooldownMs ?? DEFAULT_COOLDOWN_MS;
 
   const adUnitIdToUse = __DEV__
     ? TestIds.INTERSTITIAL
@@ -53,9 +64,12 @@ export function useInterstitialAd(frequency = DEFAULT_FREQUENCY, customAdUnitId?
 
   const showAdWithCallback = useCallback((callback: () => void) => {
     clickCount.current += 1;
+    const now = Date.now();
+    const isOnCooldown = now - lastShownAt.current < cooldownMs;
 
-    if (clickCount.current % frequency === 0 && loaded && interstitial) {
+    if (clickCount.current % frequency === 0 && loaded && interstitial && !isOnCooldown) {
       const unsubscribeClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+        lastShownAt.current = Date.now();
         callback();
         unsubscribeClosed();
       });

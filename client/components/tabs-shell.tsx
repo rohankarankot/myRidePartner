@@ -22,6 +22,7 @@ import { useAuth } from '@/context/auth-context';
 import { getThemeColors } from '@/constants/theme';
 import { tripService } from '@/services/trip-service';
 import { joinRequestService } from '@/services/join-request-service';
+import { useInterstitialAd } from '@/features/ads/hooks/use-interstitial-ad';
 
 import PublishOutlineIcon from '@/assets/tab-icons/publish-outline.svg';
 import PublishFilledIcon from '@/assets/tab-icons/publish-filled.svg';
@@ -48,6 +49,7 @@ export function TabsShell({
   const router = useRouter();
   const [isRideMenuOpen, setIsRideMenuOpen] = useState(false);
   const menuProgress = useSharedValue(0);
+  const { showAdWithCallback } = useInterstitialAd(1);
 
   const { data: trips = [] } = useQuery({
     queryKey: ['trips', user?.id],
@@ -97,7 +99,7 @@ export function TabsShell({
   const openTrip = (path: string) => {
     setIsRideMenuOpen(false);
     menuProgress.value = withSpring(0, { damping: 18, stiffness: 180 });
-    router.push(path as any);
+    showAdWithCallback(() => router.push(path as any));
   };
 
   const floatingButtonStyle = useAnimatedStyle(() => ({

@@ -62,7 +62,7 @@ export default function FindRidesScreen() {
     trips,
   } = useFindRidesScreen();
 
-  const { showAdWithCallback } = useInterstitialAd(2);
+  const { showAdWithCallback } = useInterstitialAd(1);
 
   return (
     <Box className="flex-1" style={{ backgroundColor }}>

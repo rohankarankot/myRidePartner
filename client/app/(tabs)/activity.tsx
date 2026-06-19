@@ -10,6 +10,7 @@ import {
 } from '@/features/trips/components/activity';
 import { useActivityScreen } from '@/features/trips/hooks/use-activity-screen';
 import { ActivityBannerAd } from '@/features/ads/components/activity-banner-ad';
+import { useInterstitialAd } from '@/features/ads/hooks/use-interstitial-ad';
 
 const getAvatarUrl = (avatar?: string | { url: string; formats?: any }) =>
   typeof avatar === 'string' ? avatar : avatar?.url;
@@ -26,6 +27,7 @@ export default function ActivityScreen() {
     scrollRef,
     setActiveTab,
   } = useActivityScreen();
+  const { showAdWithCallback } = useInterstitialAd(1);
 
   const backgroundColor = useThemeColor({}, 'background');
   const textColor = useThemeColor({}, 'text');
@@ -82,7 +84,7 @@ export default function ActivityScreen() {
                     avatarUrl={getAvatarUrl(trip.creator?.userProfile?.avatar)}
                     captainName={trip.creator?.userProfile?.fullName || trip.creator?.username}
                     pendingRequestsCount={trip.joinRequests?.filter((request: any) => request.status === 'PENDING').length}
-                    onPress={(docId) => router.push(`/trip/${docId}`)}
+                    onPress={(docId) => showAdWithCallback(() => router.push(`/trip/${docId}`))}
                   />
                 ))}
               </>
@@ -108,7 +110,7 @@ export default function ActivityScreen() {
                     genderPreference={request.trip?.genderPreference || 'both'}
                     avatarUrl={getAvatarUrl(request.trip?.creator?.userProfile?.avatar)}
                     captainName={request.trip?.creator?.userProfile?.fullName || request.trip?.creator?.username}
-                    onPress={(docId) => router.push(`/trip/${docId}`)}
+                    onPress={(docId) => showAdWithCallback(() => router.push(`/trip/${docId}`))}
                   />
                 ))}
               </>

@@ -299,7 +299,9 @@ export function useCreateScreen() {
       }
 
       setPublishedTrip(savedTrip);
-      setShowSharePrompt(true);
+      showAdWithCallback(() => {
+        setShowSharePrompt(true);
+      });
       resetForm();
     },
     onError: (error) => {

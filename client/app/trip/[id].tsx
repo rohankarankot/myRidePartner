@@ -40,6 +40,7 @@ import { ReportModal, ReportPayload } from '@/features/safety/components/ReportM
 import { TripDetailsSkeleton } from '@/features/trips/components/TripDetailsSkeleton';
 import { buildTripStartDateTime, canCaptainEditTrip, hasApprovedPassengers } from '@/features/trips/utils/trip-editability';
 import { buildTripShareMessage } from '@/features/trips/utils/trip-share';
+import { useInterstitialAd } from '@/features/ads/hooks/use-interstitial-ad';
 
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
@@ -62,6 +63,7 @@ export default function TripDetailsScreen() {
     const queryClient = useQueryClient();
     const { profile } = useUserStore();
     const { isBlocked, blockUser, unblockUser, isBlocking, isUnblocking } = useBlockedUsers();
+    const { showAdWithCallback } = useInterstitialAd(1);
 
     const isProfileIncomplete = !profile || !profile.fullName || !profile.phoneNumber || !profile.gender || !profile.city;
 
@@ -454,6 +456,7 @@ export default function TripDetailsScreen() {
                     has_final_price: typeof variables.pricePerSeat === 'number' || Boolean(trip?.pricePerSeat),
                     was_creator: user?.id === trip?.creator?.id,
                 });
+                showAdWithCallback(() => undefined);
             }
         },
     });
