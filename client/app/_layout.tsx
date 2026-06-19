@@ -20,6 +20,7 @@ export const unstable_settings = {
 
 function RootLayout() {
   React.useEffect(() => {
+    console.log('AdMob build mode:', __DEV__ ? 'development' : 'production');
     void initializeMobileAds();
   }, []);
 

@@ -59,9 +59,12 @@ export function useCreateScreen() {
   const queryClient = useQueryClient();
   const { profile } = useUserStore();
   const { isLoading: isProfileLoading } = useUserProfile();
+  const creationInterstitialAdUnitId = Platform.select({
+    android: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_CREATION_ANDROID,
+  });
   const { showAdWithCallback } = useInterstitialAd(
     1,
-    process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_CREATION_ANDROID
+    creationInterstitialAdUnitId
   ); // Show ad every time a trip is created
 
   const isProfileIncomplete =

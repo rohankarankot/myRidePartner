@@ -9,6 +9,7 @@ const prisma = new PrismaClient({ adapter });
 
 const appSources = [
   { slug: 'cabcollab', name: 'Cab Collab' },
+  { slug: 'myridepartner', name: 'myRidePartner' },
   { slug: 'interport', name: 'interPort' },
 ];
 

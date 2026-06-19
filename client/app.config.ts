@@ -2,9 +2,9 @@ import type { ExpoConfig } from 'expo/config';
 import withVerificationToken from './plugins/withVerificationToken';
 
 const androidAppId =
-  process.env.EXPO_PUBLIC_ADMOB_APP_ID_ANDROID || 'ca-app-pub-4316956546209623~6592915428';
-const iosAppId =
-  process.env.EXPO_PUBLIC_ADMOB_APP_ID_IOS || 'ca-app-pub-3940256099942544~1458002511';
+  process.env.EXPO_PUBLIC_ADMOB_APP_ID_ANDROID ||
+  process.env.ADMOB_ANDROID_APP_ID ||
+  'ca-app-pub-4316956546209623~6592915428';
 const shareBaseUrl =
   process.env.EXPO_PUBLIC_SHARE_BASE_URL || 'https://cab-collab.vercel.app';
 const shareHost = new URL(shareBaseUrl).host;
@@ -138,7 +138,6 @@ const config: ExpoConfig = {
       'react-native-google-mobile-ads',
       {
         androidAppId,
-        iosAppId,
       },
     ],
     ...(process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
@@ -163,6 +162,5 @@ export default {
   ...config,
   'react-native-google-mobile-ads': {
     android_app_id: androidAppId,
-    ios_app_id: iosAppId,
   },
 };

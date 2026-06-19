@@ -4,7 +4,6 @@ import { InterstitialAd, AdEventType, TestIds } from 'react-native-google-mobile
 
 const DEFAULT_AD_UNIT_ID = Platform.select({
   android: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID || TestIds.INTERSTITIAL,
-  ios: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS || TestIds.INTERSTITIAL,
 }) || TestIds.INTERSTITIAL;
 
 const DEFAULT_FREQUENCY = 2;

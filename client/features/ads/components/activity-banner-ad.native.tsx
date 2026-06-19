@@ -4,7 +4,6 @@ import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads'
 
 const AD_UNIT_ID = Platform.select({
   android: process.env.EXPO_PUBLIC_ADMOB_ACTIVITY_BANNER_ANDROID || TestIds.BANNER,
-  ios: process.env.EXPO_PUBLIC_ADMOB_ACTIVITY_BANNER_IOS || TestIds.BANNER,
 }) || TestIds.BANNER;
 
 export function ActivityBannerAd() {
@@ -13,12 +12,15 @@ export function ActivityBannerAd() {
   if (!unitId) return null;
 
   return (
-    <View style={{ alignItems: 'center', marginBottom: 10 }}>
+    <View style={{ width: '100%', alignItems: 'center', marginBottom: 10 }}>
       <BannerAd
         unitId={unitId}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
           requestNonPersonalizedAdsOnly: true,
+        }}
+        onAdFailedToLoad={(error) => {
+          console.warn('AdMob Activity Banner failed to load:', error);
         }}
       />
     </View>
