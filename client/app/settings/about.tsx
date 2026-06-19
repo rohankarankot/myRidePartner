@@ -28,8 +28,14 @@ const TECH_STACK = [
   'Next.js',
   'TypeScript',
   'Zustand',
+  'React Query',
   'Socket.io',
   'Cloudinary',
+  'Tailwind CSS',
+  'NativeWind',
+  'Gluestack UI',
+  'Firebase',
+  'Sentry',
 ];
 
 export default function AboutScreen() {
