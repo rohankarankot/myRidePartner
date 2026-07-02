@@ -84,17 +84,7 @@ export default function CommunityTabScreen() {
             onPress={() => router.push('/community-chat')}
           />
 
-          <CommunityActionCard
-            icon="person.2.fill"
-            title="Browse Members"
-            subtitle="See all users who are part of the public community."
-            cardColor={cardColor}
-            primaryColor={primaryColor}
-            subtextColor={subtextColor}
-            textColor={textColor}
-            borderColor={borderColor}
-            onPress={() => router.push('/community-members')}
-          />
+
 
           <CommunityActionCard
             icon="person.3.fill"
