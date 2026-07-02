@@ -3,6 +3,12 @@ import * as SecureStore from 'expo-secure-store';
 import { CONFIG } from '@/constants/config';
 import { logger } from '@/shared/lib/logger';
 
+let onUnauthorized: (() => void) | null = null;
+
+export const setUnauthorizedCallback = (callback: () => void) => {
+    onUnauthorized = callback;
+};
+
 const apiClient = axios.create({
     baseURL: `${CONFIG.API_URL}/api`,
 });
@@ -34,9 +40,13 @@ apiClient.interceptors.response.use(
             logger.warn('Unauthorized request detected (401)');
             await SecureStore.deleteItemAsync('userToken');
             await SecureStore.deleteItemAsync('userData');
+            if (onUnauthorized) {
+                onUnauthorized();
+            }
         }
         return Promise.reject(error);
     }
 );
 
 export default apiClient;
+

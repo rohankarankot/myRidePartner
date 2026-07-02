@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -9,6 +9,7 @@ import { socketService } from '@/features/realtime/socket-service';
 import { logger } from '@/shared/lib/logger';
 import { useUserStore } from '@/store/user-store';
 import { pushNotificationService } from '@/services/push-notification-service';
+import { setUnauthorizedCallback } from '@/api/api-client';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -19,6 +20,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setProfile = useUserStore((state) => state.setProfile);
   const clearStore = useUserStore((state) => state.clearStore);
   const queryClient = useQueryClient();
+
+  const signOut = useCallback(async () => {
+    try {
+      await GoogleSignin.signOut();
+    } catch (error) {
+      logger.warn('Google SignOut error', { error });
+    }
+
+    queryClient.clear();
+    setToken(null);
+    setUser(null);
+    clearStore();
+    socketService.disconnect();
+    await clearStoredSession();
+  }, [queryClient, clearStore]);
+
+  useEffect(() => {
+    setUnauthorizedCallback(signOut);
+    return () => {
+      setUnauthorizedCallback(() => {});
+    };
+  }, [signOut]);
 
   useEffect(() => {
     void hydrateSession();
@@ -61,21 +84,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persistSession(nextToken, nextUser);
     void fetchAndStoreProfile(nextUser.id);
     socketService.connect(nextUser.id, nextToken);
-  };
-
-  const signOut = async () => {
-    try {
-      await GoogleSignin.signOut();
-    } catch (error) {
-      logger.warn('Google SignOut error', { error });
-    }
-
-    queryClient.clear();
-    setToken(null);
-    setUser(null);
-    clearStore();
-    socketService.disconnect();
-    await clearStoredSession();
   };
 
   return (
